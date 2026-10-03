@@ -1,0 +1,18 @@
+@extends('layouts.app')
+
+@section('title', 'Home')
+
+@section('content')
+    <h1>Welcome, {{ $user }}</h1>
+    {{-- this comment never reaches the browser --}}
+    <ul>
+    @forelse($posts as $post)
+        <li class="{{ $loop->first ? 'first' : '' }}">
+            {{ $loop->iteration }}/{{ $loop->count }}: {{ $post->title }}
+            @unless($post->published) (draft) @endunless
+        </li>
+    @empty
+        <li>No posts yet</li>
+    @endforelse
+    </ul>
+@endsection
