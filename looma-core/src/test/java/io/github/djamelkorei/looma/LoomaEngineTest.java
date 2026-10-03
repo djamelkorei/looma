@@ -93,4 +93,24 @@ class LoomaEngineTest {
         assertThrows(LoomaException.class, () -> render("{{ T(java.lang.System).getenv() }}", Map.of()));
         assertThrows(LoomaException.class, () -> render("{{ new java.io.File('x') }}", Map.of()));
     }
+
+    @Test
+    void issetAuthGuestAndVerbatim() {
+        assertEquals("set", render("@isset($a)set@endisset", Map.of("a", 1)));
+        assertEquals("", render("@isset($a)set@endisset", Map.of()));
+        assertEquals(" in", render("@auth in@else out@endauth", Map.of("principal", "bob")));
+        assertEquals(" out", render("@auth in@else out@endauth", Map.of()));
+        assertEquals(" g", render("@guest g@endguest", Map.of()));
+        assertEquals("@if({{ x }})", render("@verbatim@if({{ x }})@endverbatim", Map.of("x", 1)));
+        assertEquals("a@empty.com", render("a@empty.com", Map.of()));
+    }
+
+    @Test
+    void switchCases() {
+        String t = "@switch($n)@case(1)one@break@case(2)@case(3)two-or-three@break@default other@endswitch";
+        assertEquals("one", render(t, Map.of("n", 1)));
+        assertEquals("two-or-three", render(t, Map.of("n", 2)));
+        assertEquals("two-or-three", render(t, Map.of("n", 3)));
+        assertEquals(" other", render(t, Map.of("n", 9)));
+    }
 }

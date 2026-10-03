@@ -13,9 +13,11 @@ final class Lexer {
     record Token(Kind kind, String text, String args, int line) {}
 
     private static final Set<String> TAKES_ARGS =
-            Set.of("if", "elseif", "unless", "foreach", "forelse", "include", "extends", "section", "yield");
+            Set.of("if", "elseif", "unless", "isset", "switch", "case", "foreach", "forelse", "include",
+                    "extends", "section", "yield");
     private static final Set<String> NO_ARGS =
-            Set.of("else", "endif", "endunless", "endforeach", "empty", "endforelse", "endsection", "show");
+            Set.of("else", "endif", "endunless", "endisset", "endswitch", "break", "default", "auth", "endauth",
+                    "guest", "endguest", "endforeach", "empty", "endforelse", "endsection", "show");
 
     private Lexer() {}
 
@@ -64,6 +66,12 @@ final class Lexer {
                 if (looksLikeEmailOrIdentifier(s, j)) {
                     text.append(c);
                     i++;
+                } else if (name.equals("verbatim")) {
+                    int e = s.indexOf("@endverbatim", j);
+                    if (e < 0) throw new LoomaException("Unclosed @verbatim", line, null);
+                    text.append(s, j, e);
+                    line += newlines(s, i, e);
+                    i = e + "@endverbatim".length();
                 } else if (NO_ARGS.contains(name)) {
                     flush(out, text, textLine);
                     out.add(new Token(Kind.DIRECTIVE, name, null, line));

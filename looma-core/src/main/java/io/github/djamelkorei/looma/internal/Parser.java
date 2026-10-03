@@ -51,8 +51,12 @@ public final class Parser {
 
     private Node directive(Token t) {
         return switch (t.text()) {
-            case "if" -> parseIf(t, false);
-            case "unless" -> parseIf(t, true);
+            case "if" -> parseIf(t, t.args(), "endif", true);
+            case "unless" -> parseIf(t, "!(" + t.args() + ")", "endunless", false);
+            case "isset" -> parseIf(t, "(" + t.args() + ") != null", "endisset", false);
+            case "auth" -> parseIf(t, "principal != null", "endauth", false);
+            case "guest" -> parseIf(t, "principal == null", "endguest", false);
+            case "switch" -> parseSwitch(t);
             case "foreach" -> parseForeach(t, false);
             case "forelse" -> parseForeach(t, true);
             case "include" -> {
@@ -69,12 +73,10 @@ public final class Parser {
         };
     }
 
-    private Node parseIf(Token t, boolean negate) {
-        String end = negate ? "endunless" : "endif";
-        Set<String> stops = negate ? Set.of("else", end) : Set.of("elseif", "else", end);
+    private Node parseIf(Token t, String cond, String end, boolean allowElseif) {
+        Set<String> stops = allowElseif ? Set.of("elseif", "else", end) : Set.of("else", end);
         List<Node.Branch> branches = new ArrayList<>();
         List<Node> orElse = List.of();
-        String cond = negate ? "!(" + t.args() + ")" : t.args();
         branches.add(new Node.Branch(expr(cond, t), block(stops)));
         while (true) {
             Token n = tokens.get(pos++);
@@ -89,6 +91,50 @@ public final class Parser {
             }
         }
         return new Node.If(branches, orElse);
+    }
+
+    private Node parseSwitch(Token t) {
+        var subject = expr(t.args(), t);
+        List<Node.Case> cases = new ArrayList<>();
+        List<org.springframework.expression.Expression> pending = new ArrayList<>();
+        while (true) {
+            skipBlankText();
+            if (pos >= tokens.size()) throw new LoomaException("Unclosed @switch", t.line(), null);
+            Token n = tokens.get(pos++);
+            if (n.kind() != Kind.DIRECTIVE) {
+                throw new LoomaException("Only @case and @default are allowed directly inside @switch", n.line(), null);
+            }
+            switch (n.text()) {
+                case "endswitch" -> {
+                    return new Node.Switch(subject, cases);
+                }
+                case "case" -> {
+                    pending.add(expr(n.args(), n));
+                    List<Node> body = caseBody();
+                    // Consecutive empty cases share the next body: @case(1) @case(2) ...
+                    if (!isBlank(body)) {
+                        cases.add(new Node.Case(List.copyOf(pending), body));
+                        pending.clear();
+                    }
+                }
+                case "default" -> cases.add(new Node.Case(List.of(), caseBody()));
+                default -> throw new LoomaException("Unexpected @" + n.text() + " inside @switch", n.line(), null);
+            }
+        }
+    }
+
+    private List<Node> caseBody() {
+        List<Node> body = block(Set.of("case", "default", "break", "endswitch"));
+        if (tokens.get(pos).text().equals("break")) pos++;
+        return body;
+    }
+
+    private void skipBlankText() {
+        while (pos < tokens.size() && tokens.get(pos).kind() == Kind.TEXT && tokens.get(pos).text().isBlank()) pos++;
+    }
+
+    private static boolean isBlank(List<Node> nodes) {
+        return nodes.stream().allMatch(n -> n instanceof Node.Text t && t.value().isBlank());
     }
 
     private Node parseForeach(Token t, boolean forelse) {

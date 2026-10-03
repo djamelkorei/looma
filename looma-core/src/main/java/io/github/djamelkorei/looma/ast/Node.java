@@ -17,6 +17,11 @@ public sealed interface Node {
     /** {@code @foreach} / {@code @forelse}; {@code empty} is empty for plain foreach. */
     record Foreach(Expression items, String var, List<Node> body, List<Node> empty) implements Node {}
 
+    /** {@code @switch}; a case with no tests is the {@code @default} case. */
+    record Switch(Expression subject, List<Case> cases) implements Node {}
+
+    record Case(List<Expression> tests, List<Node> body) {}
+
     record Include(Expression name, Expression data) implements Node {}
 
     record Extends(Expression name) implements Node {}

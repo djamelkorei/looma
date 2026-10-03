@@ -48,6 +48,7 @@ public final class RenderSession {
                 case Node.Text t -> out.append(t.value());
                 case Node.Echo e -> echo(e, scope);
                 case Node.If i -> renderIf(i, scope);
+                case Node.Switch sw -> renderSwitch(sw, scope);
                 case Node.Foreach f -> renderForeach(f, scope);
                 case Node.Include inc -> renderInclude(inc, scope);
                 case Node.Section s -> renderNodes(sections.getOrDefault(s.name(), s).body(), scope);
@@ -72,6 +73,31 @@ public final class RenderSession {
             }
         }
         renderNodes(node.orElse(), scope);
+    }
+
+    private void renderSwitch(Node.Switch sw, Scope scope) {
+        Object subject = Expressions.eval(sw.subject(), scope);
+        Node.Case fallback = null;
+        for (Node.Case c : sw.cases()) {
+            if (c.tests().isEmpty()) {
+                fallback = c;
+                continue;
+            }
+            for (var test : c.tests()) {
+                if (looselyEqual(subject, Expressions.eval(test, scope))) {
+                    renderNodes(c.body(), scope);
+                    return;
+                }
+            }
+        }
+        if (fallback != null) renderNodes(fallback.body(), scope);
+    }
+
+    private static boolean looselyEqual(Object a, Object b) {
+        if (a instanceof Number x && b instanceof Number y) return x.doubleValue() == y.doubleValue();
+        if (a instanceof Enum<?> e && b instanceof String s) return e.name().equals(s);
+        if (a instanceof String s && b instanceof Enum<?> e) return e.name().equals(s);
+        return java.util.Objects.equals(a, b);
     }
 
     private void renderForeach(Node.Foreach f, Scope scope) {
