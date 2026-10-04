@@ -57,6 +57,14 @@ public final class Parser {
             case "auth" -> parseIf(t, "principal != null", "endauth", false);
             case "guest" -> parseIf(t, "principal == null", "endguest", false);
             case "switch" -> parseSwitch(t);
+            case "parent" -> new Node.Parent();
+            case "push", "prepend" -> {
+                String end = "end" + t.text();
+                List<Node> body = block(Set.of(end));
+                pos++;
+                yield new Node.Push(Args.literal(t.args(), t.line()), body, t.text().equals("prepend"));
+            }
+            case "stack" -> new Node.Stack(Args.literal(t.args(), t.line()));
             case "foreach" -> parseForeach(t, false);
             case "forelse" -> parseForeach(t, true);
             case "include" -> {

@@ -28,5 +28,14 @@ public sealed interface Node {
 
     record Section(String name, List<Node> body) implements Node {}
 
+    /** {@code @parent} inside a section: renders the overridden section from the parent layout. */
+    record Parent() implements Node {}
+
+    /** {@code @push} / {@code @prepend}: captures its body onto a named stack. */
+    record Push(String name, List<Node> body, boolean prepend) implements Node {}
+
+    /** {@code @stack('name')}: outputs everything pushed onto the stack. */
+    record Stack(String name) implements Node {}
+
     record Yield(String name, Expression fallback) implements Node {}
 }

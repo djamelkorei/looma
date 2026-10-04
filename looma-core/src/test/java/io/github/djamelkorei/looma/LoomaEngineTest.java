@@ -113,4 +113,22 @@ class LoomaEngineTest {
         assertEquals("two-or-three", render(t, Map.of("n", 3)));
         assertEquals(" other", render(t, Map.of("n", 9)));
     }
+
+    @Test
+    void stacksAreFilledEvenWhenDeclaredBeforePushes() {
+        files.put("layout", "<head>@stack('js')</head>@yield('content')");
+        files.put("page", "@extends('layout')@section('content')body@push('js')<a>@endpush@push('js')<b>@endpush"
+                + "@prepend('js')<0>@endprepend@endsection");
+        assertEquals("<head><0><a><b></head>body", engine.render("page", Map.of()));
+        files.put("empty", "[@stack('none')]");
+        assertEquals("[]", engine.render("empty", Map.of()));
+    }
+
+    @Test
+    void parentAppendsToLayoutSection() {
+        files.put("base", "@section('side')base@endsection");
+        files.put("mid", "@extends('base')@section('side')mid+@parent@endsection");
+        files.put("leaf", "@extends('mid')@section('side')leaf+@parent@endsection");
+        assertEquals("leaf+mid+base", engine.render("leaf", Map.of()));
+    }
 }

@@ -2,7 +2,9 @@ package io.github.djamelkorei.looma.internal;
 
 import io.github.djamelkorei.looma.Template;
 import io.github.djamelkorei.looma.ast.Node;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Deque;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -12,8 +14,18 @@ import java.util.function.Function;
 public final class RenderSession {
 
     private final Function<String, Template> templates;
-    private final Map<String, Node.Section> sections = new HashMap<>();
-    private final StringBuilder out = new StringBuilder();
+    /** Section definitions per name; index 0 is the most-derived (child) definition. */
+    private final Map<String, List<Node.Section>> sections = new HashMap<>();
+    private final Map<String, List<String>> stacks = new HashMap<>();
+    private final java.util.Set<String> stackNames = new java.util.LinkedHashSet<>();
+    private final Deque<Chain> chains = new ArrayDeque<>();
+    private StringBuilder out = new StringBuilder();
+
+    private record Chain(List<Node.Section> sections, int index) {}
+
+    private static String marker(String stack) {
+        return "\u0000looma-stack:" + stack + "\u0000";
+    }
 
     public RenderSession(Function<String, Template> templates) {
         this.templates = templates;
@@ -23,7 +35,11 @@ public final class RenderSession {
         Scope scope = new Scope(null);
         if (model != null) scope.putAll(model);
         renderTemplate(template, scope);
-        return out.toString();
+        String result = out.toString();
+        for (String name : stackNames) {
+            result = result.replace(marker(name), String.join("", stacks.getOrDefault(name, List.of())));
+        }
+        return result;
     }
 
     private void renderTemplate(Template t, Scope scope) {
@@ -35,9 +51,9 @@ public final class RenderSession {
             renderNodes(t.nodes(), scope);
             return;
         }
-        // Child sections win over those of ancestors, so the first definition is kept.
+        // Child definitions are registered first, so they sit ahead of those of ancestor layouts.
         for (Node n : t.nodes()) {
-            if (n instanceof Node.Section s) sections.putIfAbsent(s.name(), s);
+            if (n instanceof Node.Section s) sections.computeIfAbsent(s.name(), k -> new ArrayList<>()).add(s);
         }
         renderTemplate(templates.apply(Expressions.evalString(ext.name(), scope)), scope);
     }
@@ -51,7 +67,22 @@ public final class RenderSession {
                 case Node.Switch sw -> renderSwitch(sw, scope);
                 case Node.Foreach f -> renderForeach(f, scope);
                 case Node.Include inc -> renderInclude(inc, scope);
-                case Node.Section s -> renderNodes(sections.getOrDefault(s.name(), s).body(), scope);
+                case Node.Section s -> {
+                    List<Node.Section> chain = new ArrayList<>(sections.getOrDefault(s.name(), List.of()));
+                    chain.add(s);
+                    renderChain(chain, 0, scope);
+                }
+                case Node.Parent ignored -> {
+                    Chain c = chains.peek();
+                    if (c != null && c.index() + 1 < c.sections().size()) {
+                        renderChain(c.sections(), c.index() + 1, scope);
+                    }
+                }
+                case Node.Push p -> push(p, scope);
+                case Node.Stack st -> {
+                    stackNames.add(st.name());
+                    out.append(marker(st.name()));
+                }
                 case Node.Yield y -> renderYield(y, scope);
                 case Node.Extends ignored -> { }
             }
@@ -123,10 +154,32 @@ public final class RenderSession {
         renderTemplate(templates.apply(Expressions.evalString(inc.name(), scope)), inner);
     }
 
+    private void renderChain(List<Node.Section> chain, int index, Scope scope) {
+        chains.push(new Chain(chain, index));
+        try {
+            renderNodes(chain.get(index).body(), scope);
+        } finally {
+            chains.pop();
+        }
+    }
+
+    private void push(Node.Push p, Scope scope) {
+        StringBuilder saved = out;
+        out = new StringBuilder();
+        try {
+            renderNodes(p.body(), scope);
+            List<String> stack = stacks.computeIfAbsent(p.name(), k -> new ArrayList<>());
+            if (p.prepend()) stack.add(0, out.toString());
+            else stack.add(out.toString());
+        } finally {
+            out = saved;
+        }
+    }
+
     private void renderYield(Node.Yield y, Scope scope) {
-        Node.Section s = sections.get(y.name());
-        if (s != null) {
-            renderNodes(s.body(), scope);
+        List<Node.Section> chain = sections.get(y.name());
+        if (chain != null) {
+            renderChain(chain, 0, scope);
         } else if (y.fallback() != null) {
             Object v = Expressions.eval(y.fallback(), scope);
             if (v != null) Html.escape(String.valueOf(v), out);
