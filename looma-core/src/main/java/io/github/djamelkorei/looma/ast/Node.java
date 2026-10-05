@@ -37,5 +37,14 @@ public sealed interface Node {
     /** {@code @stack('name')}: outputs everything pushed onto the stack. */
     record Stack(String name) implements Node {}
 
+    /** {@code <x-name attr="v" :attr="expr">body</x-name>}. */
+    record Component(String name, List<Attr> attrs, List<Node> body, java.util.Map<String, List<Node>> slots)
+            implements Node {}
+
+    record Attr(String name, Expression value) {}
+
+    /** {@code <x-slot:name>} inside a component; only meaningful as a child of {@link Component}. */
+    record Slot(String name, List<Node> body) implements Node {}
+
     record Yield(String name, Expression fallback) implements Node {}
 }

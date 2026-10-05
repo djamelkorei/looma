@@ -13,6 +13,7 @@ import java.util.regex.Pattern;
 /** Builds the AST from lexer tokens. */
 public final class Parser {
 
+    private static final String COMPONENT_END = "</x>";
     private static final Pattern FOREACH = Pattern.compile("(?s)^(.*\\S)\\s+as\\s+\\$?(\\w+)$");
 
     private final List<Token> tokens;
@@ -34,12 +35,19 @@ public final class Parser {
             if (t.kind() == Kind.DIRECTIVE && stops.contains(t.text())) {
                 return nodes;
             }
+            if (t.kind() == Kind.COMPONENT_CLOSE && stops.contains(COMPONENT_END)) {
+                return nodes;
+            }
             pos++;
             switch (t.kind()) {
                 case TEXT -> nodes.add(new Node.Text(t.text()));
                 case ECHO -> nodes.add(new Node.Echo(Expressions.parse(t.text(), t.line()), false));
                 case RAW -> nodes.add(new Node.Echo(Expressions.parse(t.text(), t.line()), true));
                 case DIRECTIVE -> nodes.add(directive(t));
+                case COMPONENT_OPEN -> nodes.add(component(t, false));
+                case COMPONENT_SELF -> nodes.add(component(t, true));
+                case COMPONENT_CLOSE ->
+                        throw new LoomaException("Unexpected closing tag </x-" + t.text() + ">", t.line(), null);
             }
         }
         if (!stops.isEmpty()) {
@@ -99,6 +107,72 @@ public final class Parser {
             }
         }
         return new Node.If(branches, orElse);
+    }
+
+    private Node component(Token t, boolean selfClosing) {
+        List<Node> body = List.of();
+        if (!selfClosing) {
+            body = block(Set.of(COMPONENT_END));
+            Token close = tokens.get(pos++);
+            if (!close.text().equals(t.text().split(":")[0]) && !close.text().equals(t.text())) {
+                throw new LoomaException("Expected </x-" + t.text() + "> but found </x-" + close.text() + ">",
+                        close.line(), null);
+            }
+        }
+        List<Node.Attr> attrs = parseAttrs(t);
+        String name = t.text();
+        if (name.equals("slot") || name.startsWith("slot:")) {
+            String slotName = name.startsWith("slot:") ? name.substring(5) : attrs.stream()
+                    .filter(a -> a.name().equals("name")).findFirst()
+                    .map(a -> a.value().getExpressionString())
+                    .orElseThrow(() -> new LoomaException("<x-slot> needs a name", t.line(), null));
+            return new Node.Slot(slotName, body);
+        }
+        List<Node> main = new ArrayList<>();
+        java.util.Map<String, List<Node>> slots = new java.util.LinkedHashMap<>();
+        for (Node n : body) {
+            if (n instanceof Node.Slot s) slots.put(s.name(), s.body());
+            else main.add(n);
+        }
+        return new Node.Component(name, attrs, main, slots);
+    }
+
+    /** Parses {@code a="x" :b="expr" flag} into attributes; {@code :b} values are expressions. */
+    private List<Node.Attr> parseAttrs(Token t) {
+        String raw = t.args();
+        List<Node.Attr> attrs = new ArrayList<>();
+        int i = 0;
+        int n = raw.length();
+        while (i < n) {
+            while (i < n && Character.isWhitespace(raw.charAt(i))) i++;
+            if (i >= n) break;
+            int start = i;
+            while (i < n && !Character.isWhitespace(raw.charAt(i)) && raw.charAt(i) != '=') i++;
+            String name = raw.substring(start, i);
+            String value = null;
+            if (i < n && raw.charAt(i) == '=') {
+                i++;
+                if (i < n && (raw.charAt(i) == '"' || raw.charAt(i) == '\'')) {
+                    char q = raw.charAt(i++);
+                    int vs = i;
+                    while (i < n && raw.charAt(i) != q) i++;
+                    value = raw.substring(vs, i);
+                    i++;
+                } else {
+                    int vs = i;
+                    while (i < n && !Character.isWhitespace(raw.charAt(i))) i++;
+                    value = raw.substring(vs, i);
+                }
+            }
+            if (name.startsWith(":")) {
+                attrs.add(new Node.Attr(name.substring(1), Expressions.parse(value == null ? "true" : value, t.line())));
+            } else if (value == null) {
+                attrs.add(new Node.Attr(name, Expressions.parse("true", t.line())));
+            } else {
+                attrs.add(new Node.Attr(name, new org.springframework.expression.common.LiteralExpression(value)));
+            }
+        }
+        return attrs;
     }
 
     private Node parseSwitch(Token t) {

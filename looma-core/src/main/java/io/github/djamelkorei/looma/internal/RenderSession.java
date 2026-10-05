@@ -79,6 +79,8 @@ public final class RenderSession {
                     }
                 }
                 case Node.Push p -> push(p, scope);
+                case Node.Component c -> renderComponent(c, scope);
+                case Node.Slot ignoredSlot -> { }
                 case Node.Stack st -> {
                     stackNames.add(st.name());
                     out.append(marker(st.name()));
@@ -92,7 +94,8 @@ public final class RenderSession {
     private void echo(Node.Echo e, Scope scope) {
         Object v = Expressions.eval(e.expr(), scope);
         if (v == null) return;
-        if (e.raw()) out.append(v);
+        if (v instanceof io.github.djamelkorei.looma.Htmlable h) out.append(h.toHtml());
+        else if (e.raw()) out.append(v);
         else Html.escape(String.valueOf(v), out);
     }
 
@@ -164,16 +167,52 @@ public final class RenderSession {
     }
 
     private void push(Node.Push p, Scope scope) {
+        String rendered = capture(p.body(), scope);
+        List<String> stack = stacks.computeIfAbsent(p.name(), k -> new ArrayList<>());
+        if (p.prepend()) stack.add(0, rendered);
+        else stack.add(rendered);
+    }
+
+    /** Renders nodes into a separate buffer and returns it. */
+    private String capture(List<Node> nodes, Scope scope) {
         StringBuilder saved = out;
         out = new StringBuilder();
         try {
-            renderNodes(p.body(), scope);
-            List<String> stack = stacks.computeIfAbsent(p.name(), k -> new ArrayList<>());
-            if (p.prepend()) stack.add(0, out.toString());
-            else stack.add(out.toString());
+            renderNodes(nodes, scope);
+            return out.toString();
         } finally {
             out = saved;
         }
+    }
+
+    /** Components get an isolated scope: only their attributes, {@code slot}, named slots and {@code attributes}. */
+    private void renderComponent(Node.Component c, Scope scope) {
+        Map<String, Object> attrs = new java.util.LinkedHashMap<>();
+        for (Node.Attr a : c.attrs()) {
+            attrs.put(a.name(), Expressions.eval(a.value(), scope));
+        }
+        Scope inner = new Scope(null);
+        attrs.forEach((k, v) -> {
+            inner.put(k, v);
+            if (k.indexOf('-') >= 0) inner.put(camelCase(k), v);
+        });
+        c.slots().forEach((name, body) -> inner.put(camelCase(name), new SafeHtml(capture(body, scope))));
+        inner.put("slot", new SafeHtml(capture(c.body(), scope)));
+        inner.put("attributes", new ComponentAttributes(attrs));
+        renderTemplate(templates.apply("components." + c.name()), inner);
+    }
+
+    private static String camelCase(String s) {
+        StringBuilder sb = new StringBuilder();
+        boolean up = false;
+        for (char ch : s.toCharArray()) {
+            if (ch == '-') up = true;
+            else {
+                sb.append(up ? Character.toUpperCase(ch) : ch);
+                up = false;
+            }
+        }
+        return sb.toString();
     }
 
     private void renderYield(Node.Yield y, Scope scope) {

@@ -131,4 +131,28 @@ class LoomaEngineTest {
         files.put("leaf", "@extends('mid')@section('side')leaf+@parent@endsection");
         assertEquals("leaf+mid+base", engine.render("leaf", Map.of()));
     }
+
+    @Test
+    void componentsWithAttributesAndDefaultSlot() {
+        files.put("components.alert", "<div {{ $attributes->except('type')->merge({'class': 'alert'}) }}>{{ $type }}: {{ $slot }}</div>");
+        assertEquals("<div class=\"alert mb\" id=\"x\">err: hi &lt;b&gt; Ann</div>",
+                render("<x-alert type=\"err\" class=\"mb\" id=\"x\">hi {{ '<b>' }} {{ $n }}</x-alert>", Map.of("n", "Ann")));
+    }
+
+    @Test
+    void componentsWithBoundPropsNamedSlotsAndNesting() {
+        files.put("components.card", "<section><h1>{{ $title }}</h1>{{ $slot }}<footer>{{ $footer }}</footer></section>");
+        files.put("components.ui.badge", "<b>{{ $count }}</b>");
+        String t = "<x-card><x-slot:title>T</x-slot:title>body <x-ui.badge :count=\"items.size()\" /> "
+                + "<x-slot:footer>F {{ $n }}</x-slot:footer></x-card>";
+        assertEquals("<section><h1>T</h1>body <b>2</b> <footer>F Ann</footer></section>",
+                render(t, Map.of("items", List.of(1, 2), "n", "Ann")));
+    }
+
+    @Test
+    void componentScopeIsIsolated() {
+        files.put("components.peek", "[{{ $secret ?? 'none' }}]");
+        assertEquals("[none]", render("<x-peek />", Map.of("secret", "s")));
+        assertThrows(LoomaException.class, () -> render("<x-peek>text</x-other>", Map.of()));
+    }
 }

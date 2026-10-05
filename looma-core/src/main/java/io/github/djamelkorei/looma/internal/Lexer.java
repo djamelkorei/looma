@@ -8,7 +8,7 @@ import java.util.Set;
 /** Splits template source into text, echo and directive tokens. */
 final class Lexer {
 
-    enum Kind { TEXT, ECHO, RAW, DIRECTIVE }
+    enum Kind { TEXT, ECHO, RAW, DIRECTIVE, COMPONENT_OPEN, COMPONENT_SELF, COMPONENT_CLOSE }
 
     record Token(Kind kind, String text, String args, int line) {}
 
@@ -56,6 +56,23 @@ final class Lexer {
                 out.add(new Token(Kind.ECHO, s.substring(i + 2, e).trim(), null, line));
                 line += newlines(s, i, e);
                 i = e + 2;
+            } else if (c == '<' && (s.startsWith("<x-", i) || s.startsWith("</x-", i)) && componentTag(s, i) > 0) {
+                int end = componentTag(s, i);
+                boolean closing = s.startsWith("</", i);
+                int nameStart = i + (closing ? 4 : 3);
+                int nameEnd = nameStart;
+                while (nameEnd < end && isNameChar(s.charAt(nameEnd))) nameEnd++;
+                String name = s.substring(nameStart, nameEnd);
+                String attrs = s.substring(nameEnd, end).trim();
+                Kind kind = closing ? Kind.COMPONENT_CLOSE : Kind.COMPONENT_OPEN;
+                if (!closing && attrs.endsWith("/")) {
+                    kind = Kind.COMPONENT_SELF;
+                    attrs = attrs.substring(0, attrs.length() - 1).trim();
+                }
+                flush(out, text, textLine);
+                out.add(new Token(kind, name, attrs, line));
+                line += newlines(s, i, end);
+                i = end + 1;
             } else if (c == '@' && s.startsWith("@@", i)) {
                 text.append('@');
                 i += 2;
@@ -110,6 +127,32 @@ final class Lexer {
         char c = s.charAt(end);
         return Character.isDigit(c) || c == '_'
                 || (c == '.' && end + 1 < s.length() && Character.isLetterOrDigit(s.charAt(end + 1)));
+    }
+
+    private static boolean isNameChar(char c) {
+        return Character.isLetterOrDigit(c) || c == '.' || c == '_' || c == '-' || c == ':';
+    }
+
+    /** Index of the '>' ending a {@code <x-...>} tag starting at {@code start}, or -1 if it is not a tag. */
+    private static int componentTag(String s, int start) {
+        int i = start + (s.startsWith("</", start) ? 4 : 3);
+        int nameStart = i;
+        while (i < s.length() && isNameChar(s.charAt(i))) i++;
+        if (i == nameStart || i >= s.length()) return -1;
+        char c = s.charAt(i);
+        if (!(Character.isWhitespace(c) || c == '>' || c == '/')) return -1;
+        char quote = 0;
+        for (; i < s.length(); i++) {
+            c = s.charAt(i);
+            if (quote != 0) {
+                if (c == quote) quote = 0;
+            } else if (c == '"' || c == '\'') {
+                quote = c;
+            } else if (c == '>') {
+                return i;
+            }
+        }
+        return -1;
     }
 
     private static void flush(List<Token> out, StringBuilder text, int line) {
