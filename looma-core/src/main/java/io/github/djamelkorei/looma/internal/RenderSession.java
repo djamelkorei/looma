@@ -79,6 +79,20 @@ public final class RenderSession {
                     }
                 }
                 case Node.Push p -> push(p, scope);
+                case Node.Csrf ignoredCsrf -> {
+                    if (scope.get("_csrf") instanceof io.github.djamelkorei.looma.CsrfToken t) {
+                        out.append("<input type=\"hidden\" name=\"");
+                        Html.escape(t.parameterName(), out);
+                        out.append("\" value=\"");
+                        Html.escape(t.token(), out);
+                        out.append("\">");
+                    }
+                }
+                case Node.Method m -> {
+                    out.append("<input type=\"hidden\" name=\"_method\" value=\"");
+                    Html.escape(Expressions.evalString(m.value(), scope), out);
+                    out.append("\">");
+                }
                 case Node.Component c -> renderComponent(c, scope);
                 case Node.Slot ignoredSlot -> { }
                 case Node.Stack st -> {

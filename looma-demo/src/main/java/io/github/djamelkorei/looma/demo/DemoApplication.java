@@ -33,6 +33,11 @@ public class DemoApplication {
         return "home";
     }
 
+    @GetMapping("/form")
+    public String form() {
+        return "form";
+    }
+
     public static void main(String[] args) {
         SpringApplication.run(DemoApplication.class, args);
     }

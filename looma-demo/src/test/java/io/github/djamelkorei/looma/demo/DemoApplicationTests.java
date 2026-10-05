@@ -28,4 +28,25 @@ class DemoApplicationTests {
                 .andExpect(content().string(org.hamcrest.Matchers.containsString("(draft)")))
                 .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("never reaches"))));
     }
+
+    public static class FakeCsrf {
+        public String getParameterName() { return "_csrf"; }
+        public String getToken() { return "tok123"; }
+    }
+
+    @Test
+    void formShowsCsrfMethodAndAuthenticatedUser() throws Exception {
+        mvc.perform(get("/form").requestAttr("_csrf", new FakeCsrf()).principal(() -> "ada"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("name=\"_csrf\" value=\"tok123\"")))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("name=\"_method\" value=\"PUT\"")))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("Posting as ada")));
+    }
+
+    @Test
+    void formShowsGuestWithoutPrincipal() throws Exception {
+        mvc.perform(get("/form"))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("Please sign in")))
+                .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("_csrf"))));
+    }
 }

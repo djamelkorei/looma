@@ -46,5 +46,11 @@ public sealed interface Node {
     /** {@code <x-slot:name>} inside a component; only meaningful as a child of {@link Component}. */
     record Slot(String name, List<Node> body) implements Node {}
 
+    /** {@code @csrf}: hidden input for the {@code _csrf} variable (renders nothing if absent). */
+    record Csrf() implements Node {}
+
+    /** {@code @method('PUT')}: hidden {@code _method} input for HTML form method spoofing. */
+    record Method(Expression value) implements Node {}
+
     record Yield(String name, Expression fallback) implements Node {}
 }

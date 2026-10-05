@@ -66,6 +66,8 @@ public final class Parser {
             case "guest" -> parseIf(t, "principal == null", "endguest", false);
             case "switch" -> parseSwitch(t);
             case "parent" -> new Node.Parent();
+            case "csrf" -> new Node.Csrf();
+            case "method" -> new Node.Method(expr(t.args(), t));
             case "push", "prepend" -> {
                 String end = "end" + t.text();
                 List<Node> body = block(Set.of(end));

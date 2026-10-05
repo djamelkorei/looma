@@ -1,0 +1,16 @@
+@extends('layouts.app')
+
+@section('title', 'Form')
+
+@section('content')
+    <form method="post" action="/posts">
+        @csrf
+        @method('PUT')
+        @auth
+            <p>Posting as {{ $principal->name }}</p>
+        @endauth
+        @guest
+            <p>Please sign in</p>
+        @endguest
+    </form>
+@endsection

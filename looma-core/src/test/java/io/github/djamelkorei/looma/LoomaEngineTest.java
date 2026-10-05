@@ -155,4 +155,12 @@ class LoomaEngineTest {
         assertEquals("[none]", render("<x-peek />", Map.of("secret", "s")));
         assertThrows(LoomaException.class, () -> render("<x-peek>text</x-other>", Map.of()));
     }
+
+    @Test
+    void csrfAndMethodSpoofing() {
+        assertEquals("<input type=\"hidden\" name=\"_token\" value=\"a&quot;b\">",
+                render("@csrf", Map.of("_csrf", new CsrfToken("_token", "a\"b"))));
+        assertEquals("", render("@csrf", Map.of()));
+        assertEquals("<input type=\"hidden\" name=\"_method\" value=\"PUT\">", render("@method('PUT')", Map.of()));
+    }
 }

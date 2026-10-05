@@ -14,10 +14,10 @@ final class Lexer {
 
     private static final Set<String> TAKES_ARGS =
             Set.of("if", "elseif", "unless", "isset", "switch", "case", "foreach", "forelse", "include",
-                    "extends", "section", "yield", "push", "prepend", "stack");
+                    "extends", "section", "yield", "push", "prepend", "stack", "method");
     private static final Set<String> NO_ARGS =
             Set.of("else", "endif", "endunless", "endisset", "endswitch", "break", "default", "auth", "endauth",
-                    "guest", "endguest", "parent", "endpush", "endprepend", "endforeach", "empty", "endforelse", "endsection", "show");
+                    "guest", "endguest", "parent", "csrf", "endpush", "endprepend", "endforeach", "empty", "endforelse", "endsection", "show");
 
     private Lexer() {}
 
