@@ -163,4 +163,29 @@ class LoomaEngineTest {
         assertEquals("", render("@csrf", Map.of()));
         assertEquals("<input type=\"hidden\" name=\"_method\" value=\"PUT\">", render("@method('PUT')", Map.of()));
     }
+
+    @Test
+    void runtimeErrorsNameTemplateAndLine() {
+        files.put("inner", "line1\nline2 {{ $x.nope.deeper }}");
+        files.put("outer", "@include('inner')");
+        LoomaException e = assertThrows(LoomaException.class, () -> engine.render("outer", Map.of("x", "s")));
+        assertEquals("inner", e.template());
+        assertEquals(2, e.line());
+        assertTrue(e.getMessage().contains("In template 'inner' at line 2"), e.getMessage());
+    }
+
+    @Test
+    void parseErrorsNameTemplateAndLine() {
+        files.put("bad", "ok\n@if($x)\n{{ 1 + }}\n@endif");
+        LoomaException e = assertThrows(LoomaException.class, () -> engine.render("bad", Map.of()));
+        assertEquals(3, e.line());
+        assertTrue(e.getMessage().startsWith("In template 'bad' at line 3"), e.getMessage());
+    }
+
+    @Test
+    void runawayRecursionIsStopped() {
+        files.put("loop", "x@include('loop')");
+        LoomaException e = assertThrows(LoomaException.class, () -> engine.render("loop", Map.of()));
+        assertTrue(e.getMessage().contains("Maximum nesting depth"), e.getMessage());
+    }
 }

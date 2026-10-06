@@ -1,5 +1,6 @@
 package io.github.djamelkorei.looma.internal;
 
+import io.github.djamelkorei.looma.LoomaException;
 import io.github.djamelkorei.looma.Template;
 import io.github.djamelkorei.looma.ast.Node;
 import java.util.ArrayDeque;
@@ -20,6 +21,10 @@ public final class RenderSession {
     private final java.util.Set<String> stackNames = new java.util.LinkedHashSet<>();
     private final Deque<Chain> chains = new ArrayDeque<>();
     private StringBuilder out = new StringBuilder();
+    private int depth;
+
+    /** Upper bound for nested include/extends/component rendering; guards against runaway recursion. */
+    static final int MAX_DEPTH = 100;
 
     private record Chain(List<Node.Section> sections, int index) {}
 
@@ -43,6 +48,22 @@ public final class RenderSession {
     }
 
     private void renderTemplate(Template t, Scope scope) {
+        if (++depth > MAX_DEPTH) {
+            depth--;
+            throw new LoomaException("Maximum nesting depth of " + MAX_DEPTH
+                    + " exceeded while rendering '" + t.name() + "' (recursive include/extends/component?)")
+                    .inTemplate(t.name());
+        }
+        try {
+            doRenderTemplate(t, scope);
+        } catch (LoomaException e) {
+            throw e.inTemplate(t.name());
+        } finally {
+            depth--;
+        }
+    }
+
+    private void doRenderTemplate(Template t, Scope scope) {
         Node.Extends ext = null;
         for (Node n : t.nodes()) {
             if (n instanceof Node.Extends e) ext = e;

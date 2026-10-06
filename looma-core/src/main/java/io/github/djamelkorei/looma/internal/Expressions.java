@@ -4,7 +4,7 @@ import io.github.djamelkorei.looma.LoomaException;
 import java.util.Collection;
 import java.util.Map;
 import org.springframework.expression.EvaluationContext;
-import org.springframework.expression.Expression;
+import io.github.djamelkorei.looma.ast.Expr;
 import org.springframework.expression.ParseException;
 import org.springframework.expression.spel.standard.SpelExpressionParser;
 import org.springframework.expression.spel.support.DataBindingPropertyAccessor;
@@ -26,23 +26,23 @@ public final class Expressions {
 
     private Expressions() {}
 
-    public static Expression parse(String source, int line) {
+    public static Expr parse(String source, int line) {
         try {
-            return PARSER.parseExpression(translate(source));
+            return new Expr(PARSER.parseExpression(translate(source)), source.trim(), line);
         } catch (ParseException e) {
             throw new LoomaException("Invalid expression '" + source.trim() + "': " + e.getSimpleMessage(), line, e);
         }
     }
 
-    public static Object eval(Expression expr, Scope scope) {
+    public static Object eval(Expr expr, Scope scope) {
         try {
-            return expr.getValue(CONTEXT, scope);
+            return expr.spel().getValue(CONTEXT, scope);
         } catch (RuntimeException e) {
-            throw new LoomaException("Error evaluating '" + expr.getExpressionString() + "': " + e.getMessage(), 0, e);
+            throw new LoomaException("Error evaluating '" + expr.source() + "': " + e.getMessage(), expr.line(), e);
         }
     }
 
-    public static String evalString(Expression expr, Scope scope) {
+    public static String evalString(Expr expr, Scope scope) {
         return String.valueOf(eval(expr, scope));
     }
 

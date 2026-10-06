@@ -1,6 +1,7 @@
 package io.github.djamelkorei.looma.internal;
 
 import io.github.djamelkorei.looma.LoomaException;
+import io.github.djamelkorei.looma.ast.Expr;
 import io.github.djamelkorei.looma.ast.Node;
 import io.github.djamelkorei.looma.internal.Lexer.Kind;
 import io.github.djamelkorei.looma.internal.Lexer.Token;
@@ -126,7 +127,7 @@ public final class Parser {
         if (name.equals("slot") || name.startsWith("slot:")) {
             String slotName = name.startsWith("slot:") ? name.substring(5) : attrs.stream()
                     .filter(a -> a.name().equals("name")).findFirst()
-                    .map(a -> a.value().getExpressionString())
+                    .map(a -> a.value().source())
                     .orElseThrow(() -> new LoomaException("<x-slot> needs a name", t.line(), null));
             return new Node.Slot(slotName, body);
         }
@@ -171,7 +172,7 @@ public final class Parser {
             } else if (value == null) {
                 attrs.add(new Node.Attr(name, Expressions.parse("true", t.line())));
             } else {
-                attrs.add(new Node.Attr(name, new org.springframework.expression.common.LiteralExpression(value)));
+                attrs.add(new Node.Attr(name, new Expr(new org.springframework.expression.common.LiteralExpression(value), value, t.line())));
             }
         }
         return attrs;
@@ -180,7 +181,7 @@ public final class Parser {
     private Node parseSwitch(Token t) {
         var subject = expr(t.args(), t);
         List<Node.Case> cases = new ArrayList<>();
-        List<org.springframework.expression.Expression> pending = new ArrayList<>();
+        List<Expr> pending = new ArrayList<>();
         while (true) {
             skipBlankText();
             if (pos >= tokens.size()) throw new LoomaException("Unclosed @switch", t.line(), null);
@@ -248,7 +249,7 @@ public final class Parser {
         return new Node.Section(name, body);
     }
 
-    private static org.springframework.expression.Expression expr(String source, Token t) {
+    private static Expr expr(String source, Token t) {
         return Expressions.parse(source, t.line());
     }
 }

@@ -46,7 +46,7 @@ public final class LoomaEngine {
         try {
             return new Template(name, Parser.parse(source));
         } catch (LoomaException e) {
-            throw new LoomaException("In template '" + name + "': " + e.getMessage(), 0, e);
+            throw e.inTemplate(name);
         }
     }
 }
