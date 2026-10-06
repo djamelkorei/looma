@@ -26,6 +26,9 @@ class DemoApplicationTests {
                 .andExpect(content().string(org.hamcrest.Matchers.containsString("1/2: Hello Looma")))
                 .andExpect(content().string(org.hamcrest.Matchers.containsString("2/2: Draft: Blade for Java")))
                 .andExpect(content().string(org.hamcrest.Matchers.containsString("(draft)")))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString(
+                        "<div class=\"alert alert-info mb-4\">Rendered by a component</div>")))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("<script>console.log('home')</script>")))
                 .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("never reaches"))));
     }
 

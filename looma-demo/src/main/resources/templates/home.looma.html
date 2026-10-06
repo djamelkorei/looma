@@ -4,6 +4,7 @@
 
 @section('content')
     <h1>Welcome, {{ $user }}</h1>
+    <x-alert type="info" class="mb-4">Rendered by a component</x-alert>
     {{-- this comment never reaches the browser --}}
     <ul>
     @forelse($posts as $post)
@@ -15,4 +16,6 @@
         <li>No posts yet</li>
     @endforelse
     </ul>
+    @push('scripts')<script>console.log('home')</script>@endpush
 @endsection
+
