@@ -188,4 +188,56 @@ class LoomaEngineTest {
         LoomaException e = assertThrows(LoomaException.class, () -> engine.render("loop", Map.of()));
         assertTrue(e.getMessage().contains("Maximum nesting depth"), e.getMessage());
     }
+
+    @Test
+    void reflectionEscapeHatchesAreBlocked() {
+        Map<String, Object> m = Map.of("user", new User(), "n", 1);
+        for (String expr : List.of("$user.class", "$user->getClass()", "'x'.class.name",
+                "$n.class.forName('java.lang.Runtime')", "$user.class.classLoader")) {
+            assertThrows(LoomaException.class, () -> render("{{ " + expr + " }}", m), expr);
+        }
+        // ordinary property and method access still works
+        assertEquals("3", render("{{ 'abc'.length() }}", m));
+        assertEquals("ABC", render("{{ 'abc'.toUpperCase() }}", m));
+    }
+
+    @Test
+    void closingBracesInsideStringLiterals() {
+        assertEquals("}} and !!}", render("{{ '}}' }} and {!! '!!}' !!}", Map.of()));
+    }
+
+    @Test
+    void nestedLoopsExposeParentLoop() {
+        String t = "@foreach($rows as $r)@foreach($r as $c){{ $loop->parent->iteration }}.{{ $loop->iteration }}"
+                + "@if($loop->depth == 2)d@endif @endforeach@endforeach";
+        assertEquals("1.1d 1.2d 2.1d ", render(t, Map.of("rows", List.of(List.of("a", "b"), List.of("c")))));
+    }
+
+    @Test
+    void iteratesArraysAndNullsGracefully() {
+        assertEquals("123", render("@foreach($a as $x){{ $x }}@endforeach", Map.of("a", new int[] {1, 2, 3})));
+        assertEquals(" none", render("@forelse($missing as $x)x@empty none@endforelse", Map.of()));
+    }
+
+    @Test
+    void crlfLineNumbersAndUnicode() {
+        files.put("crlf", "a\r\nb\r\n{{ 1 + }}");
+        assertEquals(3, assertThrows(LoomaException.class, () -> engine.render("crlf", Map.of())).line());
+        assertEquals("héllo ✓ 日本", render("héllo {{ $s }} 日本", Map.of("s", "✓")));
+    }
+
+    @Test
+    void emptyAndPlainTemplates() {
+        assertEquals("", render("", Map.of()));
+        assertEquals("<p>just html & text</p>", render("<p>just html & text</p>", Map.of()));
+        assertEquals("a@", render("a@", Map.of()));
+        assertEquals("@unknown(x)", render("@unknown(x)", Map.of()));
+    }
+
+    @Test
+    void missingIncludeNamesTheTemplate() {
+        files.put("page", "@include('ghost')");
+        LoomaException e = assertThrows(LoomaException.class, () -> engine.render("page", Map.of()));
+        assertTrue(e.getMessage().contains("ghost"), e.getMessage());
+    }
 }

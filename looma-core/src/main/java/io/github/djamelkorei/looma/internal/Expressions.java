@@ -7,7 +7,6 @@ import org.springframework.expression.EvaluationContext;
 import io.github.djamelkorei.looma.ast.Expr;
 import org.springframework.expression.ParseException;
 import org.springframework.expression.spel.standard.SpelExpressionParser;
-import org.springframework.expression.spel.support.DataBindingPropertyAccessor;
 import org.springframework.expression.spel.support.SimpleEvaluationContext;
 
 /**
@@ -19,9 +18,8 @@ public final class Expressions {
 
     private static final SpelExpressionParser PARSER = new SpelExpressionParser();
     private static final EvaluationContext CONTEXT = SimpleEvaluationContext
-            .forPropertyAccessors(new Accessors.ScopeAccessor(), new Accessors.MapAccessor(),
-                    DataBindingPropertyAccessor.forReadOnlyAccess())
-            .withInstanceMethods()
+            .forPropertyAccessors(new Accessors.ScopeAccessor(), new Accessors.MapAccessor(), new Sandbox.Properties())
+            .withMethodResolvers(new Sandbox.Methods())
             .build();
 
     private Expressions() {}

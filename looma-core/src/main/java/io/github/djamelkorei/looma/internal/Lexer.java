@@ -45,13 +45,13 @@ final class Lexer {
                     i = e + 2;
                 }
             } else if (s.startsWith("{!!", i)) {
-                int e = find(s, "!!}", i + 3, line);
+                int e = findClose(s, "!!}", i + 3, line);
                 flush(out, text, textLine);
                 out.add(new Token(Kind.RAW, s.substring(i + 3, e).trim(), null, line));
                 line += newlines(s, i, e);
                 i = e + 3;
             } else if (s.startsWith("{{", i)) {
-                int e = find(s, "}}", i + 2, line);
+                int e = findClose(s, "}}", i + 2, line);
                 flush(out, text, textLine);
                 out.add(new Token(Kind.ECHO, s.substring(i + 2, e).trim(), null, line));
                 line += newlines(s, i, e);
@@ -160,6 +160,24 @@ final class Lexer {
             out.add(new Token(Kind.TEXT, text.toString(), null, line));
             text.setLength(0);
         }
+    }
+
+    /** Like {@link #find} but ignores terminators inside quoted strings, so {@code {{ '}}' }} works. */
+    private static int findClose(String s, String end, int from, int line) {
+        char quote = 0;
+        for (int i = from; i < s.length(); i++) {
+            char c = s.charAt(i);
+            if (quote != 0) {
+                if (c == '\\') i++;
+                else if (c == quote) quote = 0;
+            } else if (c == '\'' || c == '"') {
+                quote = c;
+            } else if (s.startsWith(end, i)) {
+                return i;
+            }
+        }
+        // Fall back to the first terminator so an unbalanced quote yields a normal expression error.
+        return find(s, end, from, line);
     }
 
     private static int find(String s, String end, int from, int line) {
