@@ -6,22 +6,35 @@ import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.io.Writer;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
-/** Entry point: loads, parses (and optionally caches) templates and renders them against a model. */
+/**
+ * Entry point: loads, parses (and optionally caches) templates and renders them against a model.
+ * Instances are thread-safe; parsed templates are immutable and shared between concurrent renders.
+ */
 public final class LoomaEngine {
 
     private final TemplateLoader loader;
     private final boolean cache;
     private final Map<String, Template> cached = new ConcurrentHashMap<>();
+    private final Set<String> known = ConcurrentHashMap.newKeySet();
 
     public LoomaEngine(TemplateLoader loader, boolean cache) {
         this.loader = loader;
         this.cache = cache;
     }
 
+    /** Whether a template exists. With caching on, positive answers are remembered (this runs per request). */
     public boolean exists(String name) {
-        return loader.exists(name);
+        if (cache && known.contains(name)) {
+            return true;
+        }
+        boolean found = loader.exists(name);
+        if (cache && found) {
+            known.add(name);
+        }
+        return found;
     }
 
     public Template template(String name) {
