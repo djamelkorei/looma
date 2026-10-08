@@ -240,4 +240,12 @@ class LoomaEngineTest {
         LoomaException e = assertThrows(LoomaException.class, () -> engine.render("page", Map.of()));
         assertTrue(e.getMessage().contains("ghost"), e.getMessage());
     }
+
+    @Test
+    void langUsesMessageResolverAndFallsBackToKey() {
+        MessageResolver r = (key, args) -> key.equals("hi") ? "Hello <" + args[0] + ">" : key;
+        assertEquals("Hello &lt;Ann&gt;", render("@lang('hi', $n)", Map.of("_messages", r, "n", "Ann")));
+        assertEquals("unknown.key", render("@lang('unknown.key')", Map.of("_messages", r)));
+        assertEquals("no.resolver", render("@lang('no.resolver')", Map.of()));
+    }
 }

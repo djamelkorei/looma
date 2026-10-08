@@ -8,6 +8,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.core.io.ResourceLoader;
 
@@ -31,7 +32,9 @@ public class LoomaAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean(name = "loomaViewResolver")
-    public LoomaViewResolver loomaViewResolver(LoomaEngine engine, LoomaProperties props) {
-        return new LoomaViewResolver(engine, props.getContentType());
+    public LoomaViewResolver loomaViewResolver(LoomaEngine engine, LoomaProperties props,
+            ApplicationContext context) {
+        // The ApplicationContext delegates to the 'messageSource' bean (Boot's spring.messages.* support).
+        return new LoomaViewResolver(engine, props.getContentType(), context);
     }
 }

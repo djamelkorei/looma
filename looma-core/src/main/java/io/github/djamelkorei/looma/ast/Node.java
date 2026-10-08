@@ -51,5 +51,8 @@ public sealed interface Node {
     /** {@code @method('PUT')}: hidden {@code _method} input for HTML form method spoofing. */
     record Method(Expr value) implements Node {}
 
+    /** {@code @lang('key', arg...)}: localized, HTML-escaped message. */
+    record Lang(Expr key, List<Expr> args) implements Node {}
+
     record Yield(String name, Expr fallback) implements Node {}
 }

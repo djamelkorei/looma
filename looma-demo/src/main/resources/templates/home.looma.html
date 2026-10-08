@@ -4,6 +4,7 @@
 
 @section('content')
     <h1>Welcome, {{ $user }}</h1>
+    <p class="greeting">@lang('greeting', $user)</p>
     <x-alert type="info" class="mb-4">Rendered by a component</x-alert>
     {{-- this comment never reaches the browser --}}
     <ul>

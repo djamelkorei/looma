@@ -2,6 +2,7 @@ package io.github.djamelkorei.looma.spring;
 
 import io.github.djamelkorei.looma.LoomaEngine;
 import java.util.Locale;
+import org.springframework.context.MessageSource;
 import org.springframework.core.Ordered;
 import org.springframework.web.servlet.View;
 import org.springframework.web.servlet.ViewResolver;
@@ -11,16 +12,18 @@ public class LoomaViewResolver implements ViewResolver, Ordered {
 
     private final LoomaEngine engine;
     private final String contentType;
+    private final MessageSource messages;
     private int order = Ordered.LOWEST_PRECEDENCE - 10;
 
-    public LoomaViewResolver(LoomaEngine engine, String contentType) {
+    public LoomaViewResolver(LoomaEngine engine, String contentType, MessageSource messages) {
         this.engine = engine;
         this.contentType = contentType;
+        this.messages = messages;
     }
 
     @Override
     public View resolveViewName(String viewName, Locale locale) {
-        return engine.exists(viewName) ? new LoomaView(engine, viewName, contentType) : null;
+        return engine.exists(viewName) ? new LoomaView(engine, viewName, contentType, messages) : null;
     }
 
     @Override

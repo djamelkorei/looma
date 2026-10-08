@@ -68,6 +68,10 @@ public final class Parser {
             case "switch" -> parseSwitch(t);
             case "parent" -> new Node.Parent();
             case "csrf" -> new Node.Csrf();
+            case "lang" -> {
+                List<String> a = Args.split(t.args());
+                yield new Node.Lang(expr(a.get(0), t), a.subList(1, a.size()).stream().map(x -> expr(x, t)).toList());
+            }
             case "method" -> new Node.Method(expr(t.args(), t));
             case "push", "prepend" -> {
                 String end = "end" + t.text();

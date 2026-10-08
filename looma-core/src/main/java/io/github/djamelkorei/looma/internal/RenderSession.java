@@ -109,6 +109,13 @@ public final class RenderSession {
                         out.append("\">");
                     }
                 }
+                case Node.Lang l -> {
+                    String key = Expressions.evalString(l.key(), scope);
+                    Object[] args = l.args().stream().map(a -> Expressions.eval(a, scope)).toArray();
+                    String message = scope.get("_messages") instanceof io.github.djamelkorei.looma.MessageResolver r
+                            ? r.resolve(key, args) : key;
+                    Html.escape(message == null ? key : message, out);
+                }
                 case Node.Method m -> {
                     out.append("<input type=\"hidden\" name=\"_method\" value=\"");
                     Html.escape(Expressions.evalString(m.value(), scope), out);

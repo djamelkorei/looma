@@ -52,4 +52,12 @@ class DemoApplicationTests {
                 .andExpect(content().string(org.hamcrest.Matchers.containsString("Please sign in")))
                 .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("_csrf"))));
     }
+
+    @Test
+    void langUsesRequestLocale() throws Exception {
+        mvc.perform(get("/"))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("Hello, Ada &lt;Lovelace&gt;!")));
+        mvc.perform(get("/").locale(java.util.Locale.FRENCH))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("Bonjour, Ada &lt;Lovelace&gt; !")));
+    }
 }
