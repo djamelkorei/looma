@@ -1,10 +1,18 @@
-package io.github.djamelkorei.looma.internal;
+package io.github.djamelkorei.looma.spi;
 
-final class Html {
+/** HTML escaping for directive authors who write markup themselves. */
+public final class Html {
 
     private Html() {}
 
-    static void escape(CharSequence in, StringBuilder out) {
+    /** Returns {@code in} with {@code & < > " '} escaped. */
+    public static String escape(CharSequence in) {
+        StringBuilder out = new StringBuilder(in.length() + 16);
+        escape(in, out);
+        return out.toString();
+    }
+
+    public static void escape(CharSequence in, StringBuilder out) {
         for (int i = 0; i < in.length(); i++) {
             char c = in.charAt(i);
             switch (c) {

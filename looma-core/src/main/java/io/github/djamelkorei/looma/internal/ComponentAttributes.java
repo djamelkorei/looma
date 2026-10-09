@@ -1,6 +1,7 @@
 package io.github.djamelkorei.looma.internal;
 
 import io.github.djamelkorei.looma.Htmlable;
+import io.github.djamelkorei.looma.spi.Html;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.Map;

@@ -1,10 +1,15 @@
 package io.github.djamelkorei.looma;
 
+import io.github.djamelkorei.looma.directive.BuiltinDirectives;
+import io.github.djamelkorei.looma.internal.DirectiveRegistry;
 import io.github.djamelkorei.looma.internal.Parser;
 import io.github.djamelkorei.looma.internal.RenderSession;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.io.Writer;
+import io.github.djamelkorei.looma.spi.Directive;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -17,12 +22,56 @@ public final class LoomaEngine {
 
     private final TemplateLoader loader;
     private final boolean cache;
+    private final DirectiveRegistry registry;
     private final Map<String, Template> cached = new ConcurrentHashMap<>();
     private final Set<String> known = ConcurrentHashMap.newKeySet();
 
+    /** An engine with the built-in directives only. Use {@link #builder} to add your own. */
     public LoomaEngine(TemplateLoader loader, boolean cache) {
+        this(loader, cache, List.of());
+    }
+
+    private LoomaEngine(TemplateLoader loader, boolean cache, List<Directive> custom) {
         this.loader = loader;
         this.cache = cache;
+        List<Directive> all = new ArrayList<>(BuiltinDirectives.all());
+        all.addAll(custom);
+        this.registry = new DirectiveRegistry(all);
+    }
+
+    public static Builder builder(TemplateLoader loader) {
+        return new Builder(loader);
+    }
+
+    public static final class Builder {
+        private final TemplateLoader loader;
+        private boolean cache = true;
+        private final List<Directive> directives = new ArrayList<>();
+
+        private Builder(TemplateLoader loader) {
+            this.loader = loader;
+        }
+
+        /** Whether parsed templates are cached (default true). Turn off during development. */
+        public Builder cache(boolean cache) {
+            this.cache = cache;
+            return this;
+        }
+
+        /** Adds a custom directive; its name must not clash with a built-in or another custom one. */
+        public Builder directive(Directive directive) {
+            directives.add(directive);
+            return this;
+        }
+
+        public Builder directives(Iterable<? extends Directive> more) {
+            more.forEach(directives::add);
+            return this;
+        }
+
+        public LoomaEngine build() {
+            return new LoomaEngine(loader, cache, List.copyOf(directives));
+        }
     }
 
     /** Whether a template exists. With caching on, positive answers are remembered (this runs per request). */
@@ -57,7 +106,8 @@ public final class LoomaEngine {
     private Template compile(String name) {
         String source = loader.load(name);
         try {
-            return new Template(name, Parser.parse(source));
+            Parser.Result parsed = Parser.parse(source, registry);
+            return new Template(name, parsed.nodes(), parsed.layout());
         } catch (LoomaException e) {
             throw e.inTemplate(name);
         }

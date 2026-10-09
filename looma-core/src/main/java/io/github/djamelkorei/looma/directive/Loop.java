@@ -1,4 +1,4 @@
-package io.github.djamelkorei.looma.internal;
+package io.github.djamelkorei.looma.directive;
 
 /** The {@code loop} variable available inside {@code @foreach}. */
 public final class Loop {
@@ -7,7 +7,7 @@ public final class Loop {
     private final int count;
     private final Loop parent;
 
-    Loop(int index, int count, Loop parent) {
+    public Loop(int index, int count, Loop parent) {
         this.index = index;
         this.count = count;
         this.parent = parent;

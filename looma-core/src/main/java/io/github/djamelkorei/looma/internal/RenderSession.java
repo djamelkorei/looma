@@ -1,43 +1,39 @@
 package io.github.djamelkorei.looma.internal;
 
+import io.github.djamelkorei.looma.Htmlable;
 import io.github.djamelkorei.looma.LoomaException;
 import io.github.djamelkorei.looma.Template;
-import io.github.djamelkorei.looma.ast.Node;
-import java.util.ArrayDeque;
+import io.github.djamelkorei.looma.directive.SectionNode;
+import io.github.djamelkorei.looma.directive.Sections;
+import io.github.djamelkorei.looma.spi.Expr;
+import io.github.djamelkorei.looma.spi.Html;
+import io.github.djamelkorei.looma.spi.Node;
+import io.github.djamelkorei.looma.spi.RenderContext;
 import java.util.ArrayList;
-import java.util.Deque;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
+import java.util.function.Supplier;
+import java.util.function.UnaryOperator;
 
-/** Renders one template (plus layout chain and includes) into a string. Not thread-safe; one per render. */
+/**
+ * Renders one template (plus layout chain, includes and components) into a string.
+ * Owns everything that is shared during a single render; not thread-safe, create one per render.
+ */
 public final class RenderSession {
-
-    private final Function<String, Template> templates;
-    /** Section definitions per name; index 0 is the most-derived (child) definition. */
-    private final Map<String, List<Node.Section>> sections = new HashMap<>();
-    private final Map<String, List<String>> stacks = new HashMap<>();
-    private final java.util.Set<String> stackNames = new java.util.LinkedHashSet<>();
-    private final Deque<Chain> chains = new ArrayDeque<>();
-    private StringBuilder out = new StringBuilder();
-    private int depth;
-    /** Pending @break / @continue, consumed by the enclosing loop (or switch for break). */
-    private Signal signal = Signal.NONE;
-
-    private enum Signal { NONE, BREAK, CONTINUE }
-
-    /** Upper bound for @for / @while passes; guards against conditions that never become false. */
-    static final int MAX_ITERATIONS = 100_000;
 
     /** Upper bound for nested include/extends/component rendering; guards against runaway recursion. */
     static final int MAX_DEPTH = 100;
 
-    private record Chain(List<Node.Section> sections, int index) {}
+    private enum Signal { NONE, BREAK, CONTINUE }
 
-    private static String marker(String stack) {
-        return "\u0000looma-stack:" + stack + "\u0000";
-    }
+    private final Function<String, Template> templates;
+    private final Map<Class<?>, Object> state = new HashMap<>();
+    private final List<UnaryOperator<String>> finishers = new ArrayList<>();
+    private StringBuilder out = new StringBuilder();
+    private Signal signal = Signal.NONE;
+    private int depth;
 
     public RenderSession(Function<String, Template> templates) {
         this.templates = templates;
@@ -48,8 +44,8 @@ public final class RenderSession {
         if (model != null) scope.putAll(model);
         renderTemplate(template, scope);
         String result = out.toString();
-        for (String name : stackNames) {
-            result = result.replace(marker(name), String.join("", stacks.getOrDefault(name, List.of())));
+        for (UnaryOperator<String> finisher : finishers) {
+            result = finisher.apply(result);
         }
         return result;
     }
@@ -62,7 +58,17 @@ public final class RenderSession {
                     .inTemplate(t.name());
         }
         try {
-            doRenderTemplate(t, scope);
+            Ctx ctx = new Ctx(scope);
+            if (t.layout() == null) {
+                ctx.render(t.nodes());
+                return;
+            }
+            // A child template only contributes its sections; the parent layout produces the output.
+            Sections sections = ctx.state(Sections.class, Sections::new);
+            for (Node n : t.nodes()) {
+                if (n instanceof SectionNode s) sections.register(s);
+            }
+            renderTemplate(templates.apply(ctx.evalString(t.layout())), scope);
         } catch (LoomaException e) {
             throw e.inTemplate(t.name());
         } finally {
@@ -70,298 +76,80 @@ public final class RenderSession {
         }
     }
 
-    private void doRenderTemplate(Template t, Scope scope) {
-        Node.Extends ext = null;
-        for (Node n : t.nodes()) {
-            if (n instanceof Node.Extends e) ext = e;
-        }
-        if (ext == null) {
-            renderNodes(t.nodes(), scope);
-            return;
-        }
-        // Child definitions are registered first, so they sit ahead of those of ancestor layouts.
-        for (Node n : t.nodes()) {
-            if (n instanceof Node.Section s) sections.computeIfAbsent(s.name(), k -> new ArrayList<>()).add(s);
-        }
-        renderTemplate(templates.apply(Expressions.evalString(ext.name(), scope)), scope);
-    }
+    private final class Ctx implements RenderContext {
 
-    private void renderNodes(List<Node> nodes, Scope scope) {
-        for (Node node : nodes) {
-            if (signal != Signal.NONE) return;
-            switch (node) {
-                case Node.Text t -> out.append(t.value());
-                case Node.Echo e -> echo(e, scope);
-                case Node.If i -> renderIf(i, scope);
-                case Node.Switch sw -> renderSwitch(sw, scope);
-                case Node.For f -> renderFor(f, scope);
-                case Node.While w -> renderWhile(w, scope);
-                case Node.Break b -> {
-                    if (b.condition() == null || Expressions.truthy(Expressions.eval(b.condition(), scope))) {
-                        signal = Signal.BREAK;
-                    }
-                }
-                case Node.Continue c -> {
-                    if (c.condition() == null || Expressions.truthy(Expressions.eval(c.condition(), scope))) {
-                        signal = Signal.CONTINUE;
-                    }
-                }
-                case Node.Foreach f -> renderForeach(f, scope);
-                case Node.Include inc -> renderInclude(inc, scope);
-                case Node.Section s -> {
-                    List<Node.Section> chain = new ArrayList<>(sections.getOrDefault(s.name(), List.of()));
-                    chain.add(s);
-                    renderChain(chain, 0, scope);
-                }
-                case Node.Parent ignored -> {
-                    Chain c = chains.peek();
-                    if (c != null && c.index() + 1 < c.sections().size()) {
-                        renderChain(c.sections(), c.index() + 1, scope);
-                    }
-                }
-                case Node.Push p -> push(p, scope);
-                case Node.Csrf ignoredCsrf -> {
-                    if (scope.get("_csrf") instanceof io.github.djamelkorei.looma.CsrfToken t) {
-                        out.append("<input type=\"hidden\" name=\"");
-                        Html.escape(t.parameterName(), out);
-                        out.append("\" value=\"");
-                        Html.escape(t.token(), out);
-                        out.append("\">");
-                    }
-                }
-                case Node.Lang l -> {
-                    String key = Expressions.evalString(l.key(), scope);
-                    Object[] args = l.args().stream().map(a -> Expressions.eval(a, scope)).toArray();
-                    String message = scope.get("_messages") instanceof io.github.djamelkorei.looma.MessageResolver r
-                            ? r.resolve(key, args) : key;
-                    Html.escape(message == null ? key : message, out);
-                }
-                case Node.Method m -> {
-                    out.append("<input type=\"hidden\" name=\"_method\" value=\"");
-                    Html.escape(Expressions.evalString(m.value(), scope), out);
-                    out.append("\">");
-                }
-                case Node.Component c -> renderComponent(c, scope);
-                case Node.Slot ignoredSlot -> { }
-                case Node.Stack st -> {
-                    stackNames.add(st.name());
-                    out.append(marker(st.name()));
-                }
-                case Node.Yield y -> renderYield(y, scope);
-                case Node.Extends ignored -> { }
+        private final Scope scope;
+
+        Ctx(Scope scope) {
+            this.scope = scope;
+        }
+
+        @Override public Object eval(Expr expr) { return Expressions.eval(expr, scope); }
+        @Override public String evalString(Expr expr) { return Expressions.evalString(expr, scope); }
+        @Override public boolean test(Expr expr) { return Expressions.truthy(eval(expr)); }
+        @Override public Object get(String variable) { return scope.get(variable); }
+        @Override public void set(String variable, Object value) { scope.put(variable, value); }
+        @Override public void setAll(Map<?, ?> variables) { scope.putAll(variables); }
+        @Override public RenderContext child() { return new Ctx(new Scope(scope)); }
+        @Override public RenderContext isolated() { return new Ctx(new Scope(null)); }
+
+        @Override public void write(CharSequence text) { out.append(text); }
+
+        @Override
+        public void writeEscaped(Object value) {
+            if (value == null) return;
+            if (value instanceof Htmlable h) out.append(h.toHtml());
+            else Html.escape(String.valueOf(value), out);
+        }
+
+        @Override
+        public void render(List<Node> nodes) {
+            for (Node node : nodes) {
+                if (signal != Signal.NONE) return;
+                node.render(this);
             }
         }
-    }
 
-    private void echo(Node.Echo e, Scope scope) {
-        Object v = Expressions.eval(e.expr(), scope);
-        if (v == null) return;
-        if (v instanceof io.github.djamelkorei.looma.Htmlable h) out.append(h.toHtml());
-        else if (e.raw()) out.append(v);
-        else Html.escape(String.valueOf(v), out);
-    }
-
-    private void renderIf(Node.If node, Scope scope) {
-        for (Node.Branch b : node.branches()) {
-            if (Expressions.truthy(Expressions.eval(b.test(), scope))) {
-                renderNodes(b.body(), scope);
-                return;
+        @Override
+        public String capture(List<Node> nodes) {
+            StringBuilder saved = out;
+            out = new StringBuilder();
+            try {
+                render(nodes);
+                return out.toString();
+            } finally {
+                out = saved;
             }
         }
-        renderNodes(node.orElse(), scope);
-    }
 
-    private void renderSwitch(Node.Switch sw, Scope scope) {
-        Object subject = Expressions.eval(sw.subject(), scope);
-        Node.Case fallback = null;
-        for (Node.Case c : sw.cases()) {
-            if (c.tests().isEmpty()) {
-                fallback = c;
-                continue;
-            }
-            for (var test : c.tests()) {
-                if (looselyEqual(subject, Expressions.eval(test, scope))) {
-                    renderSwitchBody(c, scope);
-                    return;
-                }
-            }
+        @Override
+        public void renderTemplate(String name) {
+            RenderSession.this.renderTemplate(templates.apply(name), scope);
         }
-        if (fallback != null) renderSwitchBody(fallback, scope);
-    }
 
-    /** A @break inside a case ends the switch only; @continue still reaches the enclosing loop. */
-    private void renderSwitchBody(Node.Case c, Scope scope) {
-        renderNodes(c.body(), scope);
-        if (signal == Signal.BREAK) signal = Signal.NONE;
-    }
-
-    /** Runs one loop pass; returns false when the loop must stop because of @break. */
-    private boolean passBody(List<Node> body, Scope scope) {
-        renderNodes(body, scope);
-        Signal s = signal;
-        signal = Signal.NONE;
-        return s != Signal.BREAK;
-    }
-
-    private void renderFor(Node.For f, Scope scope) {
-        Scope inner = new Scope(scope);
-        inner.put(f.var(), Expressions.eval(f.init(), scope));
-        for (int pass = 0; Expressions.truthy(Expressions.eval(f.condition(), inner)); pass++) {
-            checkIterations(pass, "@for", f.condition());
-            if (!passBody(f.body(), inner)) return;
-            Object current = inner.get(f.var());
-            Object amount = Expressions.eval(f.step(), inner);
-            if (!(current instanceof Number c) || !(amount instanceof Number a)) {
-                throw new LoomaException("@for variable '" + f.var() + "' and its step must be numbers, found "
-                        + current + " and " + amount, f.step().line(), null);
-            }
-            inner.put(f.var(), add(c, f.decrement() ? negate(a) : a));
+        @Override
+        public boolean runLoopBody(List<Node> body) {
+            render(body);
+            Signal s = signal;
+            signal = Signal.NONE;
+            return s != Signal.BREAK;
         }
-    }
 
-    private void renderWhile(Node.While w, Scope scope) {
-        for (int pass = 0; Expressions.truthy(Expressions.eval(w.condition(), scope)); pass++) {
-            checkIterations(pass, "@while", w.condition());
-            if (!passBody(w.body(), scope)) return;
+        @Override
+        public void runSwitchBody(List<Node> body) {
+            render(body);
+            if (signal == Signal.BREAK) signal = Signal.NONE;
         }
-    }
 
-    private static void checkIterations(int pass, String directive, io.github.djamelkorei.looma.ast.Expr condition) {
-        if (pass >= MAX_ITERATIONS) {
-            throw new LoomaException(directive + " exceeded " + MAX_ITERATIONS
-                    + " iterations; the condition '" + condition.source() + "' never became false", condition.line(), null);
+        @Override public void breakLoop() { signal = Signal.BREAK; }
+        @Override public void continueLoop() { signal = Signal.CONTINUE; }
+
+        @Override
+        @SuppressWarnings("unchecked")
+        public <T> T state(Class<T> type, Supplier<T> initial) {
+            return (T) state.computeIfAbsent(type, k -> initial.get());
         }
-    }
 
-    private static boolean integral(Number n) {
-        return n instanceof Integer || n instanceof Long || n instanceof Short || n instanceof Byte;
-    }
-
-    private static Number negate(Number n) {
-        return integral(n) ? (Number) (-n.longValue()) : (Number) (-n.doubleValue());
-    }
-
-    /** Integer-preserving addition: int + int stays an Integer so SpEL comparisons and output look natural. */
-    private static Number add(Number a, Number b) {
-        if (integral(a) && integral(b)) {
-            long sum = Math.addExact(a.longValue(), b.longValue());
-            return sum >= Integer.MIN_VALUE && sum <= Integer.MAX_VALUE ? (Number) (int) sum : (Number) sum;
-        }
-        return a.doubleValue() + b.doubleValue();
-    }
-
-    private static boolean looselyEqual(Object a, Object b) {
-        if (a instanceof Number x && b instanceof Number y) return x.doubleValue() == y.doubleValue();
-        if (a instanceof Enum<?> e && b instanceof String s) return e.name().equals(s);
-        if (a instanceof String s && b instanceof Enum<?> e) return e.name().equals(s);
-        return java.util.Objects.equals(a, b);
-    }
-
-    private void renderForeach(Node.Foreach f, Scope scope) {
-        List<Object> items = toList(Expressions.eval(f.items(), scope));
-        if (items.isEmpty()) {
-            renderNodes(f.empty(), scope);
-            return;
-        }
-        Loop parent = scope.get("loop") instanceof Loop l ? l : null;
-        Scope inner = new Scope(scope);
-        for (int i = 0; i < items.size(); i++) {
-            inner.put(f.var(), items.get(i));
-            inner.put("loop", new Loop(i, items.size(), parent));
-            if (!passBody(f.body(), inner)) return;
-        }
-    }
-
-    private void renderInclude(Node.Include inc, Scope scope) {
-        Scope inner = new Scope(scope);
-        if (inc.data() != null && Expressions.eval(inc.data(), scope) instanceof Map<?, ?> data) {
-            inner.putAll(data);
-        }
-        renderTemplate(templates.apply(Expressions.evalString(inc.name(), scope)), inner);
-    }
-
-    private void renderChain(List<Node.Section> chain, int index, Scope scope) {
-        chains.push(new Chain(chain, index));
-        try {
-            renderNodes(chain.get(index).body(), scope);
-        } finally {
-            chains.pop();
-        }
-    }
-
-    private void push(Node.Push p, Scope scope) {
-        String rendered = capture(p.body(), scope);
-        List<String> stack = stacks.computeIfAbsent(p.name(), k -> new ArrayList<>());
-        if (p.prepend()) stack.add(0, rendered);
-        else stack.add(rendered);
-    }
-
-    /** Renders nodes into a separate buffer and returns it. */
-    private String capture(List<Node> nodes, Scope scope) {
-        StringBuilder saved = out;
-        out = new StringBuilder();
-        try {
-            renderNodes(nodes, scope);
-            return out.toString();
-        } finally {
-            out = saved;
-        }
-    }
-
-    /** Components get an isolated scope: only their attributes, {@code slot}, named slots and {@code attributes}. */
-    private void renderComponent(Node.Component c, Scope scope) {
-        Map<String, Object> attrs = new java.util.LinkedHashMap<>();
-        for (Node.Attr a : c.attrs()) {
-            attrs.put(a.name(), Expressions.eval(a.value(), scope));
-        }
-        Scope inner = new Scope(null);
-        attrs.forEach((k, v) -> {
-            inner.put(k, v);
-            if (k.indexOf('-') >= 0) inner.put(camelCase(k), v);
-        });
-        c.slots().forEach((name, body) -> inner.put(camelCase(name), new SafeHtml(capture(body, scope))));
-        inner.put("slot", new SafeHtml(capture(c.body(), scope)));
-        inner.put("attributes", new ComponentAttributes(attrs));
-        renderTemplate(templates.apply("components." + c.name()), inner);
-    }
-
-    private static String camelCase(String s) {
-        StringBuilder sb = new StringBuilder();
-        boolean up = false;
-        for (char ch : s.toCharArray()) {
-            if (ch == '-') up = true;
-            else {
-                sb.append(up ? Character.toUpperCase(ch) : ch);
-                up = false;
-            }
-        }
-        return sb.toString();
-    }
-
-    private void renderYield(Node.Yield y, Scope scope) {
-        List<Node.Section> chain = sections.get(y.name());
-        if (chain != null) {
-            renderChain(chain, 0, scope);
-        } else if (y.fallback() != null) {
-            Object v = Expressions.eval(y.fallback(), scope);
-            if (v != null) Html.escape(String.valueOf(v), out);
-        }
-    }
-
-    private static List<Object> toList(Object v) {
-        List<Object> list = new ArrayList<>();
-        if (v == null) {
-            return list;
-        } else if (v instanceof Iterable<?> it) {
-            it.forEach(list::add);
-        } else if (v instanceof Map<?, ?> m) {
-            m.forEach((k, val) -> list.add(new MapEntry(k, val)));
-        } else if (v.getClass().isArray()) {
-            int len = java.lang.reflect.Array.getLength(v);
-            for (int i = 0; i < len; i++) list.add(java.lang.reflect.Array.get(v, i));
-        } else {
-            list.add(v);
-        }
-        return list;
+        @Override public void onFinish(UnaryOperator<String> finisher) { finishers.add(finisher); }
     }
 }

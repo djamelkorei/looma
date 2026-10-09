@@ -4,7 +4,7 @@ import io.github.djamelkorei.looma.LoomaException;
 import java.util.Collection;
 import java.util.Map;
 import org.springframework.expression.EvaluationContext;
-import io.github.djamelkorei.looma.ast.Expr;
+import io.github.djamelkorei.looma.spi.Expr;
 import org.springframework.expression.ParseException;
 import org.springframework.expression.spel.standard.SpelExpressionParser;
 import org.springframework.expression.spel.support.SimpleEvaluationContext;

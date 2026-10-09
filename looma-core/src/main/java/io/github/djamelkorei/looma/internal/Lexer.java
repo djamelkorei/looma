@@ -3,7 +3,7 @@ package io.github.djamelkorei.looma.internal;
 import io.github.djamelkorei.looma.LoomaException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
+import io.github.djamelkorei.looma.spi.Syntax;
 
 /** Splits template source into text, echo and directive tokens. */
 final class Lexer {
@@ -12,19 +12,9 @@ final class Lexer {
 
     record Token(Kind kind, String text, String args, int line) {}
 
-    private static final Set<String> TAKES_ARGS =
-            Set.of("if", "elseif", "unless", "isset", "switch", "case", "foreach", "forelse", "include",
-                    "extends", "section", "yield", "push", "prepend", "stack", "method", "lang", "for", "while");
-    private static final Set<String> NO_ARGS =
-            Set.of("else", "endif", "endunless", "endisset", "endswitch", "default", "auth", "endauth",
-                    "guest", "endguest", "parent", "csrf", "endpush", "endprepend", "endforeach", "empty", "endforelse", "endsection", "show", "endfor", "endwhile");
-
-    /** Directives whose argument list is optional; the '(' must follow the name directly. */
-    private static final Set<String> OPTIONAL_ARGS = Set.of("break", "continue");
-
     private Lexer() {}
 
-    static List<Token> lex(String s) {
+    static List<Token> lex(String s, DirectiveRegistry registry) {
         List<Token> out = new ArrayList<>();
         StringBuilder text = new StringBuilder();
         int line = 1;
@@ -92,30 +82,25 @@ final class Lexer {
                     text.append(s, j, e);
                     line += newlines(s, i, e);
                     i = e + "@endverbatim".length();
-                } else if (OPTIONAL_ARGS.contains(name)) {
-                    flush(out, text, textLine);
-                    if (j < n && s.charAt(j) == '(') {
-                        int close = matchParen(s, j, line);
-                        out.add(new Token(Kind.DIRECTIVE, name, s.substring(j + 1, close).trim(), line));
-                        line += newlines(s, i, close);
-                        i = close + 1;
-                    } else {
-                        out.add(new Token(Kind.DIRECTIVE, name, null, line));
-                        i = j;
-                    }
-                } else if (NO_ARGS.contains(name)) {
+                } else if (registry.syntax(name) == Syntax.NONE) {
                     flush(out, text, textLine);
                     out.add(new Token(Kind.DIRECTIVE, name, null, line));
                     i = j;
-                } else if (TAKES_ARGS.contains(name)) {
+                } else if (registry.syntax(name) != null) {
+                    // OPTIONAL: '(' must follow directly; REQUIRED: blanks may precede it.
+                    boolean optional = registry.syntax(name) == Syntax.OPTIONAL;
                     int k = j;
-                    while (k < n && (s.charAt(k) == ' ' || s.charAt(k) == '\t')) k++;
+                    while (!optional && k < n && (s.charAt(k) == ' ' || s.charAt(k) == '\t')) k++;
                     if (k < n && s.charAt(k) == '(') {
                         int close = matchParen(s, k, line);
                         flush(out, text, textLine);
                         out.add(new Token(Kind.DIRECTIVE, name, s.substring(k + 1, close).trim(), line));
                         line += newlines(s, i, close);
                         i = close + 1;
+                    } else if (optional) {
+                        flush(out, text, textLine);
+                        out.add(new Token(Kind.DIRECTIVE, name, null, line));
+                        i = j;
                     } else {
                         text.append(c);
                         i++;
