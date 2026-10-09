@@ -248,4 +248,76 @@ class LoomaEngineTest {
         assertEquals("unknown.key", render("@lang('unknown.key')", Map.of("_messages", r)));
         assertEquals("no.resolver", render("@lang('no.resolver')", Map.of()));
     }
+
+    @Test
+    void forLoopCountsUpDownAndByStep() {
+        assertEquals("012", render("@for($i = 0; $i < 3; $i++){{ $i }}@endfor", Map.of()));
+        assertEquals("321", render("@for($i = 3; $i > 0; $i--){{ $i }}@endfor", Map.of()));
+        assertEquals("0,5,10,", render("@for($i = 0; $i <= 10; $i += 5){{ $i }},@endfor", Map.of()));
+        assertEquals("4,2,0,", render("@for($i = 4; $i >= 0; $i -= 2){{ $i }},@endfor", Map.of()));
+        assertEquals("0.0 0.5 1.0 ", render("@for($x = 0.0; $x <= 1; $x += 0.5){{ $x }} @endfor", Map.of()));
+        assertEquals("ab", render("@for($i = 0; $i < $items.size(); $i++){{ $items[$i] }}@endfor",
+                Map.of("items", List.of("a", "b"))));
+        assertEquals("", render("@for($i = 5; $i < 3; $i++)never@endfor", Map.of()));
+    }
+
+    @Test
+    void forLoopVariableDoesNotLeakOutAndLoopsNest() {
+        assertEquals("00 01 10 11 [none]",
+                render("@for($i = 0; $i < 2; $i++)@for($j = 0; $j < 2; $j++){{ $i }}{{ $j }} @endfor@endfor[{{ $i ?? 'none' }}]", Map.of()));
+    }
+
+    @Test
+    void whileLoopsOverAnIteratorStyleCondition() {
+        Map<String, Object> m = Map.of("it", List.of("x", "y", "z").iterator());
+        assertEquals("x-y-z-", render("@while($it.hasNext()){{ $it.next() }}-@endwhile", m));
+    }
+
+    @Test
+    void breakAndContinueWork() {
+        List<Integer> nums = List.of(1, 2, 3, 4, 5, 6);
+        Map<String, Object> m = Map.of("nums", nums);
+        assertEquals("123", render("@foreach($nums as $n)@if($n > 3)@break@endif{{ $n }}@endforeach", m));
+        assertEquals("135", render("@foreach($nums as $n)@if($n % 2 == 0)@continue@endif{{ $n }}@endforeach", m));
+        assertEquals("1234", render("@foreach($nums as $n){{ $n }}@break($n == 4)@endforeach", m));
+        assertEquals("135", render("@foreach($nums as $n)@continue($n % 2 == 0){{ $n }}@endforeach", m));
+        assertEquals("0 1 2 ", render("@for($i = 0; $i < 10; $i++)@break($i == 3){{ $i }} @endfor", Map.of()));
+        assertEquals("a", render("@forelse($nums as $n)a@break@empty none@endforelse", m));
+    }
+
+    @Test
+    void breakOnlyLeavesTheInnermostLoop() {
+        String t = "@foreach($rows as $r)@foreach($r as $c)@break($c == 'stop'){{ $c }}@endforeach|@endforeach";
+        assertEquals("a|c|", render(t, Map.of("rows", List.of(List.of("a", "stop", "b"), List.of("c")))));
+    }
+
+    @Test
+    void breakInsideSwitchEndsTheSwitchNotTheLoop() {
+        String t = "@foreach($xs as $x)@switch($x)@case(1)one@break@case(2)two@break@default other@endswitch,@endforeach";
+        assertEquals("one,two, other,", render(t, Map.of("xs", List.of(1, 2, 3))));
+        // @continue inside a switch still reaches the loop
+        String c = "@foreach($xs as $x)@switch($x)@case(2)@continue@endswitch{{ $x }}@endforeach";
+        assertEquals("13", render(c, Map.of("xs", List.of(1, 2, 3))));
+    }
+
+    @Test
+    void breakAndContinueOutsideLoopsAreSyntaxErrors() {
+        assertThrows(LoomaException.class, () -> render("@break", Map.of()));
+        assertThrows(LoomaException.class, () -> render("@continue", Map.of()));
+        assertThrows(LoomaException.class, () -> render("@switch(1)@case(1)@continue@endswitch", Map.of()));
+        assertEquals("@break (draft)", render("@verbatim@break (draft)@endverbatim", Map.of()));
+    }
+
+    @Test
+    void malformedForAndRunawayLoopsFailClearly() {
+        for (String bad : List.of("@for($i = 0; $i < 3)x@endfor", "@for($i < 3; $i < 3; $i++)x@endfor",
+                "@for($i = 0; $i < 3; $j++)x@endfor", "@for($i = 0; $i < 3; $i += )x@endfor")) {
+            assertThrows(LoomaException.class, () -> render(bad, Map.of()), bad);
+        }
+        LoomaException e = assertThrows(LoomaException.class,
+                () -> render("@while(true)x@endwhile", Map.of()));
+        assertTrue(e.getMessage().contains("100000 iterations"), e.getMessage());
+        assertThrows(LoomaException.class, () -> render("@for($i = 0; $i < 200000; $i++)@endfor", Map.of()));
+        assertThrows(LoomaException.class, () -> render("@for($i = 'a'; $i != 'b'; $i++)x@endfor", Map.of()));
+    }
 }

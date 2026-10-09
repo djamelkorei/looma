@@ -22,6 +22,13 @@ public final class RenderSession {
     private final Deque<Chain> chains = new ArrayDeque<>();
     private StringBuilder out = new StringBuilder();
     private int depth;
+    /** Pending @break / @continue, consumed by the enclosing loop (or switch for break). */
+    private Signal signal = Signal.NONE;
+
+    private enum Signal { NONE, BREAK, CONTINUE }
+
+    /** Upper bound for @for / @while passes; guards against conditions that never become false. */
+    static final int MAX_ITERATIONS = 100_000;
 
     /** Upper bound for nested include/extends/component rendering; guards against runaway recursion. */
     static final int MAX_DEPTH = 100;
@@ -81,11 +88,24 @@ public final class RenderSession {
 
     private void renderNodes(List<Node> nodes, Scope scope) {
         for (Node node : nodes) {
+            if (signal != Signal.NONE) return;
             switch (node) {
                 case Node.Text t -> out.append(t.value());
                 case Node.Echo e -> echo(e, scope);
                 case Node.If i -> renderIf(i, scope);
                 case Node.Switch sw -> renderSwitch(sw, scope);
+                case Node.For f -> renderFor(f, scope);
+                case Node.While w -> renderWhile(w, scope);
+                case Node.Break b -> {
+                    if (b.condition() == null || Expressions.truthy(Expressions.eval(b.condition(), scope))) {
+                        signal = Signal.BREAK;
+                    }
+                }
+                case Node.Continue c -> {
+                    if (c.condition() == null || Expressions.truthy(Expressions.eval(c.condition(), scope))) {
+                        signal = Signal.CONTINUE;
+                    }
+                }
                 case Node.Foreach f -> renderForeach(f, scope);
                 case Node.Include inc -> renderInclude(inc, scope);
                 case Node.Section s -> {
@@ -161,12 +181,73 @@ public final class RenderSession {
             }
             for (var test : c.tests()) {
                 if (looselyEqual(subject, Expressions.eval(test, scope))) {
-                    renderNodes(c.body(), scope);
+                    renderSwitchBody(c, scope);
                     return;
                 }
             }
         }
-        if (fallback != null) renderNodes(fallback.body(), scope);
+        if (fallback != null) renderSwitchBody(fallback, scope);
+    }
+
+    /** A @break inside a case ends the switch only; @continue still reaches the enclosing loop. */
+    private void renderSwitchBody(Node.Case c, Scope scope) {
+        renderNodes(c.body(), scope);
+        if (signal == Signal.BREAK) signal = Signal.NONE;
+    }
+
+    /** Runs one loop pass; returns false when the loop must stop because of @break. */
+    private boolean passBody(List<Node> body, Scope scope) {
+        renderNodes(body, scope);
+        Signal s = signal;
+        signal = Signal.NONE;
+        return s != Signal.BREAK;
+    }
+
+    private void renderFor(Node.For f, Scope scope) {
+        Scope inner = new Scope(scope);
+        inner.put(f.var(), Expressions.eval(f.init(), scope));
+        for (int pass = 0; Expressions.truthy(Expressions.eval(f.condition(), inner)); pass++) {
+            checkIterations(pass, "@for", f.condition());
+            if (!passBody(f.body(), inner)) return;
+            Object current = inner.get(f.var());
+            Object amount = Expressions.eval(f.step(), inner);
+            if (!(current instanceof Number c) || !(amount instanceof Number a)) {
+                throw new LoomaException("@for variable '" + f.var() + "' and its step must be numbers, found "
+                        + current + " and " + amount, f.step().line(), null);
+            }
+            inner.put(f.var(), add(c, f.decrement() ? negate(a) : a));
+        }
+    }
+
+    private void renderWhile(Node.While w, Scope scope) {
+        for (int pass = 0; Expressions.truthy(Expressions.eval(w.condition(), scope)); pass++) {
+            checkIterations(pass, "@while", w.condition());
+            if (!passBody(w.body(), scope)) return;
+        }
+    }
+
+    private static void checkIterations(int pass, String directive, io.github.djamelkorei.looma.ast.Expr condition) {
+        if (pass >= MAX_ITERATIONS) {
+            throw new LoomaException(directive + " exceeded " + MAX_ITERATIONS
+                    + " iterations; the condition '" + condition.source() + "' never became false", condition.line(), null);
+        }
+    }
+
+    private static boolean integral(Number n) {
+        return n instanceof Integer || n instanceof Long || n instanceof Short || n instanceof Byte;
+    }
+
+    private static Number negate(Number n) {
+        return integral(n) ? (Number) (-n.longValue()) : (Number) (-n.doubleValue());
+    }
+
+    /** Integer-preserving addition: int + int stays an Integer so SpEL comparisons and output look natural. */
+    private static Number add(Number a, Number b) {
+        if (integral(a) && integral(b)) {
+            long sum = Math.addExact(a.longValue(), b.longValue());
+            return sum >= Integer.MIN_VALUE && sum <= Integer.MAX_VALUE ? (Number) (int) sum : (Number) sum;
+        }
+        return a.doubleValue() + b.doubleValue();
     }
 
     private static boolean looselyEqual(Object a, Object b) {
@@ -187,7 +268,7 @@ public final class RenderSession {
         for (int i = 0; i < items.size(); i++) {
             inner.put(f.var(), items.get(i));
             inner.put("loop", new Loop(i, items.size(), parent));
-            renderNodes(f.body(), inner);
+            if (!passBody(f.body(), inner)) return;
         }
     }
 

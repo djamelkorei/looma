@@ -36,6 +36,9 @@ Unknown views fall through to other `ViewResolver`s.
 | `@if @elseif @else @endif`, `@unless`, `@isset` | conditionals |
 | `@switch($x) @case(1) ... @break @default ... @endswitch` | switch (stacked `@case`s share a body) |
 | `@foreach($xs as $x)`, `@forelse ... @empty ... @endforelse` | loops; `$loop->index/iteration/count/first/last/odd/even/remaining/parent/depth`; maps give `$e->key`, `$e->value` |
+| `@for($i = 0; $i < 10; $i++)` ... `@endfor` | counted loop; step is `++`, `--`, `+= n` or `-= n` on the loop variable (`$i` is local to the loop) |
+| `@while($it.hasNext())` ... `@endwhile` | loops while the condition is truthy; the body must change it (e.g. `$it.next()`) |
+| `@break`, `@continue`, `@break($cond)`, `@continue($cond)` | in any loop; `@break` in a `@switch` ends the switch; both are errors outside a loop |
 | `@extends('layouts.app')`, `@section`, `@yield('x', 'default')`, `@parent`, `@show` | layouts |
 | `@include('partials.nav', {'n': 1})` | partials, inheriting the current scope |
 | `@push('js')`, `@prepend`, `@stack('js')` | stacks, usable before the pushes happen |
@@ -72,6 +75,7 @@ CSRF filter is active, `_csrf`. Model attributes with the same names win.
 - Parsed templates are immutable and cached per `LoomaEngine` (thread-safe); keep `looma.cache=true` in production.
 - Errors are `LoomaException`s naming the template and line, e.g. `In template 'home' at line 12: ...`.
 - `@include`/`@extends`/components may nest 100 deep before failing, which stops accidental recursion.
+- `@for`/`@while` stop with an error after 100,000 passes, so a condition that never turns false cannot hang a request.
 - `looma.*` properties have IDE auto-completion through the generated configuration metadata.
 
 ## Build

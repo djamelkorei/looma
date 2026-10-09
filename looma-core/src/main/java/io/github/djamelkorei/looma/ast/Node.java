@@ -21,6 +21,18 @@ public sealed interface Node {
 
     record Case(List<Expr> tests, List<Node> body) {}
 
+    /** {@code @for($i = 0; $i < n; $i++)}: counted loop; {@code step} is added (or subtracted) each pass. */
+    record For(String var, Expr init, Expr condition, Expr step, boolean decrement, List<Node> body)
+            implements Node {}
+
+    record While(Expr condition, List<Node> body) implements Node {}
+
+    /** {@code @break} / {@code @break($cond)}: leaves the innermost loop (or switch). */
+    record Break(Expr condition) implements Node {}
+
+    /** {@code @continue} / {@code @continue($cond)}: skips to the next loop iteration. */
+    record Continue(Expr condition) implements Node {}
+
     record Include(Expr name, Expr data) implements Node {}
 
     record Extends(Expr name) implements Node {}

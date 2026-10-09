@@ -11,6 +11,11 @@ final class Args {
 
     /** Splits on top-level commas, ignoring commas inside quotes, parentheses, brackets and braces. */
     static List<String> split(String args) {
+        return split(args, ',');
+    }
+
+    /** Like {@link #split(String)} with a custom delimiter, e.g. ';' for {@code @for}. */
+    static List<String> split(String args, char delimiter) {
         List<String> parts = new ArrayList<>();
         int depth = 0;
         char quote = 0;
@@ -26,7 +31,7 @@ final class Args {
                 depth++;
             } else if (c == ')' || c == ']' || c == '}') {
                 depth--;
-            } else if (c == ',' && depth == 0) {
+            } else if (c == delimiter && depth == 0) {
                 parts.add(args.substring(start, i).trim());
                 start = i + 1;
             }

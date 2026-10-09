@@ -17,8 +17,13 @@ public final class Parser {
     private static final String COMPONENT_END = "</x>";
     private static final Pattern FOREACH = Pattern.compile("(?s)^(.*\\S)\\s+as\\s+\\$?(\\w+)$");
 
+    private static final Pattern FOR_INIT = Pattern.compile("(?s)^\\$?(\\w+)\\s*=(?!=)\\s*(.+)$");
+    private static final Pattern FOR_STEP = Pattern.compile("(?s)^\\$?(\\w+)\\s*(\\+\\+|--|\\+=|-=)\\s*(.*)$");
+
     private final List<Token> tokens;
     private int pos;
+    private int loopDepth;
+    private int switchDepth;
 
     private Parser(List<Token> tokens) {
         this.tokens = tokens;
@@ -67,6 +72,20 @@ public final class Parser {
             case "guest" -> parseIf(t, "principal == null", "endguest", false);
             case "switch" -> parseSwitch(t);
             case "parent" -> new Node.Parent();
+            case "for" -> parseFor(t);
+            case "while" -> new Node.While(expr(t.args(), t), loopBlock(Set.of("endwhile")));
+            case "break" -> {
+                if (loopDepth == 0 && switchDepth == 0) {
+                    throw new LoomaException("@break can only be used inside a loop or @switch", t.line(), null);
+                }
+                yield new Node.Break(t.args() == null ? null : expr(t.args(), t));
+            }
+            case "continue" -> {
+                if (loopDepth == 0) {
+                    throw new LoomaException("@continue can only be used inside a loop", t.line(), null);
+                }
+                yield new Node.Continue(t.args() == null ? null : expr(t.args(), t));
+            }
             case "csrf" -> new Node.Csrf();
             case "lang" -> {
                 List<String> a = Args.split(t.args());
@@ -213,9 +232,49 @@ public final class Parser {
     }
 
     private List<Node> caseBody() {
-        List<Node> body = block(Set.of("case", "default", "break", "endswitch"));
-        if (tokens.get(pos).text().equals("break")) pos++;
-        return body;
+        switchDepth++;
+        try {
+            return block(Set.of("case", "default", "endswitch"));
+        } finally {
+            switchDepth--;
+        }
+    }
+
+    /** Parses a loop body (where @break/@continue are legal) up to {@code end}, then consumes {@code end}. */
+    private List<Node> loopBlock(Set<String> end) {
+        loopDepth++;
+        try {
+            List<Node> body = block(end);
+            pos++;
+            return body;
+        } finally {
+            loopDepth--;
+        }
+    }
+
+    private Node parseFor(Token t) {
+        List<String> parts = Args.split(t.args(), ';');
+        if (parts.size() != 3) {
+            throw new LoomaException("Expected '@for(init; condition; step)', e.g. @for($i = 0; $i < 3; $i++)",
+                    t.line(), null);
+        }
+        Matcher init = FOR_INIT.matcher(parts.get(0));
+        Matcher step = FOR_STEP.matcher(parts.get(2));
+        if (!init.matches()) {
+            throw new LoomaException("@for needs an initializer like '$i = 0' but found: " + parts.get(0), t.line(), null);
+        }
+        if (!step.matches() || !step.group(1).equals(init.group(1))) {
+            throw new LoomaException("@for step must be '$" + init.group(1)
+                    + "++', '--', '+= n' or '-= n' on the loop variable, but found: " + parts.get(2), t.line(), null);
+        }
+        String op = step.group(2);
+        boolean increment = op.equals("++") || op.equals("--");
+        if (increment != step.group(3).isEmpty()) {
+            throw new LoomaException("Invalid @for step: " + parts.get(2), t.line(), null);
+        }
+        Expr amount = expr(increment ? "1" : step.group(3), t);
+        return new Node.For(init.group(1), expr(init.group(2), t), expr(parts.get(1), t), amount,
+                op.startsWith("-"), loopBlock(Set.of("endfor")));
     }
 
     private void skipBlankText() {
@@ -232,7 +291,13 @@ public final class Parser {
             throw new LoomaException("Expected '@" + t.text() + "(items as item)'", t.line(), null);
         }
         var items = expr(m.group(1), t);
-        List<Node> body = block(forelse ? Set.of("empty", "endforelse") : Set.of("endforeach"));
+        loopDepth++;
+        List<Node> body;
+        try {
+            body = block(forelse ? Set.of("empty", "endforelse") : Set.of("endforeach"));
+        } finally {
+            loopDepth--;
+        }
         List<Node> empty = List.of();
         boolean hasEmpty = tokens.get(pos++).text().equals("empty"); // consumes the terminator
         if (forelse && hasEmpty) {

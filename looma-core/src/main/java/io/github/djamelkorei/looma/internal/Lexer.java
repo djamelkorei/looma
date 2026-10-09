@@ -14,10 +14,13 @@ final class Lexer {
 
     private static final Set<String> TAKES_ARGS =
             Set.of("if", "elseif", "unless", "isset", "switch", "case", "foreach", "forelse", "include",
-                    "extends", "section", "yield", "push", "prepend", "stack", "method", "lang");
+                    "extends", "section", "yield", "push", "prepend", "stack", "method", "lang", "for", "while");
     private static final Set<String> NO_ARGS =
-            Set.of("else", "endif", "endunless", "endisset", "endswitch", "break", "default", "auth", "endauth",
-                    "guest", "endguest", "parent", "csrf", "endpush", "endprepend", "endforeach", "empty", "endforelse", "endsection", "show");
+            Set.of("else", "endif", "endunless", "endisset", "endswitch", "default", "auth", "endauth",
+                    "guest", "endguest", "parent", "csrf", "endpush", "endprepend", "endforeach", "empty", "endforelse", "endsection", "show", "endfor", "endwhile");
+
+    /** Directives whose argument list is optional; the '(' must follow the name directly. */
+    private static final Set<String> OPTIONAL_ARGS = Set.of("break", "continue");
 
     private Lexer() {}
 
@@ -89,6 +92,17 @@ final class Lexer {
                     text.append(s, j, e);
                     line += newlines(s, i, e);
                     i = e + "@endverbatim".length();
+                } else if (OPTIONAL_ARGS.contains(name)) {
+                    flush(out, text, textLine);
+                    if (j < n && s.charAt(j) == '(') {
+                        int close = matchParen(s, j, line);
+                        out.add(new Token(Kind.DIRECTIVE, name, s.substring(j + 1, close).trim(), line));
+                        line += newlines(s, i, close);
+                        i = close + 1;
+                    } else {
+                        out.add(new Token(Kind.DIRECTIVE, name, null, line));
+                        i = j;
+                    }
                 } else if (NO_ARGS.contains(name)) {
                     flush(out, text, textLine);
                     out.add(new Token(Kind.DIRECTIVE, name, null, line));

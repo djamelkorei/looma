@@ -4,7 +4,7 @@
 
 First version.
 
-- Core engine: `{{ }}`, `{!! !!}`, comments, `@if/@elseif/@else/@unless/@isset/@switch`,
+- Core engine: `@for`, `@while`, `@break`, `@continue`, `{{ }}`, `{!! !!}`, comments, `@if/@elseif/@else/@unless/@isset/@switch`,
   `@foreach/@forelse` with `$loop`, `@include`, `@extends/@section/@yield/@parent`,
   `@push/@prepend/@stack`, `@verbatim`, `@lang`, `@csrf`, `@method`, `@auth/@guest`,
   components (`<x-name>`, slots, `$attributes`).
