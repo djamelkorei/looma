@@ -56,6 +56,27 @@ Components run in an isolated scope: they only see their attributes, slots and `
 In the Spring starter every view also gets `request`, `principal` and, when Spring Security's
 CSRF filter is active, `_csrf`. Model attributes with the same names win.
 
+## Security model
+
+- `{{ }}` and `@lang` HTML-escape; only `{!! !!}`, component slots and `$attributes` emit markup as-is.
+  Never put untrusted input in `{!! !!}`.
+- Templates are **trusted code** written by developers, not by end users. The expression sandbox
+  is defense in depth (no `T()`, `new`, bean references, `class`/`getClass()`, or calls on
+  `Class`/`ClassLoader`/`Method`/`Runtime`/`Process`); it is not meant for running user-submitted templates.
+- Do not build `@include` / `@extends` / `<x-...>` names from request input.
+- Template names are validated (`[A-Za-z0-9_-./]`, no `..`), so view names cannot escape the template folder.
+- Rendering is buffered, so an error produces a normal error response instead of half a page.
+
+## Operations
+
+- Parsed templates are immutable and cached per `LoomaEngine` (thread-safe); keep `looma.cache=true` in production.
+- Errors are `LoomaException`s naming the template and line, e.g. `In template 'home' at line 12: ...`.
+- `@include`/`@extends`/components may nest 100 deep before failing, which stops accidental recursion.
+- `looma.*` properties have IDE auto-completion through the generated configuration metadata.
+
 ## Build
 
-    mvn test          # Java 21+
+    mvn verify            # Java 21+, Maven 3.9+
+    mvn -Prelease verify  # also builds sources and javadoc jars
+
+Publishing (group id, repository, signing) is not configured; set that up for your registry before releasing.

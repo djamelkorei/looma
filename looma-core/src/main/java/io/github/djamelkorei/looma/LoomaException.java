@@ -3,6 +3,8 @@ package io.github.djamelkorei.looma;
 /** Thrown for template syntax and rendering errors. The message names the template and line when known. */
 public class LoomaException extends RuntimeException {
 
+    private static final long serialVersionUID = 1L;
+
     private final String detail;
     private final int line;
     private final String template;
