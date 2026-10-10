@@ -19,3 +19,7 @@ First version.
   `<x-...>` targets.
 - Tested on Spring Boot 3.3, 3.4, 3.5, 4.0 and 4.1, Java 21 and 25, including Spring Security.
 - Licensed under Apache-2.0; published to GitHub Packages as `io.github.djamelkorei`.
+- Security audit: closed a sandbox bypass where SpEL's cached property accessors skipped the blocked-type check
+  inside loops, and blocked method calls on the template's own scope (`#root.put(...)`). Abuse cases are covered by
+  `SecurityTest`. Added `SECURITY.md`, private vulnerability reporting, Dependabot and CodeQL.
+- Rendering is about 1.8× faster (fast path for simple expressions, fewer allocations).

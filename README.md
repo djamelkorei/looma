@@ -44,7 +44,7 @@ the view name from a controller. Version `0.1.0` is not published yet, so until 
 * **Safe by default**: escaped output, a sandboxed expression language, bounded loops, and a startup check that
   fails the app (with file and line) if any template is broken or points at a missing one.
 * **Easy to extend**: every directive is one small class behind a public API; yours are plain Spring beans.
-* **Fast**: about 2.3× faster than Thymeleaf and level with Pebble on the same page ([benchmarks](https://djamelkorei.github.io/looma/benchmarks/)).
+* **Fast**: about 4× faster than Thymeleaf and 1.5× faster than Pebble on the same page ([benchmarks](https://djamelkorei.github.io/looma/benchmarks/)).
 * **Tested widely**: Java 21 and 25 × Spring Boot 3.3, 3.4, 3.5 and 4.0, including Spring Security, on every push.
 
 ## Learn more

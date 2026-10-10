@@ -14,11 +14,16 @@ title: Security & operations
 - Do not build `@include` / `@extends` / `<x-...>` names from request input.
 - Template names are validated (`[A-Za-z0-9_-./]`, no `..`), so view names cannot escape the template folder.
 - Rendering is buffered, so an error produces a normal error response instead of half a page.
+- **Escaping is for HTML text and quoted attributes.** It does not make a value safe as a URL or as JavaScript:
+  `<a href="{{ $url }}">` still accepts `javascript:...` if the URL comes from a user, so validate URLs (allow
+  `http`/`https` only). Always quote attributes (`title="{{ $x }}"`, never `title={{ $x }}`). For data in scripts use
+  `@json`, never `{{ }}`. `@style` with user input can inject CSS.
 
 ## Operations
 
 - Parsed templates are immutable and cached per `LoomaEngine` (thread-safe); keep `looma.cache=true` in production.
 - Errors are `LoomaException`s naming the template and line, e.g. `In template 'home' at line 12: ...`.
-- `@include`/`@extends`/components may nest 100 deep before failing, which stops accidental recursion.
+- `@include`/`@extends`/components may nest 100 deep before failing, which stops accidental recursion, and blocks
+  may be nested 200 deep in one template (deeper fails with the line instead of overflowing the stack).
 - `@for`/`@while` stop with an error after 100,000 passes, so a condition that never turns false cannot hang a request.
 - `looma.*` properties have IDE auto-completion through the generated configuration metadata.

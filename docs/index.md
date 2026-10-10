@@ -57,7 +57,7 @@ bolted onto your markup, and get a layout system, components, validation errors 
 
     ---
 
-    About 2.3× faster than Thymeleaf and level with Pebble on the same page, measured with JMH.
+    About 4× faster than Thymeleaf and 1.5× faster than Pebble on the same page, measured with JMH.
 
     [:octicons-arrow-right-24: Benchmarks](benchmarks.md)
 
