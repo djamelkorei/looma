@@ -21,6 +21,8 @@ public interface LoomaElementTypes {
     IElementType ARGUMENTS = new LoomaElementType("ARGUMENTS");
     /** A block directive with its body, secondary tags and end tag: {@code @if ... @else ... @endif}. */
     IElementType BLOCK = new LoomaElementType("BLOCK");
+    /** The content of a block between two of its tags. */
+    IElementType BODY = new LoomaElementType("BODY");
     /** A variable read: {@code $user} or {@code user}. */
     IElementType VARIABLE = new LoomaElementType("VARIABLE");
     /** A variable introduced by a directive: {@code $post} in {@code @foreach($posts as $post)}. */

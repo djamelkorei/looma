@@ -38,6 +38,9 @@ variables, Java properties and methods, helpers, beans, `$loop->...`, component 
 (the variables the component reads), and form field paths. `:attr="..."` values of components are full
 expressions too.
 
+**Formatting.** Reformat Code formats the HTML with your HTML code style and indents block bodies; what is
+inside directives and echoes is left as written. Enter after `@if(...)` or `@else` indents the next line.
+
 **Editing.** Typing `{{` gives `{{ | }}` (a `-` right after makes it a comment), `{!!` gives `{!! | !!}`;
 Comment Line uses `{{-- --}}`; block bodies fold; the caret on `@if` highlights its `@else` and `@endif`;
 Quick Documentation (F1 / Ctrl+Q) explains directives; the Structure view lists blocks and sections; File |

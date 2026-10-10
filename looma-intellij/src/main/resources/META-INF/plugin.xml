@@ -62,8 +62,10 @@
         <lang.braceMatcher language="Looma" implementationClass="io.github.djamelkorei.looma.intellij.editor.LoomaBraceMatcher"/>
         <lang.commenter language="Looma" implementationClass="io.github.djamelkorei.looma.intellij.editor.LoomaCommenter"/>
         <multiLangCommenter implementation="io.github.djamelkorei.looma.intellij.editor.LoomaMultiLangCommenter"/>
+        <lang.formatter language="Looma" implementationClass="io.github.djamelkorei.looma.intellij.format.LoomaFormattingModelBuilder"/>
         <lang.foldingBuilder language="Looma" implementationClass="io.github.djamelkorei.looma.intellij.editor.LoomaFoldingBuilder"/>
         <typedHandler implementation="io.github.djamelkorei.looma.intellij.editor.LoomaTypedHandler"/>
+        <enterHandlerDelegate implementation="io.github.djamelkorei.looma.intellij.editor.LoomaEnterHandler"/>
         <lang.documentationProvider language="Looma"
                                     implementationClass="io.github.djamelkorei.looma.intellij.editor.LoomaDocumentationProvider"/>
         <lang.documentationProvider language="HTML"

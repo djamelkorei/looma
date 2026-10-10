@@ -83,25 +83,44 @@ public final class LoomaParser implements PsiParser {
             return;
         }
         open.push(d);
+        Body body = new Body();
         try {
             while (!builder.eof()) {
                 if (builder.getTokenType() == DIRECTIVE) {
                     String name = directiveName();
                     if (d.ends().containsKey(name)) {
+                        body.close();
                         directive(null);
                         break;
                     }
                     if (d.middle().containsKey(name)) {
+                        body.close();
                         directive(null);
+                        body = new Body();
                         continue;
                     }
                 }
                 if (!content()) break; // a tag of an outer block: this one is unclosed
             }
         } finally {
+            body.close();
             open.pop();
         }
         block.done(LoomaElementTypes.BLOCK);
+    }
+
+    /** The content between two tags of a block, so that the formatter can indent it. Empty bodies leave no node. */
+    private final class Body {
+        private final PsiBuilder.Marker marker = builder.mark();
+        private final int start = builder.getCurrentOffset();
+        private boolean closed;
+
+        void close() {
+            if (closed) return;
+            closed = true;
+            if (builder.getCurrentOffset() > start) marker.done(LoomaElementTypes.BODY);
+            else marker.drop();
+        }
     }
 
     private boolean closesOpenBlock(String name) {
