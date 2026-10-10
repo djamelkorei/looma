@@ -1,6 +1,22 @@
 # Changelog
 
-## 0.1.0 (unreleased)
+## 0.1.1 (unreleased)
+
+Fixes found by running a realistic application (Spring Security, validation, a deliberately complex dashboard)
+against the published 0.1.0:
+
+- Errors inside a `@section`, a slot or an include now name the template the expression was written in, not the
+  layout that rendered it.
+- After a failed form submit, multi-value fields (`@checkbox('tags', ...)`, `@option` on a list) kept no
+  selections, because Spring formats a list as one string; the raw values are used now.
+- `Number.compact` dropped the decimals for `BigDecimal` / `BigInteger` (`1M` instead of `1.3M`).
+- An unclosed block followed by an outer closing tag (`@foreach` ... `@endsection`) is reported at the unclosed
+  block's line instead of as "Unexpected @endsection".
+- `@bean` references to an unknown name suggest similar bean names (e.g. a nested class registered as
+  `outer.ProjectService`).
+- Builds use the Maven Wrapper (Maven 3.9.16): Maven 3.10 adds files to the Maven Central bundle that Central rejects.
+
+## 0.1.0 (2026-10-10)
 
 First version.
 
