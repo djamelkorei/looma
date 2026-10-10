@@ -50,7 +50,17 @@ jobs:
       - name: Set version from the release tag
         run: mvn -B -q versions:set -DnewVersion="${GITHUB_REF_NAME#v}" -DgenerateBackupPoms=false
       - name: Test and deploy
-        run: mvn -B -Prelease deploy
+        # GitHub Packages refuses to overwrite a version (HTTP 409). When a release is re-run, an existing copy is
+        # kept and reported as a warning instead of failing the release.
+        run: |
+          set +e
+          mvn -B -Prelease deploy 2>&1 | tee deploy.log
+          status=${PIPESTATUS[0]}
+          if [ "$status" -ne 0 ] && grep -q "409" deploy.log; then
+            echo "::warning::This version is already in GitHub Packages; kept the existing copy."
+            exit 0
+          fi
+          exit "$status"
         env:
           GITHUB_ACTOR: ${{ github.actor }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
