@@ -1,0 +1,38 @@
+<idea-plugin>
+    <id>io.github.djamelkorei.looma</id>
+    <name>Looma</name>
+    <vendor url="https://github.com/djamelkorei/looma">Djamel Eddine Korei</vendor>
+    <description><![CDATA[
+        Support for <a href="https://djamelkorei.github.io/looma/">Looma</a>, the Blade-style template engine
+        for Spring Boot: highlighting for <code>*.looma.html</code> templates on top of full HTML support,
+        directive completion and documentation, navigation to included templates, layouts, components,
+        sections, stacks and message keys, and error checks for unclosed blocks.
+    ]]></description>
+
+    <depends>com.intellij.modules.platform</depends>
+    <depends>com.intellij.modules.xml</depends>
+
+    <extensionPoints>
+        <extensionPoint qualifiedName="io.github.djamelkorei.looma.customDirectiveProvider"
+                        interface="io.github.djamelkorei.looma.intellij.lang.CustomDirectiveProvider"
+                        dynamic="true"/>
+        <extensionPoint qualifiedName="io.github.djamelkorei.looma.modelVariables"
+                        interface="io.github.djamelkorei.looma.intellij.reference.LoomaModelVariables"
+                        dynamic="true"/>
+    </extensionPoints>
+
+    <extensions defaultExtensionNs="com.intellij">
+        <fileType name="Looma" language="Looma" fieldName="INSTANCE"
+                  implementationClass="io.github.djamelkorei.looma.intellij.lang.LoomaFileType"
+                  patterns="*.looma.html"/>
+        <lang.parserDefinition language="Looma"
+                               implementationClass="io.github.djamelkorei.looma.intellij.parser.LoomaParserDefinition"/>
+        <lang.fileViewProviderFactory language="Looma"
+                                      implementationClass="io.github.djamelkorei.looma.intellij.lang.LoomaFileViewProviderFactory"/>
+        <lang.syntaxHighlighterFactory language="Looma"
+                                       implementationClass="io.github.djamelkorei.looma.intellij.highlight.LoomaSyntaxHighlighterFactory"/>
+        <editorHighlighterProvider filetype="Looma"
+                                   implementationClass="io.github.djamelkorei.looma.intellij.highlight.LoomaEditorHighlighterProvider"/>
+        <colorSettingsPage implementation="io.github.djamelkorei.looma.intellij.highlight.LoomaColorSettingsPage"/>
+    </extensions>
+</idea-plugin>
