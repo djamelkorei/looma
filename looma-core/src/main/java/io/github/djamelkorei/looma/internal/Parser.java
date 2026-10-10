@@ -34,6 +34,8 @@ public final class Parser {
     private final Map<String, Integer> markers = new HashMap<>();
     private int pos;
     private int depth;
+    /** Opening tags of the blocks currently being parsed, innermost first (for "never closed" errors). */
+    private final java.util.ArrayDeque<Token> open = new java.util.ArrayDeque<>();
     private String templateName;
     private Expr layout;
     private final List<Template.Reference> references = new ArrayList<>();
@@ -61,10 +63,14 @@ public final class Parser {
             // Deeper nesting would overflow the parser's stack; fail with a message that points at the line.
             throw new LoomaException("Blocks are nested more than " + MAX_NESTING + " levels deep", opener.line(), null);
         }
+        if (opener != null) open.push(opener);
         try {
             return parseBlock(stops, opener);
         } finally {
-            if (opener != null) depth--;
+            if (opener != null) {
+                depth--;
+                open.pop();
+            }
         }
     }
 
@@ -108,6 +114,14 @@ public final class Parser {
     private Node directive(Token t) {
         Directive directive = registry.directive(t.text());
         if (directive == null) {
+            // A closing tag of another block (e.g. @endsection while an @foreach is still open) means the inner block
+            // was never closed: point at that block's opening line, which is where the fix belongs.
+            Token inner = open.peek();
+            if (inner != null && registry.syntax(t.text()) != null) {
+                String what = inner.kind() == Kind.DIRECTIVE ? "@" + inner.text() : "<x-" + inner.text() + ">";
+                throw new LoomaException("Unclosed block: " + what + " is never closed (found @" + t.text()
+                        + " at line " + t.line() + ")", inner.line(), null);
+            }
             throw new LoomaException("Unexpected @" + t.text(), t.line(), null);
         }
         return directive.parse(new Call(t, pos - 1));

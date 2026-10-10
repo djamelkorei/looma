@@ -182,4 +182,16 @@ class FormFeaturesTest {
         assertEquals("caller", slot.template(), "slot content belongs to the caller: " + slot.getMessage());
         assertEquals(3, slot.line());
     }
+
+    @Test
+    void aClosingTagOfAnOuterBlockPointsAtTheUnclosedInnerBlock() {
+        files.put("layout", "@yield('content')");
+        files.put("page", "@extends('layout')\n@section('content')\n<ul>\n@foreach($xs as $x)\n<li>{{ $x }}</li>\n</ul>\n@endsection");
+        LoomaException e = assertThrows(LoomaException.class, () -> engine.render("page", Map.of()));
+        assertEquals(4, e.line(), e.getMessage());
+        assertEquals(true, e.getMessage().contains("@foreach is never closed (found @endsection at line 7)"), e.getMessage());
+        // a stray closing tag with nothing open is still reported as unexpected
+        LoomaException stray = assertThrows(LoomaException.class, () -> render("x\n@endforeach", Map.of()));
+        assertEquals(true, stray.getMessage().contains("Unexpected @endforeach") && stray.line() == 2, stray.getMessage());
+    }
 }
