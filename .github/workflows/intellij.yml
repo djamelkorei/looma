@@ -1,0 +1,40 @@
+name: IntelliJ plugin
+
+on:
+  push:
+    branches: [main]
+    paths: [looma-intellij/**, looma-core/**, .github/workflows/intellij.yml]
+  pull_request:
+    paths: [looma-intellij/**, looma-core/**, .github/workflows/intellij.yml]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: looma-intellij
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: 21
+          cache: maven
+      - uses: gradle/actions/setup-gradle@v6
+      # The plugin's tests check its directive and helper tables against the compiled engine.
+      - name: Compile looma-core
+        working-directory: .
+        run: mvn -B -q -pl looma-core compile
+      - name: Test
+        run: ./gradlew test
+      - name: Verify compatibility
+        run: ./gradlew verifyPlugin
+      - name: Build plugin
+        run: ./gradlew buildPlugin
+      - uses: actions/upload-artifact@v7
+        with:
+          name: looma-intellij
+          path: looma-intellij/build/distributions/*.zip
