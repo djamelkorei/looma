@@ -2,6 +2,8 @@
 
 A Blade-style template engine for Spring Boot.
 
+**New here?** → [Getting started](GETTING_STARTED.md) · [Architecture & custom directives](ARCHITECTURE.md) · [Benchmarks](BENCHMARKS.md)
+
 ```
 looma-core                  parser, AST, renderer (depends only on spring-expression)
 looma-spring-boot-starter   auto-configured engine + ViewResolver

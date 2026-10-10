@@ -435,4 +435,25 @@ class LoomaEngineTest {
         assertEquals("", render(t, Map.of()));
         assertEquals("", render(t, Map.of("errors", Map.of())));
     }
+
+    public static class Post {
+        public String getTitle() { return "T"; }
+        public boolean isPublished() { return false; }
+    }
+
+    /** The snippet from GETTING_STARTED.md section 4, verbatim, so the guide cannot rot. */
+    @Test
+    void gettingStartedLoopSnippetWorks() {
+        String snippet = "<ul>\n@forelse($posts as $post)\n    <li @class({'first': $loop->first})>\n"
+                + "        {{ $loop->iteration }}/{{ $loop->count }} {{ $post.title }}\n"
+                + "        @unless($post.published) (draft) @endunless\n    </li>\n@empty\n    <li>No posts yet</li>\n@endforelse\n</ul>";
+        String html = render(snippet, Map.of("posts", List.of(new Post(), new Post())));
+        assertTrue(html.contains("<li class=\"first\">"), html);
+        assertTrue(html.contains("1/2 T") && html.contains("2/2 T") && html.contains("(draft)"), html);
+        assertTrue(render(snippet, Map.of("posts", List.of())).contains("No posts yet"));
+        // the three spellings of a property in the guide are equivalent
+        Map<String, Object> m = Map.of("post", new Post());
+        assertEquals("T T T", render("{{ $post->title }} {{ $post.title }} {{ post.title }}", m));
+        assertEquals("d", render("{{ $missing ?? 'd' }}", Map.of()));
+    }
 }
