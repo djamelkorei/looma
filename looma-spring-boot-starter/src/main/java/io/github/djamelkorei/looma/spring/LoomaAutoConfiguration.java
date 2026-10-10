@@ -5,6 +5,7 @@ import io.github.djamelkorei.looma.FileSystemTemplateLoader;
 import io.github.djamelkorei.looma.LoomaEngine;
 import io.github.djamelkorei.looma.TemplateLoader;
 import io.github.djamelkorei.looma.spi.Directive;
+import io.github.djamelkorei.looma.spi.TemplateHelper;
 import org.springframework.beans.factory.ObjectProvider;
 import java.nio.file.Path;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
@@ -34,11 +35,13 @@ public class LoomaAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
-    public LoomaEngine loomaEngine(TemplateLoader loader, LoomaProperties props, ObjectProvider<Directive> directives) {
-        // Every Directive bean is a custom directive; no further registration is needed.
+    public LoomaEngine loomaEngine(TemplateLoader loader, LoomaProperties props, ObjectProvider<Directive> directives,
+            ObjectProvider<TemplateHelper> helpers) {
+        // Every Directive bean is a custom directive and every TemplateHelper bean a helper; nothing else to register.
         return LoomaEngine.builder(loader)
                 .cache(props.isCache())
                 .directives(directives.orderedStream().toList())
+                .helpers(helpers.orderedStream().toList())
                 .build();
     }
 

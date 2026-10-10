@@ -34,18 +34,24 @@ public final class RenderSession {
     private Signal signal = Signal.NONE;
     private int depth;
 
+    private final Scope globals;
+
     public RenderSession(Function<String, Template> templates) {
-        this(templates, 256);
+        this(templates, 256, null);
     }
 
-    /** @param initialCapacity expected output size, so the buffer does not have to grow repeatedly */
-    public RenderSession(Function<String, Template> templates, int initialCapacity) {
+    /**
+     * @param initialCapacity expected output size, so the buffer does not have to grow repeatedly
+     * @param globals         helpers visible to every template, looked up after the model (may be null)
+     */
+    public RenderSession(Function<String, Template> templates, int initialCapacity, Scope globals) {
         this.templates = templates;
         this.out = new StringBuilder(initialCapacity);
+        this.globals = globals;
     }
 
     public String render(Template template, Map<String, ?> model) {
-        Scope scope = new Scope(null, model); // reads the model in place, no copy
+        Scope scope = new Scope(globals, model); // reads the model in place, no copy; helpers come after it
         renderTemplate(template, scope);
         String result = out.toString();
         if (finishers != null) {
@@ -101,7 +107,7 @@ public final class RenderSession {
         @Override public void set(String variable, Object value) { scope.put(variable, value); }
         @Override public void setAll(Map<?, ?> variables) { scope.putAll(variables); }
         @Override public RenderContext child() { return new Ctx(new Scope(scope), templateName); }
-        @Override public RenderContext isolated() { return new Ctx(new Scope(null), templateName); }
+        @Override public RenderContext isolated() { return new Ctx(new Scope(globals), templateName); } // helpers only
 
         @Override public void write(CharSequence text) { out.append(text); }
 

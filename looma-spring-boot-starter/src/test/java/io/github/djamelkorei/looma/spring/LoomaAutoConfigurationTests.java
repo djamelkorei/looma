@@ -214,4 +214,16 @@ class LoomaAutoConfigurationTests {
             assertThat(custom.getContentAsString()).isEqualTo("|NAME||1");
         });
     }
+
+    public static class GreetHelper implements io.github.djamelkorei.looma.spi.TemplateHelper {
+        public String name() { return "Greet"; }
+        public String hello(String who) { return "Hello " + who; }
+    }
+
+    @Test
+    void templateHelperBeansAreAvailableInTemplates() {
+        web.withBean(GreetHelper.class).withPropertyValues("looma.prefix=custom/", "looma.suffix=.tpl").run(ctx ->
+                assertThat(ctx.getBean(LoomaEngine.class).render("helpers", Map.of("n", "Ada")))
+                        .isEqualTo("Hello Ada / 7 / A-B"));
+    }
 }

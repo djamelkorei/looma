@@ -1,0 +1,3 @@
+<div {{ ${DS}attributes }}>
+    {{ ${DS}slot }}
+</div>

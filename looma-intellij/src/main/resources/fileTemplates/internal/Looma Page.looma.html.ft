@@ -1,0 +1,7 @@
+@extends('layouts.app')
+
+@section('title', '${NAME}')
+
+@section('content')
+
+@endsection

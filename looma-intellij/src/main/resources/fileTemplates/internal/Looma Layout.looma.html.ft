@@ -1,0 +1,11 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>@yield('title')</title>
+    @stack('styles')
+</head>
+<body>
+    @yield('content')
+    @stack('scripts')
+</body>
+</html>

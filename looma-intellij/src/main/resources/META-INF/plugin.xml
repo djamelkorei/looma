@@ -52,9 +52,33 @@
         <referencesSearch implementation="io.github.djamelkorei.looma.intellij.search.LoomaTemplateReferenceSearcher"/>
         <referencesSearch implementation="io.github.djamelkorei.looma.intellij.search.LoomaVariableReferenceSearcher"/>
 
+        <completion.contributor language="any" order="first"
+                                implementationClass="io.github.djamelkorei.looma.intellij.completion.LoomaCompletionContributor"/>
+        <lang.braceMatcher language="Looma" implementationClass="io.github.djamelkorei.looma.intellij.editor.LoomaBraceMatcher"/>
+        <lang.commenter language="Looma" implementationClass="io.github.djamelkorei.looma.intellij.editor.LoomaCommenter"/>
+        <multiLangCommenter implementation="io.github.djamelkorei.looma.intellij.editor.LoomaMultiLangCommenter"/>
+        <lang.foldingBuilder language="Looma" implementationClass="io.github.djamelkorei.looma.intellij.editor.LoomaFoldingBuilder"/>
+        <typedHandler implementation="io.github.djamelkorei.looma.intellij.editor.LoomaTypedHandler"/>
+        <lang.documentationProvider language="Looma"
+                                    implementationClass="io.github.djamelkorei.looma.intellij.editor.LoomaDocumentationProvider"/>
+        <lang.documentationProvider language="HTML"
+                                    implementationClass="io.github.djamelkorei.looma.intellij.editor.LoomaDocumentationProvider"/>
+        <highlightUsagesHandlerFactory implementation="io.github.djamelkorei.looma.intellij.editor.LoomaBlockTagsHighlighter"/>
+        <lang.psiStructureViewFactory language="Looma"
+                                      implementationClass="io.github.djamelkorei.looma.intellij.structure.LoomaStructureViewFactory"/>
+        <internalFileTemplate name="Looma Page"/>
+        <internalFileTemplate name="Looma Layout"/>
+        <internalFileTemplate name="Looma Component"/>
+
         <xml.elementDescriptorProvider
                 implementation="io.github.djamelkorei.looma.intellij.component.LoomaComponentDescriptorProvider"/>
         <xml.xmlExtension order="first" implementation="io.github.djamelkorei.looma.intellij.component.LoomaXmlExtension"/>
         <xml.tagNameProvider implementation="io.github.djamelkorei.looma.intellij.component.LoomaComponentTagNameProvider"/>
     </extensions>
+
+    <actions>
+        <action id="Looma.NewTemplate" class="io.github.djamelkorei.looma.intellij.editor.LoomaCreateTemplateAction">
+            <add-to-group group-id="NewGroup" anchor="after" relative-to-action="NewHtmlFile"/>
+        </action>
+    </actions>
 </idea-plugin>
