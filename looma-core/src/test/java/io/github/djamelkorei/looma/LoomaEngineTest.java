@@ -391,4 +391,16 @@ class LoomaEngineTest {
         assertThrows(LoomaException.class, () -> render("@json($c)", Map.of("c", cycle)));
         assertEquals("\"class java.lang.String\"", render("@json($k)", Map.of("k", String.class)));
     }
+
+    @Test
+    void classAndStyleBuildAttributesFromConditions() {
+        Map<String, Object> m = Map.of("on", true, "off", false, "extra", List.of("x", "y"));
+        assertEquals("<li class=\"nav active\"></li>",
+                render("<li @class('nav', {'active': $on, 'hidden': $off})></li>", m));
+        assertEquals("<li class=\"x y z\"></li>", render("<li @class($extra, 'z')></li>", m));
+        assertEquals("<li ></li>", render("<li @class({'a': $off}, null)></li>", m));
+        assertEquals("<p style=\"margin: 0; color: red;\"></p>",
+                render("<p @style('margin: 0', {'color: red': $on, 'display: none': $off})></p>", m));
+        assertEquals("<p class=\"a&quot;b\"></p>", render("<p @class('a\"b')></p>", m));
+    }
 }

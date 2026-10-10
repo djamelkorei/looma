@@ -23,6 +23,9 @@ public interface RenderContext {
     /** Evaluates with PHP-style truthiness: null, false, 0, "" and empty collections are false. */
     boolean test(Expr expr);
 
+    /** The same truthiness rule applied to a value you already have. */
+    boolean truthy(Object value);
+
     Object get(String variable);
 
     /** Sets a variable in this context's scope only. */

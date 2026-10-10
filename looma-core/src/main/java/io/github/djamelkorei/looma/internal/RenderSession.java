@@ -89,6 +89,7 @@ public final class RenderSession {
         @Override public Object eval(Expr expr) { return Expressions.eval(expr, scope); }
         @Override public String evalString(Expr expr) { return Expressions.evalString(expr, scope); }
         @Override public boolean test(Expr expr) { return Expressions.truthy(eval(expr)); }
+        @Override public boolean truthy(Object value) { return Expressions.truthy(value); }
         @Override public Object get(String variable) { return scope.get(variable); }
         @Override public void set(String variable, Object value) { scope.put(variable, value); }
         @Override public void setAll(Map<?, ?> variables) { scope.putAll(variables); }
