@@ -59,5 +59,6 @@ nav:
       - Security & operations: security.md
   - Extending & architecture: extending.md
   - Benchmarks: benchmarks.md
+  - Looma vs Thymeleaf vs Blade: comparison.md
   - Releasing: releasing.md
   - Changelog: https://github.com/djamelkorei/looma/blob/main/CHANGELOG.md
