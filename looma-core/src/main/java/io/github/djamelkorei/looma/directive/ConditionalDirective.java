@@ -11,7 +11,7 @@ import io.github.djamelkorei.looma.spi.Syntax;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.function.UnaryOperator;
+import java.util.function.Function;
 
 /**
  * {@code @if}, {@code @unless}, {@code @isset}, {@code @auth} and {@code @guest}: a condition, a body,
@@ -38,9 +38,10 @@ public final class ConditionalDirective implements Directive {
     private final String end;
     private final boolean allowElseif;
     private final Syntax syntax;
-    private final UnaryOperator<String> condition;
+    private final Function<ParseContext, String> condition;
 
-    private ConditionalDirective(String name, boolean allowElseif, Syntax syntax, UnaryOperator<String> condition) {
+    private ConditionalDirective(String name, boolean allowElseif, Syntax syntax,
+            Function<ParseContext, String> condition) {
         this.name = name;
         this.end = "end" + name;
         this.allowElseif = allowElseif;
@@ -49,24 +50,33 @@ public final class ConditionalDirective implements Directive {
     }
 
     public static ConditionalDirective ifDirective() {
-        return new ConditionalDirective("if", true, Syntax.REQUIRED, args -> args);
+        return new ConditionalDirective("if", true, Syntax.REQUIRED, ParseContext::args);
     }
 
     public static ConditionalDirective unless() {
-        return new ConditionalDirective("unless", false, Syntax.REQUIRED, args -> "!(" + args + ")");
+        return new ConditionalDirective("unless", false, Syntax.REQUIRED, p -> "!(" + p.args() + ")");
     }
 
     public static ConditionalDirective isset() {
-        return new ConditionalDirective("isset", false, Syntax.REQUIRED, args -> "(" + args + ") != null");
+        return new ConditionalDirective("isset", false, Syntax.REQUIRED, p -> "(" + p.args() + ") != null");
     }
 
-    /** True when the {@code principal} variable is set (the Spring starter provides it). */
+    /**
+     * {@code @auth}: the {@code principal} variable is set (the Spring starter provides it).
+     * {@code @auth('ADMIN')} / {@code @auth('ADMIN', 'EDITOR')}: and the request is in at least one of the
+     * roles, checked with {@code request.isUserInRole(...)} (Spring Security maps that to its authorities).
+     */
     public static ConditionalDirective auth() {
-        return new ConditionalDirective("auth", false, Syntax.NONE, args -> "principal != null");
+        return new ConditionalDirective("auth", false, Syntax.OPTIONAL, p -> {
+            if (p.args() == null) return "principal != null";
+            String roles = p.splitArgs().stream().map(r -> "request.isUserInRole(" + r + ")")
+                    .collect(java.util.stream.Collectors.joining(" || "));
+            return "principal != null && (" + roles + ")";
+        });
     }
 
     public static ConditionalDirective guest() {
-        return new ConditionalDirective("guest", false, Syntax.NONE, args -> "principal == null");
+        return new ConditionalDirective("guest", false, Syntax.NONE, p -> "principal == null");
     }
 
     @Override public String name() { return name; }
@@ -84,7 +94,7 @@ public final class ConditionalDirective implements Directive {
         String[] stops = allowElseif ? new String[] {"elseif", "else", end} : new String[] {"else", end};
         List<Branch> branches = new ArrayList<>();
         List<Node> orElse = List.of();
-        Expr test = p.expr(condition.apply(p.args()));
+        Expr test = p.expr(condition.apply(p));
         Block block = p.block(stops);
         branches.add(new Branch(test, block.nodes()));
         while (!block.end().name().equals(end)) {

@@ -3,6 +3,9 @@
 @auth
 <p class="who">Hi {{ $principal->name }}</p>
 @endauth
+@auth('ADMIN')
+<p class="role">admin</p>
+@endauth
 @guest
 <p class="who">guest</p>
 @endguest

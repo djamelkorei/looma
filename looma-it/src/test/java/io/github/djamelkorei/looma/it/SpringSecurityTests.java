@@ -73,4 +73,15 @@ class SpringSecurityTests {
                 .andExpect(content().string(org.hamcrest.Matchers.containsString("Hi ada")))
                 .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("guest"))));
     }
+
+    @Test
+    void authWithRolesUsesSpringSecurityAuthorities() throws Exception {
+        mvc.perform(get("/form").with(user("ada").roles("ADMIN")))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("class=\"role\"")));
+        mvc.perform(get("/form").with(user("bob").roles("USER")))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("Hi bob")))
+                .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("class=\"role\""))));
+        mvc.perform(get("/form"))
+                .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("class=\"role\""))));
+    }
 }

@@ -403,4 +403,27 @@ class LoomaEngineTest {
                 render("<p @style('margin: 0', {'color: red': $on, 'display: none': $off})></p>", m));
         assertEquals("<p class=\"a&quot;b\"></p>", render("<p @class('a\"b')></p>", m));
     }
+
+    public static class FakeRequest {
+        private final java.util.Set<String> roles;
+        FakeRequest(String... roles) { this.roles = java.util.Set.of(roles); }
+        public boolean isUserInRole(String role) { return roles.contains(role); }
+    }
+
+    @Test
+    void authWithRolesChecksTheRequest() {
+        String t = "@auth('ADMIN')admin@else other@endauth";
+        Map<String, Object> admin = Map.of("principal", "ada", "request", new FakeRequest("ADMIN"));
+        Map<String, Object> user = Map.of("principal", "bob", "request", new FakeRequest("USER"));
+        Map<String, Object> anon = Map.of("request", new FakeRequest());
+        assertEquals("admin", render(t, admin));
+        assertEquals(" other", render(t, user));
+        assertEquals(" other", render(t, anon));
+        String any = "@auth('ADMIN', 'EDITOR')yes@endauth";
+        assertEquals("yes", render(any, Map.of("principal", "e", "request", new FakeRequest("EDITOR"))));
+        assertEquals("", render(any, user));
+        // plain @auth still just needs a principal, and text after it is untouched
+        assertEquals(" in ", render("@auth in @endauth", Map.of("principal", "x")));
+        assertEquals("", render("@auth in @endauth", Map.of()));
+    }
 }
