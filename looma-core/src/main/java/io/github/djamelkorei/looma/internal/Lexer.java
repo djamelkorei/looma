@@ -12,6 +12,9 @@ final class Lexer {
 
     record Token(Kind kind, String text, String args, int line) {}
 
+    /** Longest component tag (name plus attributes) the lexer looks for; longer text is not treated as a tag. */
+    private static final int MAX_TAG_LENGTH = 16 * 1024;
+
     private Lexer() {}
 
     static List<Token> lex(String s, DirectiveRegistry registry) {
@@ -21,6 +24,7 @@ final class Lexer {
         int textLine = 1;
         int i = 0;
         int n = s.length();
+        int tagEnd;
         while (i < n) {
             char c = s.charAt(i);
             if (s.startsWith("{{--", i)) {
@@ -49,8 +53,9 @@ final class Lexer {
                 out.add(new Token(Kind.ECHO, s.substring(i + 2, e).trim(), null, line));
                 line += newlines(s, i, e);
                 i = e + 2;
-            } else if (c == '<' && (s.startsWith("<x-", i) || s.startsWith("</x-", i)) && componentTag(s, i) > 0) {
-                int end = componentTag(s, i);
+            } else if (c == '<' && (s.startsWith("<x-", i) || s.startsWith("</x-", i))
+                    && (tagEnd = componentTag(s, i)) > 0) {
+                int end = tagEnd;
                 boolean closing = s.startsWith("</", i);
                 int nameStart = i + (closing ? 4 : 3);
                 int nameEnd = nameStart;
@@ -141,7 +146,8 @@ final class Lexer {
         char c = s.charAt(i);
         if (!(Character.isWhitespace(c) || c == '>' || c == '/')) return -1;
         char quote = 0;
-        for (; i < s.length(); i++) {
+        int limit = Math.min(s.length(), start + MAX_TAG_LENGTH); // bounded, so stray "<x-" text stays linear
+        for (; i < limit; i++) {
             c = s.charAt(i);
             if (quote != 0) {
                 if (c == quote) quote = 0;

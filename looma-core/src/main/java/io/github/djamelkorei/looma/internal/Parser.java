@@ -26,11 +26,14 @@ public final class Parser {
     public record Result(List<Node> nodes, Expr layout, List<Template.Reference> references) {}
 
     private static final String COMPONENT_END = "</x>";
+    /** Maximum depth of nested blocks (@if inside @foreach inside a component...). */
+    static final int MAX_NESTING = 200;
 
     private final List<Token> tokens;
     private final DirectiveRegistry registry;
     private final Map<String, Integer> markers = new HashMap<>();
     private int pos;
+    private int depth;
     private Expr layout;
     private final List<Template.Reference> references = new ArrayList<>();
 
@@ -47,6 +50,18 @@ public final class Parser {
 
     /** Parses nodes until a tag named in {@code stops} (left unconsumed) or, if none are given, the end. */
     private List<Node> block(Set<String> stops, Token opener) {
+        if (opener != null && ++depth > MAX_NESTING) {
+            // Deeper nesting would overflow the parser's stack; fail with a message that points at the line.
+            throw new LoomaException("Blocks are nested more than " + MAX_NESTING + " levels deep", opener.line(), null);
+        }
+        try {
+            return parseBlock(stops, opener);
+        } finally {
+            if (opener != null) depth--;
+        }
+    }
+
+    private List<Node> parseBlock(Set<String> stops, Token opener) {
         List<Node> nodes = new ArrayList<>();
         while (pos < tokens.size()) {
             Token t = tokens.get(pos);

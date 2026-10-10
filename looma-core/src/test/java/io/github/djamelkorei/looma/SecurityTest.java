@@ -82,4 +82,21 @@ class SecurityTest {
         // A value that looks like an expression or directive must come out as text.
         assertEquals("{{ T(java.lang.Runtime) }} @if(true)", render("{!! $v !!}", Map.of("v", "{{ T(java.lang.Runtime) }} @if(true)")));
     }
+
+    @Test
+    void absurdlyDeepNestingFailsCleanly() {
+        String deep = "@if(true)".repeat(5000) + "x" + "@endif".repeat(5000);
+        LoomaException e = assertThrows(LoomaException.class, () -> render(deep, Map.of()));
+        assertTrue(e.getMessage().contains("nested more than 200"), e.getMessage());
+        // reasonable nesting is fine
+        assertEquals("x", render("@if(true)".repeat(150) + "x" + "@endif".repeat(150), Map.of()));
+    }
+
+    @Test
+    void strayComponentLikeTextStaysFast() {
+        String junk = "<x-a ".repeat(40_000); // never closed: must be plain text, without quadratic scanning
+        long start = System.nanoTime();
+        assertEquals(junk, render(junk, Map.of()));
+        assertTrue(System.nanoTime() - start < 5_000_000_000L, "lexing took too long");
+    }
 }
