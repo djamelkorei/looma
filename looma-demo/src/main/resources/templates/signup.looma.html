@@ -1,0 +1,21 @@
+@extends('layouts.app')
+
+@section('title', 'Sign up')
+
+@section('content')
+    <h1>Sign up</h1>
+    <form method="post" action="/signup">
+        @csrf
+        <label>Name
+            <input name="name" value="{{ $form.name }}" @class({'invalid': $errors.containsKey('name')})>
+        </label>
+        @error('name')<small class="error">{{ $message }}</small>@enderror
+
+        <label>Email
+            <input name="email" value="{{ $form.email }}" @class({'invalid': $errors.containsKey('email')})>
+        </label>
+        @error('email')<small class="error">{{ $message }}</small>@enderror
+
+        <button>Create account</button>
+    </form>
+@endsection

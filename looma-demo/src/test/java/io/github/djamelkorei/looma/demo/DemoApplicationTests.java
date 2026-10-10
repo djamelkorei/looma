@@ -1,6 +1,7 @@
 package io.github.djamelkorei.looma.demo;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -69,5 +70,29 @@ class DemoApplicationTests {
                 .andExpect(content().string(org.hamcrest.Matchers.containsString("Hello, Ada &lt;Lovelace&gt;!")));
         mvc.perform(get("/").locale(java.util.Locale.FRENCH))
                 .andExpect(content().string(org.hamcrest.Matchers.containsString("Bonjour, Ada &lt;Lovelace&gt; !")));
+    }
+
+    @Test
+    void invalidSignupShowsFieldErrorsAndKeepsInput() throws Exception {
+        mvc.perform(post("/signup").param("name", "").param("email", "not-an-email"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("<small class=\"error\">Name is required</small>")))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("<small class=\"error\">Enter a valid email</small>")))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("value=\"not-an-email\"")))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("class=\"invalid\"")));
+    }
+
+    @Test
+    void validSignupShowsWelcomePage() throws Exception {
+        mvc.perform(post("/signup").param("name", "Ada <L>").param("email", "ada@example.com"))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("Welcome, Ada &lt;L&gt;!")));
+    }
+
+    @Test
+    void emptySignupFormHasNoErrorsShown() throws Exception {
+        mvc.perform(get("/signup"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("class=\"error\""))))
+                .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("invalid"))));
     }
 }
