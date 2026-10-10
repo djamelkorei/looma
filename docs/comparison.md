@@ -8,7 +8,7 @@ An honest feature-by-feature comparison, including where Looma falls short. Loom
 to Java; Thymeleaf is the established Java choice; Blade itself is part of Laravel, so it is here as the
 syntax reference, not as an option for a Spring application.
 
-**Legend:** ✅ built in · ⚠️ partial, via an add-on, or with a workaround · ❌ not available
+**Legend:** ✅ built in · ⚠️ partial, via an add-on, or with a workaround · ❌ not available. Every row is phrased so that ✅ is the better answer.
 
 Versions compared: Looma 0.1.0, Thymeleaf 3.1 (with Spring integration), Laravel 12 Blade. October 2026.
 
@@ -79,9 +79,9 @@ Versions compared: Looma 0.1.0, Thymeleaf 3.1 (with Spring integration), Laravel
 
 | Feature | Thymeleaf | Blade | Looma |
 |---|---|---|---|
-| Templates can run arbitrary code | ❌ no | ✅ yes (raw code blocks) | ❌ no |
+| Templates limited to expressions (cannot run arbitrary code) | ✅ | ❌ raw code blocks run in templates | ✅ |
 | Expression sandbox | ⚠️ 3.1 blocks calls on `java.*` / `javax.*` / `jdk.*` classes; three bypass CVEs in 2026, fixed in 3.1.4–3.1.5 | ❌ templates can run any code | ✅ no `T()`, `new`, bean refs, reflection, `Class`/`Thread`/`Process` access; tested against bypasses |
-| Static class access | ⚠️ restricted in 3.1 | ✅ unrestricted | ⚠️ only through helpers you expose |
+| Static class access restricted | ⚠️ restricted in 3.1 (see sandbox) | ❌ unrestricted | ✅ only through helpers you expose |
 | Broken templates found at startup | ❌ at render time | ⚠️ precompile views in CI | ✅ app fails to boot, listing every syntax error and missing include/layout/component with its line |
 | Runaway recursion / loops bounded | ❌ | ❌ | ✅ nesting 100 / 200, loops 100,000 |
 | Error points at template and line | ✅ | ✅ | ✅ |
