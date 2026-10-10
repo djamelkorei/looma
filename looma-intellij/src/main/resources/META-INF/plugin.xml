@@ -47,6 +47,8 @@
                                  implementationClass="io.github.djamelkorei.looma.intellij.psi.LoomaTokenManipulator"/>
         <lang.elementManipulator forClass="io.github.djamelkorei.looma.intellij.psi.LoomaVariable"
                                  implementationClass="io.github.djamelkorei.looma.intellij.psi.LoomaTokenManipulator"/>
+        <lang.elementManipulator forClass="io.github.djamelkorei.looma.intellij.psi.LoomaBean"
+                                 implementationClass="io.github.djamelkorei.looma.intellij.psi.LoomaTokenManipulator"/>
         <lang.elementManipulator forClass="io.github.djamelkorei.looma.intellij.psi.LoomaMember"
                                  implementationClass="io.github.djamelkorei.looma.intellij.psi.LoomaTokenManipulator"/>
 

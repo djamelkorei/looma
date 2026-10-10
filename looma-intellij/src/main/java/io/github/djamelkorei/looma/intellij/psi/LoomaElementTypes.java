@@ -28,4 +28,6 @@ public interface LoomaElementTypes {
     /** A property or method after {@code .}, {@code ->} or {@code ?.}. */
     IElementType MEMBER = new LoomaElementType("MEMBER");
     IElementType STRING_LITERAL = new LoomaElementType("STRING_LITERAL");
+    /** {@code @priceService} in an expression. */
+    IElementType BEAN = new LoomaElementType("BEAN_REFERENCE");
 }

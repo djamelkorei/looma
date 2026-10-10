@@ -4,6 +4,10 @@
                                   implementation="io.github.djamelkorei.looma.intellij.java.LoomaJavaViewReferenceContributor"/>
         <psi.referenceContributor language="Looma"
                                   implementation="io.github.djamelkorei.looma.intellij.java.LoomaJavaMemberReferenceContributor"/>
+        <psi.referenceContributor language="Looma"
+                                  implementation="io.github.djamelkorei.looma.intellij.java.LoomaJavaBeanReferenceContributor"/>
+        <psi.referenceContributor language="Looma"
+                                  implementation="io.github.djamelkorei.looma.intellij.java.LoomaJavaFormReferenceContributor"/>
     </extensions>
     <extensions defaultExtensionNs="io.github.djamelkorei.looma">
         <modelVariables implementation="io.github.djamelkorei.looma.intellij.java.LoomaJavaModel"/>

@@ -45,6 +45,7 @@ public final class LoomaParserDefinition implements ParserDefinition {
         if (type == LoomaElementTypes.VARIABLE_DECLARATION) return new LoomaVariableDeclaration(node);
         if (type == LoomaElementTypes.MEMBER) return new LoomaMember(node);
         if (type == LoomaElementTypes.STRING_LITERAL) return new LoomaStringLiteral(node);
+        if (type == LoomaElementTypes.BEAN) return new LoomaBean(node);
         return new LoomaPsiElement(node);
     }
 

@@ -21,6 +21,7 @@ public final class LoomaColorSettingsPage implements ColorSettingsPage {
             new AttributesDescriptor("Escape (@{{, @@)", LoomaColors.ESCAPE),
             new AttributesDescriptor("Expression//Variable", LoomaColors.VARIABLE),
             new AttributesDescriptor("Expression//Identifier", LoomaColors.IDENTIFIER),
+            new AttributesDescriptor("Expression//Bean (@name)", LoomaColors.BEAN),
             new AttributesDescriptor("Expression//Property", LoomaColors.PROPERTY),
             new AttributesDescriptor("Expression//Method call", LoomaColors.METHOD),
             new AttributesDescriptor("Expression//Keyword", LoomaColors.KEYWORD),
@@ -50,7 +51,7 @@ public final class LoomaColorSettingsPage implements ColorSettingsPage {
 
                 @section('content')
                     {{-- a comment --}}
-                    <h1>Hello, {{ $user->name ?? 'guest' }}</h1>
+                    <h1>Hello, {{ $user->name ?? 'guest' }}</h1> {{ @priceService.format($total) }}
                     @foreach($posts as $post)
                         <a href="/posts/{{ $post.id }}" @class('post', {'first': $loop->first})>{{ $post->title }}</a>
                     @endforeach

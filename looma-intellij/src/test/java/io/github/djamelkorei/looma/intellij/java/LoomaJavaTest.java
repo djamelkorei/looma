@@ -57,6 +57,14 @@ public class LoomaJavaTest extends LightJavaCodeInsightFixtureTestCase {
     }
 
     private PsiElement resolveInTemplate(String path, String text) {
+        var existing = myFixture.findFileInTempDir(path);
+        if (existing != null) {
+            try {
+                com.intellij.openapi.application.WriteAction.runAndWait(() -> existing.delete(this));
+            } catch (java.io.IOException e) {
+                throw new java.io.UncheckedIOException(e);
+            }
+        }
         PsiFile file = myFixture.addFileToProject(path, text);
         myFixture.configureFromExistingVirtualFile(file.getVirtualFile());
         PsiReference ref = myFixture.getFile().findReferenceAt(myFixture.getCaretOffset());
@@ -177,5 +185,32 @@ public class LoomaJavaTest extends LightJavaCodeInsightFixtureTestCase {
         PsiElement target = resolveInTemplate("templates/partials/post.looma.html", "{{ $post->tit<caret>le }}");
         assertTrue(String.valueOf(target), target instanceof PsiMethod);
         assertEquals("title", ((PsiMethod) target).getName());
+    }
+
+    public void testBeanResolvesToClassAndMethod() {
+        myFixture.addClass("package io.github.djamelkorei.looma.spi; public @interface TemplateAccessible {}");
+        myFixture.addClass("package org.springframework.stereotype; public @interface Service { String value() default \"\"; }");
+        myFixture.addClass("""
+                package app;
+                @org.springframework.stereotype.Service
+                @io.github.djamelkorei.looma.spi.TemplateAccessible
+                public class PriceService { public String format(Number n) { return null; } }
+                """);
+        PsiElement cls = resolveInTemplate("templates/b.looma.html", "{{ @price<caret>Service.format(1) }}");
+        assertTrue(String.valueOf(cls), cls instanceof PsiClass);
+        PsiElement method = resolveInTemplate("templates/c.looma.html", "{{ @priceService.for<caret>mat(1) }}");
+        assertTrue(String.valueOf(method), method instanceof PsiMethod);
+    }
+
+    public void testFormFieldResolvesToGetter() {
+        PsiElement target = resolveInTemplate("templates/signup.looma.html",
+                "@bind('signupForm') <input @field('em<caret>ail')> @endbind");
+        assertTrue(String.valueOf(target), target instanceof PsiMethod);
+        assertEquals("getEmail", ((PsiMethod) target).getName());
+    }
+
+    public void testBoundObjectResolvesToModel() {
+        PsiElement target = resolveInTemplate("templates/signup.looma.html", "@bind('signup<caret>Form') @endbind");
+        assertTrue(String.valueOf(target), target instanceof PsiParameter);
     }
 }

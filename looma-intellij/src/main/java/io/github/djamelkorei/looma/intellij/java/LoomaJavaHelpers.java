@@ -17,9 +17,13 @@ import org.jetbrains.annotations.Nullable;
 public final class LoomaJavaHelpers {
 
     public static final String SPI = "io.github.djamelkorei.looma.spi.TemplateHelper";
-    private static final Map<String, String> BUILTIN = Map.of(
+    /** The engine's own helpers; their {@code name()} body is not available in a compiled library. */
+    public static final Map<String, String> BUILTIN = Map.of(
             "io.github.djamelkorei.looma.helper.StringHelper", "String",
-            "io.github.djamelkorei.looma.helper.MathHelper", "Math");
+            "io.github.djamelkorei.looma.helper.MathHelper", "Math",
+            "io.github.djamelkorei.looma.helper.NumberHelper", "Number",
+            "io.github.djamelkorei.looma.helper.DateHelper", "Date",
+            "io.github.djamelkorei.looma.helper.ListHelper", "List");
 
     private LoomaJavaHelpers() {}
 

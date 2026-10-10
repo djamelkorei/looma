@@ -104,6 +104,15 @@ public final class LoomaDirectives {
                 "@auth ... @endauth, @auth('ADMIN', 'EDITOR')",
                 "Renders the body when <code>principal</code> is set and, with roles, the request is in one of"
                         + " them (<code>request.isUserInRole</code>)."));
+        for (String can : List.of("can", "cannot", "canany")) {
+            d.add(block(can, Syntax.REQUIRED, Map.of("else", Syntax.NONE), "end" + can,
+                    can.equals("canany") ? "@canany('posts:edit', 'posts:delete') ... @endcanany"
+                            : "@" + can + "('posts:edit'), @" + can + "('edit', $post)",
+                    (can.equals("cannot") ? "Renders the body when the application's <code>Authorizer</code> denies"
+                            : "Renders the body when the application's <code>Authorizer</code> allows")
+                            + (can.equals("canany") ? " any of the permissions." : " the permission, optionally on a target.")
+                            + " Denied when no authorizer is configured."));
+        }
         d.add(block("guest", Syntax.NONE, Map.of("else", Syntax.NONE), "endguest",
                 "@guest ... @endguest", "Renders the body when nobody is signed in (no <code>principal</code>)."));
         d.add(block("switch", Syntax.REQUIRED, Map.of("case", Syntax.REQUIRED, "default", Syntax.NONE),
@@ -177,6 +186,19 @@ public final class LoomaDirectives {
         d.add(block("error", Syntax.REQUIRED, Map.of(), "enderror", "@error('field') {{ $message }} @enderror",
                 "Renders the body when the field has a validation error; <code>$message</code> is the first"
                         + " error, <code>$messages</code> all of them."));
+        d.add(block("bind", Syntax.REQUIRED, Map.of(), "endbind", "@bind('form') ... @endbind",
+                "Binds a form object (a model attribute) for the field directives inside, like Thymeleaf's"
+                        + " <code>th:object</code>."));
+        d.add(inline("field", Syntax.REQUIRED, "<input type=\"email\" @field('email')>",
+                "Writes <code>id</code>, <code>name</code> and <code>value</code> for a field of the bound object."));
+        d.add(inline("name", Syntax.REQUIRED, "<textarea @name('bio')>", "Writes <code>id</code> and <code>name</code> for a field."));
+        d.add(inline("value", Syntax.REQUIRED, "@value('bio')", "Outputs the escaped value of a field."));
+        d.add(inline("checkbox", Syntax.REQUIRED, "@checkbox('newsletter'), @checkbox('roles', 'ADMIN')",
+                "A checkbox for a boolean or multi-value field, with the hidden marker Spring needs."));
+        d.add(inline("radio", Syntax.REQUIRED, "<input type=\"radio\" @radio('plan', 'pro')>",
+                "Writes <code>name</code>, <code>value</code> and <code>checked</code> for a radio button."));
+        d.add(inline("option", Syntax.REQUIRED, "<option @option('country', 'FR')>",
+                "Writes <code>value</code> and <code>selected</code> for an option of a field."));
         d.add(inline("lang", Syntax.REQUIRED, "@lang('key', args...)",
                 "Outputs a localized, escaped message from your <code>MessageSource</code>."));
         d.add(new Directive(VERBATIM, Syntax.NONE, Map.of(), Map.of(END_VERBATIM, Syntax.NONE),

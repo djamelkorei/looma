@@ -31,20 +31,15 @@ public final class LoomaScopes {
     public static final Map<String, String> GLOBALS = properties(
             "errors", "validation errors by field (Map<String, List<String>>)",
             "request", "the HttpServletRequest", "principal", "the signed-in user, or null",
-            "_csrf", "Spring Security's CSRF token",
-            "String", "template helper: format, join, valueOf, isEmpty, isBlank",
-            "Math", "template helper: max, min, abs, round, ceil, floor, pow, sqrt");
+            "_csrf", "Spring Security's CSRF token");
 
-    /** The built-in template helpers and their methods ({@code String.format(...)}). */
-    public static final Map<String, Map<String, String>> HELPERS = Map.of(
-            "String", properties(
-                    "format", "format(fmt, args...)", "formatLocale", "formatLocale('fr', fmt, args...)",
-                    "join", "join(', ', list) or join('-', a, b...)", "valueOf", "valueOf(x)",
-                    "isEmpty", "isEmpty(s), null-safe", "isBlank", "isBlank(s), null-safe"),
-            "Math", properties(
-                    "max", "max(a, b)", "min", "min(a, b)", "abs", "abs(a)", "round", "round(a): whole number",
-                    "ceil", "ceil(a): whole number", "floor", "floor(a): whole number", "pow", "pow(base, exponent)",
-                    "sqrt", "sqrt(a)"));
+
+    /** The built-in template helpers and their methods ({@code String.format(...)}), from {@code helpers.txt}. */
+    public static final Map<String, Map<String, String>> HELPERS = loadHelpers();
+
+    static {
+        HELPERS.forEach((name, methods) -> GLOBALS.put(name, "template helper: " + String.join(", ", methods.keySet())));
+    }
 
     /** Variables of a component template. */
     public static final Map<String, String> COMPONENT = properties(
@@ -95,6 +90,26 @@ public final class LoomaScopes {
 
     private static LoomaBlock enclosingBlock(PsiElement e) {
         return PsiTreeUtil.getParentOfType(e, LoomaBlock.class, true);
+    }
+
+    private static Map<String, Map<String, String>> loadHelpers() {
+        Map<String, Map<String, String>> helpers = new LinkedHashMap<>();
+        try (var in = LoomaScopes.class.getResourceAsStream("/io/github/djamelkorei/looma/intellij/helpers.txt")) {
+            if (in == null) return helpers;
+            for (String line : new String(in.readAllBytes(), java.nio.charset.StandardCharsets.UTF_8).split("\n")) {
+                // "String format(String, Object...): String"
+                if (line.isBlank() || line.startsWith("#")) continue;
+                int space = line.indexOf(' ');
+                int paren = line.indexOf('(');
+                String helper = line.substring(0, space);
+                String method = line.substring(space + 1, paren);
+                String signature = line.substring(space + 1);
+                helpers.computeIfAbsent(helper, k -> new LinkedHashMap<>()).merge(method, signature, (a, b) -> a + " or " + b);
+            }
+        } catch (java.io.IOException e) {
+            throw new java.io.UncheckedIOException(e);
+        }
+        return helpers;
     }
 
     private static Map<String, String> properties(String... pairs) {

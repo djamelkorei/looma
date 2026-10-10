@@ -27,6 +27,7 @@ public final class LoomaSyntaxHighlighter extends SyntaxHighlighterBase {
         KEYS.put(ESCAPE, LoomaColors.ESCAPE);
         KEYS.put(VARIABLE, LoomaColors.VARIABLE);
         KEYS.put(IDENTIFIER, LoomaColors.IDENTIFIER);
+        KEYS.put(BEAN, LoomaColors.BEAN);
         KEYS.put(KEYWORD, LoomaColors.KEYWORD);
         KEYS.put(STRING, LoomaColors.STRING);
         KEYS.put(NUMBER, LoomaColors.NUMBER);

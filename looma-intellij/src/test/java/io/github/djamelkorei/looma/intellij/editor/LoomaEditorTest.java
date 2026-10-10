@@ -51,6 +51,18 @@ public class LoomaEditorTest extends BasePlatformTestCase {
         assertEmpty(myFixture.completeBasic());
     }
 
+    public void testNoDirectivesForBeansInExpressions() {
+        myFixture.configureByText("t.looma.html", "{{ @fo<caret> }}");
+        var items = myFixture.completeBasic();
+        assertTrue(items == null || java.util.Arrays.stream(items).noneMatch(i -> i.getLookupString().equals("foreach")));
+    }
+
+    public void testHelperMembers() {
+        myFixture.configureByText("t.looma.html", "{{ Number.perc<caret> }}");
+        myFixture.completeBasic();
+        myFixture.checkResult("{{ Number.percent<caret> }}");
+    }
+
     public void testLoopMembers() {
         myFixture.configureByText("t.looma.html", "@foreach($a as $b) {{ $loop->fi<caret> }} @endforeach");
         myFixture.completeBasic();

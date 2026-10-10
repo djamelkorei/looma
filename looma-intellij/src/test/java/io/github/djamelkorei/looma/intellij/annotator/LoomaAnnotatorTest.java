@@ -18,6 +18,7 @@ public class LoomaAnnotatorTest extends BasePlatformTestCase {
                 @section('content') x @show
                 @auth('ADMIN') a @else b @endauth
                 @verbatim @if @endverbatim
+                @can('posts:edit') e @else n @endcan @cannot('edit', $post) x @endcannot @canany('a', 'b') y @endcanany
                 """);
     }
 

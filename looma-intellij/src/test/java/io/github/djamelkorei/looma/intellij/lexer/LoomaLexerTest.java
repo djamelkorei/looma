@@ -78,6 +78,12 @@ public class LoomaLexerTest {
     }
 
     @Test
+    public void beansInExpressions() {
+        assertEquals("{{[{{] BEAN[@priceService] .[.] IDENTIFIER[format] ([(] VARIABLE[$t] )[)] }}[}}] TEMPLATE_TEXT[ @media]",
+                lex("{{ @priceService.format($t) }} @media"));
+    }
+
+    @Test
     public void restartableAtTopLevelTokens() {
         String text = "<a>{{ $x }}</a>@if($y)b@endif@verbatim{{ z }}@endverbatim{{-- c --}}";
         LoomaLexer full = new LoomaLexer();

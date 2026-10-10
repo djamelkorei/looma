@@ -34,6 +34,10 @@ public final class LoomaJavaTypes {
 
     /** The type of a variable, declaration or member, or null if unknown. */
     public static @Nullable PsiType typeOf(@Nullable PsiElement e) {
+        if (e instanceof LoomaBean bean) {
+            PsiClass cls = LoomaJavaBeans.beans(bean.getProject()).get(bean.getName());
+            return cls == null ? null : JavaPsiFacade.getElementFactory(bean.getProject()).createType(cls);
+        }
         if (!(e instanceof LoomaVariable) && !(e instanceof LoomaVariableDeclaration) && !(e instanceof LoomaMember)) {
             return null;
         }

@@ -29,6 +29,8 @@ public interface LoomaTokenTypes {
     /** {@code $name}. */
     IElementType VARIABLE = new LoomaTokenType("VARIABLE");
     IElementType IDENTIFIER = new LoomaTokenType("IDENTIFIER");
+    /** {@code @priceService}: a Spring bean marked {@code @TemplateAccessible}. */
+    IElementType BEAN = new LoomaTokenType("BEAN");
     IElementType KEYWORD = new LoomaTokenType("KEYWORD");
     IElementType STRING = new LoomaTokenType("STRING");
     IElementType NUMBER = new LoomaTokenType("NUMBER");

@@ -28,13 +28,13 @@ public final class LoomaMember extends LoomaPsiElement implements ContributedRef
         return next != null && next.getNode().getElementType() == LoomaTokenTypes.LPAREN;
     }
 
-    /** What the member is accessed on, if it is a variable or another member ({@code $a->b->c}). */
+    /** What the member is accessed on, if it is a variable, a bean or another member ({@code $a->b->c}). */
     public @Nullable PsiElement getQualifier() {
         PsiElement access = skipWhitespace(getPrevSibling(), false);
         if (access == null || !LoomaTokenTypes.MEMBER_ACCESS.contains(access.getNode().getElementType())) return null;
         PsiElement qualifier = skipWhitespace(access.getPrevSibling(), false);
         return qualifier instanceof LoomaVariable || qualifier instanceof LoomaMember
-                || qualifier instanceof LoomaVariableDeclaration ? qualifier : null;
+                || qualifier instanceof LoomaVariableDeclaration || qualifier instanceof LoomaBean ? qualifier : null;
     }
 
     @Override

@@ -20,7 +20,9 @@ import io.github.djamelkorei.looma.intellij.lang.LoomaDirectives.Syntax;
 import io.github.djamelkorei.looma.intellij.lang.LoomaFileViewProvider;
 import io.github.djamelkorei.looma.intellij.lang.LoomaLanguage;
 import io.github.djamelkorei.looma.intellij.lang.LoomaProjectDirectives;
+import io.github.djamelkorei.looma.intellij.psi.LoomaArguments;
 import io.github.djamelkorei.looma.intellij.psi.LoomaBlock;
+import io.github.djamelkorei.looma.intellij.psi.LoomaEcho;
 import io.github.djamelkorei.looma.intellij.psi.LoomaMember;
 import io.github.djamelkorei.looma.intellij.psi.LoomaScopes;
 import io.github.djamelkorei.looma.intellij.psi.LoomaVariable;
@@ -51,6 +53,8 @@ public final class LoomaCompletionContributor extends CompletionContributor {
         while (start > 0 && Character.isLetter(text.charAt(start - 1))) start--;
         if (start == 0 || text.charAt(start - 1) != '@' || (start > 1 && text.charAt(start - 2) == '@')) return;
         if (start > 1 && Character.isLetterOrDigit(text.charAt(start - 2))) return; // an e-mail address
+        PsiElement looma = file.getViewProvider().findElementAt(Math.max(0, start - 1), LoomaLanguage.INSTANCE);
+        if (PsiTreeUtil.getParentOfType(looma, LoomaEcho.class, LoomaArguments.class) != null) return; // @bean in an expression
         directives(file, offset, result.withPrefixMatcher(text.subSequence(start, offset).toString()));
         result.stopHere();
     }

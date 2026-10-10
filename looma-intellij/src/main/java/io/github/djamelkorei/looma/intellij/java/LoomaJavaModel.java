@@ -219,8 +219,13 @@ public final class LoomaJavaModel implements LoomaModelVariables {
         }
         String simple = element instanceof PsiClassType ct ? ct.getClassName() : element.getPresentableText();
         if (simple == null || simple.isEmpty()) return "value";
+        return decapitalize(simple) + suffix;
+    }
+
+    /** Like {@code java.beans.Introspector.decapitalize}: {@code PriceService} to {@code priceService}, {@code URL} stays. */
+    static String decapitalize(String simple) {
         boolean keep = simple.length() > 1 && Character.isUpperCase(simple.charAt(0)) && Character.isUpperCase(simple.charAt(1));
-        return (keep ? simple : Character.toLowerCase(simple.charAt(0)) + simple.substring(1)) + suffix;
+        return keep ? simple : Character.toLowerCase(simple.charAt(0)) + simple.substring(1);
     }
 
     private static void add(Map<String, Attribute> out, String name, PsiElement target, @Nullable PsiType type) {

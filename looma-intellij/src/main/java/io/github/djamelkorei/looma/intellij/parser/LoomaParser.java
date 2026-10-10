@@ -21,7 +21,7 @@ import org.jetbrains.annotations.NotNull;
 public final class LoomaParser implements PsiParser {
 
     private static final TokenSet EXPRESSION = TokenSet.create(WHITE_SPACE, BAD_CHARACTER, VARIABLE, IDENTIFIER,
-            KEYWORD, STRING, NUMBER, LPAREN, RPAREN, LBRACKET, RBRACKET, LBRACE, RBRACE, COMMA, SEMICOLON, COLON,
+            KEYWORD, BEAN, STRING, NUMBER, LPAREN, RPAREN, LBRACKET, RBRACKET, LBRACE, RBRACE, COMMA, SEMICOLON, COLON,
             DOT, ARROW, SAFE_DOT, OPERATOR);
     private static final TokenSet OPENING = TokenSet.create(LPAREN, LBRACKET, LBRACE);
     private static final TokenSet CLOSING = TokenSet.create(RPAREN, RBRACKET, RBRACE);
@@ -161,10 +161,10 @@ public final class LoomaParser implements PsiParser {
                 } else {
                     m.done(LoomaElementTypes.VARIABLE);
                 }
-            } else if (type == STRING) {
+            } else if (type == STRING || type == BEAN) {
                 PsiBuilder.Marker m = builder.mark();
                 builder.advanceLexer();
-                m.done(LoomaElementTypes.STRING_LITERAL);
+                m.done(type == STRING ? LoomaElementTypes.STRING_LITERAL : LoomaElementTypes.BEAN);
             } else {
                 boolean as = type == KEYWORD && "as".equals(builder.getTokenText()) && brackets.size() == depth;
                 if (OPENING.contains(type)) brackets.push(type);

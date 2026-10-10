@@ -21,6 +21,7 @@ public final class LoomaTokenManipulator extends AbstractElementManipulator<PsiE
     public @NotNull TextRange getRangeInElement(@NotNull PsiElement element) {
         if (element instanceof LoomaStringLiteral literal) return literal.getValueRange();
         if (element instanceof LoomaVariable variable) return variable.nameRange();
+        if (element instanceof LoomaBean bean) return bean.nameRange();
         return super.getRangeInElement(element);
     }
 }

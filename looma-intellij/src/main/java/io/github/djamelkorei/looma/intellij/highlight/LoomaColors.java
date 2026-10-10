@@ -18,6 +18,7 @@ public interface LoomaColors {
             createTextAttributesKey("LOOMA_ESCAPE", DefaultLanguageHighlighterColors.VALID_STRING_ESCAPE);
     TextAttributesKey VARIABLE =
             createTextAttributesKey("LOOMA_VARIABLE", DefaultLanguageHighlighterColors.LOCAL_VARIABLE);
+    TextAttributesKey BEAN = createTextAttributesKey("LOOMA_BEAN", DefaultLanguageHighlighterColors.STATIC_FIELD);
     TextAttributesKey IDENTIFIER =
             createTextAttributesKey("LOOMA_IDENTIFIER", DefaultLanguageHighlighterColors.IDENTIFIER);
     TextAttributesKey PROPERTY =

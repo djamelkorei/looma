@@ -191,6 +191,9 @@ public final class LoomaLexer extends LexerBase {
             } else if (c == '$' && i + 1 < to && isIdentifierStart(buffer.charAt(i + 1))) {
                 i = identifierEnd(i + 1, to);
                 type = VARIABLE;
+            } else if (c == '@' && i + 1 < to && isIdentifierStart(buffer.charAt(i + 1))) {
+                i = identifierEnd(i + 1, to);
+                type = BEAN;
             } else if (isIdentifierStart(c)) {
                 i = identifierEnd(i, to);
                 type = KEYWORDS.contains(buffer.subSequence(start, i).toString()) ? KEYWORD : IDENTIFIER;
