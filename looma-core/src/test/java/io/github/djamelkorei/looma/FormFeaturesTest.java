@@ -76,4 +76,32 @@ class FormFeaturesTest {
         assertEquals(true, missing.toString().contains("required.one") && missing.toString().contains("required.two")
                 && !missing.toString().contains("optional"), missing.toString());
     }
+
+    record Post(String owner) {}
+
+    /** Authorities "posts:edit" and "reports:view"; may edit a post only if it owns it. */
+    static final io.github.djamelkorei.looma.spi.Authorizer ADA = new io.github.djamelkorei.looma.spi.Authorizer() {
+        public boolean can(String authority) { return java.util.Set.of("posts:edit", "reports:view").contains(authority); }
+        public boolean can(String permission, Object target) {
+            return permission.equals("edit") && target instanceof Post p && p.owner().equals("ada");
+        }
+    };
+
+    @Test
+    void permissionChecks() {
+        Map<String, Object> m = Map.of("_authorizer", ADA, "mine", new Post("ada"), "theirs", new Post("bob"));
+        assertEquals("edit", render("@can('posts:edit')edit@endcan", m));
+        assertEquals(" no", render("@can('posts:delete')delete@else no@endcan", m));
+        assertEquals("mine", render("@can('edit', $mine)mine@endcan@can('edit', $theirs)theirs@endcan", m));
+        assertEquals("read-only", render("@cannot('edit', $theirs)read-only@endcannot", m));
+        assertEquals("any", render("@canany('posts:delete', 'reports:view')any@endcanany", m));
+        assertEquals("", render("@canany('a', 'b')any@endcanany", m));
+    }
+
+    @Test
+    void permissionChecksFailClosedWithoutAnAuthorizer() {
+        assertEquals(" denied", render("@can('anything')yes@else denied@endcan", Map.of()));
+        assertEquals("hidden?", render("@cannot('anything')hidden?@endcannot", Map.of()));
+        assertThrows(LoomaException.class, () -> render("@can('a', $b, $c)x@endcan", Map.of()));
+    }
 }

@@ -24,6 +24,17 @@ import org.springframework.core.io.ResourceLoader;
 @EnableConfigurationProperties(LoomaProperties.class)
 public class LoomaAutoConfiguration {
 
+    /** Spring Security when present (authorities + PermissionEvaluator), otherwise servlet roles. */
+    private static java.util.function.Function<jakarta.servlet.http.HttpServletRequest, io.github.djamelkorei.looma.spi.Authorizer>
+            authorizers(ApplicationContext context) {
+        if (org.springframework.util.ClassUtils.isPresent(
+                "org.springframework.security.core.context.SecurityContextHolder", context.getClassLoader())) {
+            return SpringSecurityAuthorizer.factory(
+                    context.getBeanProvider(org.springframework.security.access.PermissionEvaluator.class));
+        }
+        return RequestAuthorizer::new;
+    }
+
     @Bean
     @ConditionalOnMissingBean
     public TemplateLoader loomaTemplateLoader(LoomaProperties props, ResourceLoader resourceLoader) {
@@ -57,6 +68,6 @@ public class LoomaAutoConfiguration {
     public LoomaViewResolver loomaViewResolver(LoomaEngine engine, LoomaProperties props,
             ApplicationContext context) {
         // The ApplicationContext delegates to the 'messageSource' bean (Boot's spring.messages.* support).
-        return new LoomaViewResolver(engine, props.getContentType(), context);
+        return new LoomaViewResolver(engine, props.getContentType(), context, authorizers(context));
     }
 }

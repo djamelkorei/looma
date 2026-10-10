@@ -84,4 +84,29 @@ class SpringSecurityTests {
         mvc.perform(get("/form"))
                 .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("class=\"role\""))));
     }
+
+    private String posts(org.springframework.test.web.servlet.request.RequestPostProcessor who) throws Exception {
+        var request = get("/posts");
+        if (who != null) request = request.with(who);
+        return mvc.perform(request).andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
+    }
+
+    @Test
+    void canChecksAuthoritiesAndThePermissionEvaluator() throws Exception {
+        String ada = posts(user("ada").authorities(
+                new org.springframework.security.core.authority.SimpleGrantedAuthority("posts:create"),
+                new org.springframework.security.core.authority.SimpleGrantedAuthority("reports:view")));
+        assertThat(ada).contains("class=\"create\"", "class=\"edit-mine\"", "class=\"readonly-theirs\"", "class=\"reports\"")
+                .doesNotContain("class=\"edit-theirs\"");
+
+        String bob = posts(user("bob"));  // no authorities, owns "Theirs"
+        assertThat(bob).contains("class=\"edit-theirs\"").doesNotContain("class=\"create\"", "class=\"edit-mine\"",
+                "class=\"reports\"", "class=\"readonly-theirs\"");
+    }
+
+    @Test
+    void anonymousVisitorsAreDeniedEverything() throws Exception {
+        assertThat(posts(null)).contains("class=\"readonly-theirs\"")
+                .doesNotContain("class=\"create\"", "class=\"edit-mine\"", "class=\"edit-theirs\"", "class=\"reports\"");
+    }
 }

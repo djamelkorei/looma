@@ -1,6 +1,9 @@
 package io.github.djamelkorei.looma.spring;
 
 import io.github.djamelkorei.looma.LoomaEngine;
+import io.github.djamelkorei.looma.spi.Authorizer;
+import jakarta.servlet.http.HttpServletRequest;
+import java.util.function.Function;
 import java.util.Locale;
 import org.springframework.context.MessageSource;
 import org.springframework.core.Ordered;
@@ -13,9 +16,16 @@ public class LoomaViewResolver implements ViewResolver, Ordered {
     private final LoomaEngine engine;
     private final String contentType;
     private final MessageSource messages;
+    private final Function<HttpServletRequest, Authorizer> authorizers;
     private int order = Ordered.LOWEST_PRECEDENCE - 10;
 
     public LoomaViewResolver(LoomaEngine engine, String contentType, MessageSource messages) {
+        this(engine, contentType, messages, RequestAuthorizer::new);
+    }
+
+    public LoomaViewResolver(LoomaEngine engine, String contentType, MessageSource messages,
+            Function<HttpServletRequest, Authorizer> authorizers) {
+        this.authorizers = authorizers;
         this.engine = engine;
         this.contentType = contentType;
         this.messages = messages;
@@ -23,7 +33,7 @@ public class LoomaViewResolver implements ViewResolver, Ordered {
 
     @Override
     public View resolveViewName(String viewName, Locale locale) {
-        return engine.exists(viewName) ? new LoomaView(engine, viewName, contentType, messages) : null;
+        return engine.exists(viewName) ? new LoomaView(engine, viewName, contentType, messages, authorizers) : null;
     }
 
     @Override

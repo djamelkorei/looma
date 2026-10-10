@@ -75,6 +75,26 @@ public final class ConditionalDirective implements Directive {
         });
     }
 
+    /** {@code @can('posts:edit')} or {@code @can('edit', $post)}: asks the {@code _authorizer}; denied without one. */
+    public static ConditionalDirective can() {
+        return new ConditionalDirective("can", false, Syntax.REQUIRED, ConditionalDirective::canCondition);
+    }
+
+    public static ConditionalDirective cannot() {
+        return new ConditionalDirective("cannot", false, Syntax.REQUIRED, p -> "!(" + canCondition(p) + ")");
+    }
+
+    /** {@code @canany('posts:edit', 'posts:delete')}. */
+    public static ConditionalDirective canany() {
+        return new ConditionalDirective("canany", false, Syntax.REQUIRED,
+                p -> "(_authorizer != null && _authorizer.canAny(" + p.args() + "))");
+    }
+
+    private static String canCondition(ParseContext p) {
+        if (p.splitArgs().size() > 2) throw p.error("Expected @" + p.name() + "('authority') or @" + p.name() + "('permission', $target)");
+        return "(_authorizer != null && _authorizer.can(" + p.args() + "))";
+    }
+
     public static ConditionalDirective guest() {
         return new ConditionalDirective("guest", false, Syntax.NONE, p -> "principal == null");
     }

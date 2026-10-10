@@ -21,6 +21,32 @@ public class ItApplication {
         return http.authorizeHttpRequests(a -> a.anyRequest().permitAll()).httpBasic(Customizer.withDefaults()).build();
     }
 
+    /** A post may be edited only by its owner. */
+    public record Post(String title, String owner) {}
+
+    @Bean
+    org.springframework.security.access.PermissionEvaluator permissionEvaluator() {
+        return new org.springframework.security.access.PermissionEvaluator() {
+            @Override
+            public boolean hasPermission(org.springframework.security.core.Authentication auth, Object target, Object permission) {
+                return "edit".equals(permission) && target instanceof Post post && post.owner().equals(auth.getName());
+            }
+
+            @Override
+            public boolean hasPermission(org.springframework.security.core.Authentication auth, java.io.Serializable id,
+                    String type, Object permission) {
+                return false;
+            }
+        };
+    }
+
+    @GetMapping("/posts")
+    String posts(org.springframework.ui.Model model) {
+        model.addAttribute("mine", new Post("Mine", "ada"));
+        model.addAttribute("theirs", new Post("Theirs", "bob"));
+        return "posts";
+    }
+
     @GetMapping("/form")
     String form() {
         return "form";

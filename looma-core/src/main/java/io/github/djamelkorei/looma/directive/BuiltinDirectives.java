@@ -16,6 +16,9 @@ public final class BuiltinDirectives {
                 ConditionalDirective.isset(),
                 ConditionalDirective.auth(),
                 ConditionalDirective.guest(),
+                ConditionalDirective.can(),
+                ConditionalDirective.cannot(),
+                ConditionalDirective.canany(),
                 new SwitchDirective(),
                 // loops
                 ForeachDirective.foreach(),

@@ -24,6 +24,12 @@
       <groupId>org.springframework</groupId>
       <artifactId>spring-webmvc</artifactId>
     </dependency>
+    <!-- Optional: when the application uses Spring Security, @can uses its authorities and PermissionEvaluator. -->
+    <dependency>
+      <groupId>org.springframework.security</groupId>
+      <artifactId>spring-security-core</artifactId>
+      <optional>true</optional>
+    </dependency>
     <!-- Supplied by the application's servlet container / spring-boot-starter-web. -->
     <dependency>
       <groupId>jakarta.servlet</groupId>

@@ -1,0 +1,7 @@
+<ul>
+@can('posts:create')<li class="create">New post</li>@endcan
+@can('edit', $mine)<li class="edit-mine">Edit {{ $mine.title }}</li>@endcan
+@can('edit', $theirs)<li class="edit-theirs">Edit {{ $theirs.title }}</li>@endcan
+@cannot('edit', $theirs)<li class="readonly-theirs">Read only</li>@endcannot
+@canany('reports:view', 'reports:admin')<li class="reports">Reports</li>@endcanany
+</ul>

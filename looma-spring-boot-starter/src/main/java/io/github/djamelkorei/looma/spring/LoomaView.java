@@ -2,6 +2,8 @@ package io.github.djamelkorei.looma.spring;
 
 import io.github.djamelkorei.looma.CsrfToken;
 import io.github.djamelkorei.looma.LoomaEngine;
+import io.github.djamelkorei.looma.spi.Authorizer;
+import java.util.function.Function;
 import io.github.djamelkorei.looma.MessageResolver;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -27,8 +29,15 @@ public class LoomaView implements View {
     private final String name;
     private final String contentType;
     private final MessageSource messages;
+    private final Function<HttpServletRequest, Authorizer> authorizers;
 
     public LoomaView(LoomaEngine engine, String name, String contentType, MessageSource messages) {
+        this(engine, name, contentType, messages, RequestAuthorizer::new);
+    }
+
+    public LoomaView(LoomaEngine engine, String name, String contentType, MessageSource messages,
+            Function<HttpServletRequest, Authorizer> authorizers) {
+        this.authorizers = authorizers;
         this.engine = engine;
         this.name = name;
         this.contentType = contentType;
@@ -41,7 +50,7 @@ public class LoomaView implements View {
      * Security's CsrfFilter publishes, without a compile-time dependency on Spring Security.
      */
     static Map<String, Object> withRequestData(Map<String, ?> model, HttpServletRequest request,
-            MessageSource messages) {
+            MessageSource messages, Function<HttpServletRequest, Authorizer> authorizers) {
         Map<String, Object> all = new HashMap<>();
         if (messages != null) {
             Locale locale = RequestContextUtils.getLocale(request);
@@ -49,6 +58,7 @@ public class LoomaView implements View {
         }
         all.put("request", request);
         all.put("principal", request.getUserPrincipal());
+        all.put("_authorizer", authorizers.apply(request)); // answers @can / @cannot / @canany
         Object csrf = request.getAttribute("_csrf");
         if (csrf != null) {
             BeanWrapper bean = new BeanWrapperImpl(csrf);
@@ -103,7 +113,7 @@ public class LoomaView implements View {
         response.setContentType(contentType);
         // Render fully before writing so a template error does not leave a half-sent page.
         // The request's locale drives @lang and the Number/Date helpers.
-        String html = engine.render(name, withRequestData(model, request, messages), RequestContextUtils.getLocale(request));
+        String html = engine.render(name, withRequestData(model, request, messages, authorizers), RequestContextUtils.getLocale(request));
         response.getWriter().write(html);
     }
 }
