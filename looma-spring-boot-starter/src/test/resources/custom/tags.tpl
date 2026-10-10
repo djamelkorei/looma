@@ -1,0 +1,1 @@
+@bind('form')@checkbox('tags', 'web')@checkbox('tags', 'mobile')@checkbox('tags', 'design')<option @option('tags', 'web')>@endbind

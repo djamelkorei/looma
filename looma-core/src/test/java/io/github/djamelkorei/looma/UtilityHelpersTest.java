@@ -41,6 +41,9 @@ class UtilityHelpersTest {
         assertEquals("1,234,567", en("{{ Number.integer(1234567) }}", Map.of()));
         assertEquals("26% 25.6%", en("{{ Number.percent(0.256) }} {{ Number.percent(0.256, 1) }}", Map.of()));
         assertEquals("1.2K 3.4M", en("{{ Number.compact(1234) }} {{ Number.compact(3400000) }}", Map.of()));
+        // money is usually BigDecimal: the decimals must not be dropped ("1M")
+        assertEquals("1.3M 2.5K", en("{{ Number.compact($a) }} {{ Number.compact($b) }}",
+                Map.of("a", new BigDecimal("1260500.00"), "b", new java.math.BigInteger("2500"))));
         assertEquals("512 B 1.5 KB 2.0 MB", en("{{ Number.bytes(512) }} {{ Number.bytes(1536) }} {{ Number.bytes(2097152) }}", Map.of()));
         assertEquals("1st 2nd 3rd 4th 11th 22nd 113th", en("{{ Number.ordinal(1) }} {{ Number.ordinal(2) }} {{ Number.ordinal(3) }} "
                 + "{{ Number.ordinal(4) }} {{ Number.ordinal(11) }} {{ Number.ordinal(22) }} {{ Number.ordinal(113) }}", Map.of()));

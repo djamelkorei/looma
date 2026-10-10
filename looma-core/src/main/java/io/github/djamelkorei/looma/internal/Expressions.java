@@ -25,6 +25,11 @@ public final class Expressions {
     private Expressions() {}
 
     public static Expr parse(String source, int line) {
+        return parse(source, line, null);
+    }
+
+    /** @param template the template the expression belongs to, so evaluation errors name the right file */
+    public static Expr parse(String source, int line, String template) {
         if (source == null || source.isBlank()) {
             // SpEL throws IllegalArgumentException here; report it like any other template mistake
             throw new LoomaException("Missing expression", line, null);
@@ -32,7 +37,7 @@ public final class Expressions {
         try {
             String spel = translate(source);
             // Always parse with SpEL too: it validates the syntax and is the fallback for the fast path.
-            return new Expr(PARSER.parseExpression(spel), source.trim(), line, FastPath.compile(spel));
+            return new Expr(PARSER.parseExpression(spel), source.trim(), line, FastPath.compile(spel), template);
         } catch (ParseException e) {
             throw new LoomaException("Invalid expression '" + source.trim() + "': " + e.getSimpleMessage(), line, e);
         }
@@ -46,7 +51,9 @@ public final class Expressions {
             }
             return expr.spel().getValue(CONTEXT, scope);
         } catch (RuntimeException e) {
-            throw new LoomaException("Error evaluating '" + expr.source() + "': " + e.getMessage(), expr.line(), e);
+            LoomaException error = new LoomaException("Error evaluating '" + expr.source() + "': " + e.getMessage(), expr.line(), e);
+            // Tag with the expression's own template: a section body renders while the layout is active.
+            throw expr.template() != null ? error.inTemplate(expr.template()) : error;
         }
     }
 

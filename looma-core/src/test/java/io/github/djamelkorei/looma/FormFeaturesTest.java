@@ -168,4 +168,18 @@ class FormFeaturesTest {
         LoomaException e = assertThrows(LoomaException.class, () -> engine.renderFragment("contacts", "nope", m));
         assertEquals(true, e.getMessage().contains("No @fragment('nope')") && "contacts".equals(e.template()), e.getMessage());
     }
+
+    @Test
+    void errorsInsideSectionsNameThePageNotTheLayout() {
+        files.put("layout", "<html>\n<main>@yield('content')</main>\n</html>");
+        files.put("page", "@extends('layout')\n@section('content')\nok\n{{ $user.name }}\n@endsection");
+        LoomaException e = assertThrows(LoomaException.class, () -> engine.render("page", Map.of()));
+        assertEquals("page", e.template(), e.getMessage());
+        assertEquals(4, e.line(), e.getMessage());
+        files.put("components.box", "{{ $slot }}");
+        files.put("caller", "a\nb\n<x-box>{{ $missing.prop }}</x-box>");
+        LoomaException slot = assertThrows(LoomaException.class, () -> engine.render("caller", Map.of()));
+        assertEquals("caller", slot.template(), "slot content belongs to the caller: " + slot.getMessage());
+        assertEquals(3, slot.line());
+    }
 }

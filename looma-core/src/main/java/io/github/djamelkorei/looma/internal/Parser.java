@@ -34,6 +34,7 @@ public final class Parser {
     private final Map<String, Integer> markers = new HashMap<>();
     private int pos;
     private int depth;
+    private String templateName;
     private Expr layout;
     private final List<Template.Reference> references = new ArrayList<>();
 
@@ -43,7 +44,13 @@ public final class Parser {
     }
 
     public static Result parse(String source, DirectiveRegistry registry) {
+        return parse(source, registry, null);
+    }
+
+    /** @param templateName recorded in every expression, so evaluation errors name this template */
+    public static Result parse(String source, DirectiveRegistry registry, String templateName) {
         Parser parser = new Parser(Lexer.lex(source, registry), registry);
+        parser.templateName = templateName;
         List<Node> nodes = parser.block(Set.of(), null);
         return new Result(nodes, parser.layout, List.copyOf(parser.references));
     }
@@ -76,8 +83,8 @@ public final class Parser {
             pos++;
             switch (t.kind()) {
                 case TEXT -> nodes.add(new TextNode(t.text()));
-                case ECHO -> nodes.add(new EchoNode(Expressions.parse(t.text(), t.line()), false));
-                case RAW -> nodes.add(new EchoNode(Expressions.parse(t.text(), t.line()), true));
+                case ECHO -> nodes.add(new EchoNode(Expressions.parse(t.text(), t.line(), templateName), false));
+                case RAW -> nodes.add(new EchoNode(Expressions.parse(t.text(), t.line(), templateName), true));
                 case DIRECTIVE -> {
                     Node node = directive(t);
                     if (node != null) nodes.add(node);
@@ -166,9 +173,9 @@ public final class Parser {
             }
             if (name.startsWith(":")) {
                 attrs.add(new ComponentNode.Attr(name.substring(1),
-                        Expressions.parse(value == null ? "true" : value, t.line())));
+                        Expressions.parse(value == null ? "true" : value, t.line(), templateName)));
             } else if (value == null) {
-                attrs.add(new ComponentNode.Attr(name, Expressions.parse("true", t.line())));
+                attrs.add(new ComponentNode.Attr(name, Expressions.parse("true", t.line(), templateName)));
             } else {
                 attrs.add(new ComponentNode.Attr(name, new Expr(
                         new org.springframework.expression.common.LiteralExpression(value), value, t.line())));
@@ -199,11 +206,11 @@ public final class Parser {
             if (token.args() == null) {
                 throw error("@" + token.text() + " needs an argument");
             }
-            return Expressions.parse(token.args(), token.line());
+            return Expressions.parse(token.args(), token.line(), templateName);
         }
 
-        @Override public Expr expr(String source) { return Expressions.parse(source, token.line()); }
-        @Override public Expr expr(Tag tag) { return Expressions.parse(requireArgs(tag), tag.line()); }
+        @Override public Expr expr(String source) { return Expressions.parse(source, token.line(), templateName); }
+        @Override public Expr expr(Tag tag) { return Expressions.parse(requireArgs(tag), tag.line(), templateName); }
 
         private String requireArgs(Tag tag) {
             if (tag.args() == null) throw error(tag, "@" + tag.name() + " needs an argument");

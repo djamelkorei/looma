@@ -315,4 +315,41 @@ class LoomaAutoConfigurationTests {
             assertThat(response.getContentAsString()).contains("value=\"30\"").contains("value=\"Ada\"").contains("checked");
         });
     }
+
+    public static class TagsForm {
+        private java.util.List<String> tags = new java.util.ArrayList<>();
+        private String name = "x";
+        public java.util.List<String> getTags() { return tags; }
+        public void setTags(java.util.List<String> tags) { this.tags = tags; }
+        public String getName() { return name; }
+        public void setName(String name) { this.name = name; }
+    }
+
+    @Test
+    void multiValueFieldsKeepTheirSelectionsAfterBinding() {
+        web.withPropertyValues("looma.prefix=custom/", "looma.suffix=.tpl").run(ctx -> {
+            TagsForm form = new TagsForm();
+            org.springframework.validation.DataBinder binder = new org.springframework.validation.DataBinder(form, "form");
+            binder.setConversionService(org.springframework.boot.convert.ApplicationConversionService.getSharedInstance());
+            binder.bind(new org.springframework.beans.MutablePropertyValues(Map.of("tags", java.util.List.of("web", "mobile"))));
+            binder.getBindingResult().rejectValue("name", "bad", "Bad name"); // a failed submit
+            View view = ctx.getBean(LoomaViewResolver.class).resolveViewName("tags", null);
+            MockHttpServletResponse response = new MockHttpServletResponse();
+            view.render(new java.util.HashMap<>(binder.getBindingResult().getModel()), new MockHttpServletRequest(), response);
+            assertThat(response.getContentAsString())
+                    .contains("value=\"web\" checked>").contains("value=\"mobile\" checked>")
+                    .contains("value=\"design\">").contains("<option value=\"web\" selected>");
+        });
+    }
+
+    @Test
+    void unknownBeanNamesSuggestTheRealOne() {
+        web.withBean("sampleApp.PriceService", PriceService.class)
+                .withPropertyValues("looma.prefix=custom/", "looma.suffix=.tpl").run(ctx -> {
+                    String message = org.junit.jupiter.api.Assertions.assertThrows(io.github.djamelkorei.looma.LoomaException.class,
+                            () -> ctx.getBean(LoomaEngine.class).render("beans-ok", Map.of())).getMessage();
+                    assertThat(message).contains("No bean named 'priceService'")
+                            .contains("Did you mean 'sampleApp.PriceService'").contains("@Service(\"priceService\")");
+                });
+    }
 }

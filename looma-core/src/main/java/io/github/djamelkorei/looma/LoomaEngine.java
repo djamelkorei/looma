@@ -239,7 +239,7 @@ public final class LoomaEngine {
     private Template compile(String name) {
         String source = loader.load(name);
         try {
-            Parser.Result parsed = Parser.parse(source, registry);
+            Parser.Result parsed = Parser.parse(source, registry, name);
             return new Template(name, parsed.nodes(), parsed.layout(), parsed.references());
         } catch (LoomaException e) {
             throw e.inTemplate(name);

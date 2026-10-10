@@ -76,7 +76,10 @@ public final class NumberHelper implements TemplateHelper {
         if (value == null) return "";
         NumberFormat f = NumberFormat.getCompactNumberInstance(TemplateLocale.current(), NumberFormat.Style.SHORT);
         f.setMaximumFractionDigits(1);
-        return f.format(value);
+        // CompactNumberFormat ignores the fraction digits for BigDecimal/BigInteger (1260500 -> "1M"); at this
+        // scale a double is exact enough, and money is usually BigDecimal.
+        boolean big = value instanceof BigDecimal || value instanceof java.math.BigInteger;
+        return f.format(big ? value.doubleValue() : value);
     }
 
     /** File sizes in binary units: 1536 -> 1.5 KB. */

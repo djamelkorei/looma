@@ -22,6 +22,12 @@ final class SpringFormBinder implements FormBinder {
     @Override
     public Object value(String objectName, Object target, String path) {
         if (model.get(BindingResult.MODEL_KEY_PREFIX + objectName) instanceof BindingResult result) {
+            // Multi-value fields: getFieldValue() formats a List as one string ("web,mobile"), which would untick
+            // every @checkbox / @option after a failed submit; the raw collection keeps each value checkable.
+            Object raw = result.getRawFieldValue(path);
+            if (raw instanceof java.util.Collection<?> || (raw != null && raw.getClass().isArray())) {
+                return raw;
+            }
             return result.getFieldValue(path);
         }
         if (target == null) return null;
