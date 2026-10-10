@@ -19,7 +19,7 @@ import java.util.List;
  * {{ Number.percent(0.256, 1) }}        25.6%
  * {{ Number.compact(1234567) }}         1.2M
  * {{ Number.bytes(1536) }}              1.5 KB
- * @foreach(Number.sequence(1, $pages) as $p) ... @endforeach
+ * &#64;foreach(Number.sequence(1, $pages) as $p) ... @endforeach
  * </pre>
  */
 public final class NumberHelper implements TemplateHelper {

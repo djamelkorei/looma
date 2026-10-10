@@ -18,9 +18,9 @@ import java.util.Map;
  *
  * <pre>
  * {{ List.size($cart) }} items, total {{ Number.currency(List.sum(List.pluck($cart, 'price')), 'EUR') }}
- * @foreach(List.chunk($products, 3) as $row) &lt;div class="row"&gt;...&lt;/div&gt; @endforeach
- * @foreach(List.groupBy($people, 'team') as $team) {{ $team.key }}: {{ $team.value.size() }} @endforeach
- * @foreach(List.sortBy($users, 'name') as $u) ... @endforeach
+ * &#64;foreach(List.chunk($products, 3) as $row) &lt;div class="row"&gt;...&lt;/div&gt; @endforeach
+ * &#64;foreach(List.groupBy($people, 'team') as $team) {{ $team.key }}: {{ $team.value.size() }} @endforeach
+ * &#64;foreach(List.sortBy($users, 'name') as $u) ... @endforeach
  * </pre>
  */
 public final class ListHelper implements TemplateHelper {

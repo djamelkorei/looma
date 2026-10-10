@@ -24,7 +24,7 @@ import java.time.temporal.TemporalAccessor;
  * {{ Date.format($order.createdAt, 'd MMMM yyyy') }}   10 October 2026  (fr: 10 octobre 2026)
  * {{ Date.medium($order.createdAt) }}                  localized date (and time, if it has one)
  * {{ Date.relative($comment.postedAt) }}               3 hours ago / in 2 days
- * @if(Date.isPast($invoice.dueDate)) overdue @endif
+ * &#64;if(Date.isPast($invoice.dueDate)) overdue @endif
  * </pre>
  */
 public final class DateHelper implements TemplateHelper {
