@@ -28,23 +28,30 @@ public final class RenderSession {
     private enum Signal { NONE, BREAK, CONTINUE }
 
     private final Function<String, Template> templates;
-    private final Map<Class<?>, Object> state = new HashMap<>();
-    private final List<UnaryOperator<String>> finishers = new ArrayList<>();
-    private StringBuilder out = new StringBuilder();
+    private Map<Class<?>, Object> state;            // created on first use: most pages need none
+    private List<UnaryOperator<String>> finishers;
+    private StringBuilder out;
     private Signal signal = Signal.NONE;
     private int depth;
 
     public RenderSession(Function<String, Template> templates) {
+        this(templates, 256);
+    }
+
+    /** @param initialCapacity expected output size, so the buffer does not have to grow repeatedly */
+    public RenderSession(Function<String, Template> templates, int initialCapacity) {
         this.templates = templates;
+        this.out = new StringBuilder(initialCapacity);
     }
 
     public String render(Template template, Map<String, ?> model) {
-        Scope scope = new Scope(null);
-        if (model != null) scope.putAll(model);
+        Scope scope = new Scope(null, model); // reads the model in place, no copy
         renderTemplate(template, scope);
         String result = out.toString();
-        for (UnaryOperator<String> finisher : finishers) {
-            result = finisher.apply(result);
+        if (finishers != null) {
+            for (UnaryOperator<String> finisher : finishers) {
+                result = finisher.apply(result);
+            }
         }
         return result;
     }
@@ -101,7 +108,11 @@ public final class RenderSession {
         @Override
         public void writeEscaped(Object value) {
             if (value == null) return;
-            if (value instanceof Htmlable h) out.append(h.toHtml());
+            if (value instanceof String str) Html.escape(str, out);
+            else if (value instanceof Integer i) out.append(i.intValue());   // digits only: nothing to escape
+            else if (value instanceof Long l) out.append(l.longValue());
+            else if (value instanceof Boolean b) out.append(b.booleanValue());
+            else if (value instanceof Htmlable h) out.append(h.toHtml());
             else Html.escape(String.valueOf(value), out);
         }
 
@@ -150,9 +161,13 @@ public final class RenderSession {
         @Override
         @SuppressWarnings("unchecked")
         public <T> T state(Class<T> type, Supplier<T> initial) {
+            if (state == null) state = new HashMap<>();
             return (T) state.computeIfAbsent(type, k -> initial.get());
         }
 
-        @Override public void onFinish(UnaryOperator<String> finisher) { finishers.add(finisher); }
+        @Override public void onFinish(UnaryOperator<String> finisher) {
+            if (finishers == null) finishers = new ArrayList<>();
+            finishers.add(finisher);
+        }
     }
 }

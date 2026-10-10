@@ -30,9 +30,11 @@ public final class ForeachDirective implements Directive {
             }
             Loop parent = ctx.get("loop") instanceof Loop l ? l : null;
             RenderContext inner = ctx.child();
+            Loop loop = new Loop(0, list.size(), parent);
+            inner.set("loop", loop);
             for (int i = 0; i < list.size(); i++) {
+                loop.index(i);
                 inner.set(var, list.get(i));
-                inner.set("loop", new Loop(i, list.size(), parent));
                 if (!inner.runLoopBody(body)) return;
             }
         }

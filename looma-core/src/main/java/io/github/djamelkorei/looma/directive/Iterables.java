@@ -9,7 +9,11 @@ final class Iterables {
 
     private Iterables() {}
 
+    @SuppressWarnings("unchecked")
     static List<Object> toList(Object value) {
+        if (value instanceof List<?> l && l instanceof java.util.RandomAccess) {
+            return (List<Object>) l; // already indexable: no copy (templates cannot modify it)
+        }
         List<Object> list = new ArrayList<>();
         if (value == null) {
             return list;

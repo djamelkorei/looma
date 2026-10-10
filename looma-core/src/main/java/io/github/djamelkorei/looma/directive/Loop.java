@@ -3,7 +3,7 @@ package io.github.djamelkorei.looma.directive;
 /** The {@code loop} variable available inside {@code @foreach}. */
 public final class Loop {
 
-    private final int index;
+    private int index;
     private final int count;
     private final Loop parent;
 
@@ -12,6 +12,9 @@ public final class Loop {
         this.count = count;
         this.parent = parent;
     }
+
+    /** Moves to the next item; the engine reuses one Loop per loop instead of allocating one per item. */
+    void index(int index) { this.index = index; }
 
     public int getIndex() { return index; }
     public int getIteration() { return index + 1; }

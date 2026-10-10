@@ -25,6 +25,8 @@ public final class LoomaEngine {
     private final DirectiveRegistry registry;
     private final Map<String, Template> cached = new ConcurrentHashMap<>();
     private final Set<String> known = ConcurrentHashMap.newKeySet();
+    /** Largest output seen per template, used to size the next render's buffer. */
+    private final Map<String, Integer> sizeHints = new ConcurrentHashMap<>();
 
     /** An engine with the built-in directives only. Use {@link #builder} to add your own. */
     public LoomaEngine(TemplateLoader loader, boolean cache) {
@@ -87,7 +89,9 @@ public final class LoomaEngine {
     }
 
     public Template template(String name) {
-        return cache ? cached.computeIfAbsent(name, this::compile) : compile(name);
+        if (!cache) return compile(name);
+        Template template = cached.get(name); // lock-free read on the hot path
+        return template != null ? template : cached.computeIfAbsent(name, this::compile);
     }
 
     /**
@@ -114,7 +118,13 @@ public final class LoomaEngine {
     }
 
     public String render(String name, Map<String, ?> model) {
-        return new RenderSession(this::template).render(template(name), model);
+        Template template = template(name);
+        int hint = sizeHints.getOrDefault(name, 256);
+        String html = new RenderSession(this::template, hint).render(template, model);
+        if (html.length() > hint && cache) {
+            sizeHints.merge(name, html.length(), Math::max);
+        }
+        return html;
     }
 
     public void render(String name, Map<String, ?> model, Writer writer) {

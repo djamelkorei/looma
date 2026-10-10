@@ -26,13 +26,19 @@ public final class Expressions {
 
     public static Expr parse(String source, int line) {
         try {
-            return new Expr(PARSER.parseExpression(translate(source)), source.trim(), line);
+            String spel = translate(source);
+            // Always parse with SpEL too: it validates the syntax and is the fallback for the fast path.
+            return new Expr(PARSER.parseExpression(spel), source.trim(), line, FastPath.compile(spel));
         } catch (ParseException e) {
             throw new LoomaException("Invalid expression '" + source.trim() + "': " + e.getSimpleMessage(), line, e);
         }
     }
 
     public static Object eval(Expr expr, Scope scope) {
+        if (expr.fastPath() instanceof FastPath.Plan plan) {
+            Object value = plan.eval(scope);
+            if (value != FastPath.MISS) return value;
+        }
         try {
             return expr.spel().getValue(CONTEXT, scope);
         } catch (RuntimeException e) {
