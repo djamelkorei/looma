@@ -166,14 +166,15 @@ test that boots the app catches a broken template before it ships. Programmatic 
 
 ## Compatibility
 
-Tested on every push (see `.github/workflows/ci.yml`) with the full suite, including Spring Security:
+The full suite (including Spring Security) runs in CI on every push for each of these:
 
-| | Spring Boot 3.3 | 3.4 | 3.5 | 4.0 | 4.1 |
-|---|---|---|---|---|---|
-| **Java 21** | ✅ | ✅ | ✅ | CI | ✅ |
-| **Java 25** | CI | CI | ✅ | ✅ | CI |
+| | Spring Boot 3.3 | 3.4 | 3.5 | 4.0 |
+|---|---|---|---|---|
+| **Java 21** | ✅ | ✅ | ✅ | ✅ |
+| **Java 25** | ✅ | ✅ | ✅ | ✅ |
 
-✅ = run locally before release, CI = covered by the CI matrix. Java 17 is not supported (the engine uses Java 21 features).
+Spring Boot 4.1 was also run (Java 21) before release but is not in the CI matrix. Java 17 is not supported
+(the engine uses Java 21 features).
 
 ## Build
 
