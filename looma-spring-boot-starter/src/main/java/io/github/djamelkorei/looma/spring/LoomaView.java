@@ -5,12 +5,19 @@ import io.github.djamelkorei.looma.LoomaEngine;
 import io.github.djamelkorei.looma.MessageResolver;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import org.springframework.beans.BeanWrapper;
 import org.springframework.beans.BeanWrapperImpl;
 import org.springframework.context.MessageSource;
+import org.springframework.context.NoSuchMessageException;
+import org.springframework.validation.BindingResult;
+import org.springframework.validation.FieldError;
+import org.springframework.validation.ObjectError;
 import org.springframework.web.servlet.View;
 import org.springframework.web.servlet.support.RequestContextUtils;
 
@@ -50,7 +57,39 @@ public class LoomaView implements View {
                     String.valueOf(bean.getPropertyValue("token"))));
         }
         all.putAll(model);
+        all.putIfAbsent("errors", validationErrors(model, messages, RequestContextUtils.getLocale(request)));
         return all;
+    }
+
+    /**
+     * Field name to messages, collected from every {@link BindingResult} in the model (what {@code @Valid}
+     * puts there), resolved through the {@link MessageSource} for the request locale. Global errors are
+     * listed under {@code _global}. Feeds {@code @error('field')}.
+     */
+    static Map<String, List<String>> validationErrors(Map<String, ?> model, MessageSource messages, Locale locale) {
+        Map<String, List<String>> errors = new LinkedHashMap<>();
+        for (Object value : model.values()) {
+            if (value instanceof BindingResult result && result.hasErrors()) {
+                for (FieldError e : result.getFieldErrors()) {
+                    errors.computeIfAbsent(e.getField(), k -> new ArrayList<>()).add(resolve(e, messages, locale));
+                }
+                for (ObjectError e : result.getGlobalErrors()) {
+                    errors.computeIfAbsent("_global", k -> new ArrayList<>()).add(resolve(e, messages, locale));
+                }
+            }
+        }
+        return errors;
+    }
+
+    private static String resolve(ObjectError error, MessageSource messages, Locale locale) {
+        if (messages != null) {
+            try {
+                return messages.getMessage(error, locale);
+            } catch (NoSuchMessageException ignored) {
+                // fall through to the default message
+            }
+        }
+        return error.getDefaultMessage() != null ? error.getDefaultMessage() : error.getCode();
     }
 
     @Override

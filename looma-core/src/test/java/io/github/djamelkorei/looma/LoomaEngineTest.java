@@ -426,4 +426,13 @@ class LoomaEngineTest {
         assertEquals(" in ", render("@auth in @endauth", Map.of("principal", "x")));
         assertEquals("", render("@auth in @endauth", Map.of()));
     }
+
+    @Test
+    void errorShowsFieldMessagesOnlyWhenPresent() {
+        Map<String, Object> errors = Map.of("email", List.of("Required", "Too short"), "name", "Bad <name>");
+        String t = "@error('email')[{{ $message }}/{{ $messages.size() }}]@enderror@error('name')({{ $message }})@enderror@error('age')NO@enderror";
+        assertEquals("[Required/2](Bad &lt;name&gt;)", render(t, Map.of("errors", errors)));
+        assertEquals("", render(t, Map.of()));
+        assertEquals("", render(t, Map.of("errors", Map.of())));
+    }
 }

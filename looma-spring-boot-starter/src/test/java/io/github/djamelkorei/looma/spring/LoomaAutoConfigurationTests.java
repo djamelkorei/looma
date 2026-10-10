@@ -182,4 +182,36 @@ class LoomaAutoConfigurationTests {
             assertThat(engine.render("sub/x", Map.of())).isEqualTo("cached");
         });
     }
+
+    @Test
+    void bindingResultsFeedTheErrorDirective() {
+        web.run(ctx -> {
+            org.springframework.validation.BeanPropertyBindingResult result =
+                    new org.springframework.validation.BeanPropertyBindingResult(new Object(), "form");
+            result.addError(new org.springframework.validation.FieldError("form", "email", null, false,
+                    new String[] {"NotBlank"}, null, "Email <is> required"));
+            result.addError(new org.springframework.validation.ObjectError("form", "Form is invalid"));
+            Map<String, Object> model = new java.util.HashMap<>();
+            model.put("form", new Object());
+            model.put(org.springframework.validation.BindingResult.MODEL_KEY_PREFIX + "form", result);
+            View view = ctx.getBean(LoomaViewResolver.class).resolveViewName("errors", null);
+            MockHttpServletResponse response = new MockHttpServletResponse();
+            view.render(model, new MockHttpServletRequest(), response);
+            assertThat(response.getContentAsString())
+                    .isEqualTo("<span>Email &lt;is&gt; required</span>||[Form is invalid]|2");
+        });
+    }
+
+    @Test
+    void errorsAreEmptyWithoutBindingResultsAndControllerValueWins() {
+        web.run(ctx -> {
+            View view = ctx.getBean(LoomaViewResolver.class).resolveViewName("errors", null);
+            MockHttpServletResponse plain = new MockHttpServletResponse();
+            view.render(Map.of(), new MockHttpServletRequest(), plain);
+            assertThat(plain.getContentAsString()).isEqualTo("|||0");
+            MockHttpServletResponse custom = new MockHttpServletResponse();
+            view.render(Map.of("errors", Map.of("name", "mine")), new MockHttpServletRequest(), custom);
+            assertThat(custom.getContentAsString()).isEqualTo("|NAME||1");
+        });
+    }
 }

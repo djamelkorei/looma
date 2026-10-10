@@ -40,6 +40,7 @@ public final class BuiltinDirectives {
                 // forms and i18n
                 FormDirectives.csrf(),
                 FormDirectives.method(),
+                new ErrorDirective(),
                 new LangDirective());
     }
 }
