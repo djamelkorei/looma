@@ -10,7 +10,7 @@ syntax reference, not as an option for a Spring application.
 
 **Legend:** ✅ built in · ⚠️ partial, via an add-on, or with a workaround · ❌ not available. Every row is phrased so that ✅ is the better answer.
 
-Versions compared: Looma 0.1.0, Thymeleaf 3.1 (with Spring integration), Laravel 12 Blade. October 2026.
+Versions compared: Looma 0.1.1, Thymeleaf 3.1 (with Spring integration), Laravel 12 Blade. October 2026.
 
 ## At a glance
 

@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.1.1 (unreleased)
+## 0.1.1 (2026-10-10)
 
 Fixes found by running a realistic application (Spring Security, validation, a deliberately complex dashboard)
 against the published 0.1.0:

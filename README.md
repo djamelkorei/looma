@@ -31,7 +31,7 @@ validation errors and CSRF without ceremony.
 <dependency>
   <groupId>io.github.djamelkorei</groupId>
   <artifactId>looma-spring-boot-starter</artifactId>
-  <version>0.1.0</version>
+  <version>0.1.1</version>
 </dependency>
 ```
 
