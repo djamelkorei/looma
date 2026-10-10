@@ -52,14 +52,10 @@ Custom directives are picked up from your code: a class implementing `Directive`
 
 ## Install
 
-The plugin is not on the JetBrains Marketplace yet. Build it and install the zip:
-
-```bash
-cd looma-intellij
-./gradlew buildPlugin            # build/distributions/looma-intellij-*.zip
-```
-
-Then Settings | Plugins | ⚙ | Install Plugin from Disk.
+Settings | Plugins | Marketplace, search for **Looma**. Until the first Marketplace version is approved, or to
+try an unreleased build, download the zip from the
+[latest plugin release](https://github.com/djamelkorei/looma/releases?q=intellij) (or build it with
+`./gradlew buildPlugin` in `looma-intellij`) and use Settings | Plugins | ⚙ | Install Plugin from Disk.
 
 ## Develop
 

@@ -8,6 +8,19 @@
         directive completion and documentation, navigation to included templates, layouts, components,
         sections, stacks and message keys, and error checks for unclosed blocks.
     ]]></description>
+    <change-notes><![CDATA[
+        <h3>0.1.0</h3>
+        <ul>
+            <li>Highlighting, completion and documentation for every Looma directive, including
+                <code>@foreach($map as $key => $value)</code>.</li>
+            <li>Navigation and rename for template variables, layouts, includes, components, sections, stacks,
+                message keys, and the Java code behind the model: controllers, getters, helpers and beans.</li>
+            <li>Component tags: completion of <code>&lt;x-...&gt;</code> names and the attributes a component reads;
+                <code>:attr</code> values and <code>{{ }}</code> inside attributes are expressions.</li>
+            <li>Errors as you type for unclosed blocks, unknown directives and missing templates.</li>
+            <li>Formatting, folding, brace matching, commenting, and New | Looma Template.</li>
+        </ul>
+    ]]></change-notes>
 
     <depends>com.intellij.modules.platform</depends>
     <depends>com.intellij.modules.xml</depends>

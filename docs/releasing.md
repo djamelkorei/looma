@@ -80,6 +80,51 @@ set `skipPublishing`, so they are never uploaded.
 
 Without Central credentials `deploy` stops before uploading.
 
+## IntelliJ plugin
+
+The plugin is released separately from the engine, to [JetBrains Marketplace](https://plugins.jetbrains.com),
+by `.github/workflows/intellij-release.yml`. Its version is `pluginVersion` in `looma-intellij/gradle.properties`.
+
+### One-time setup
+
+1. **The first upload is manual.** Marketplace only accepts a new plugin through the website. Build the zip with
+   `./gradlew buildPlugin` in `looma-intellij` (it lands in `build/distributions/`), open
+   <https://plugins.jetbrains.com/plugin/add>, upload it, choose the licence (Apache 2.0) and submit. JetBrains
+   reviews a new plugin by hand, usually within two business days. Later versions upload automatically.
+2. **A publishing token.** <https://plugins.jetbrains.com/author/me/tokens> → *Generate token*.
+3. **A signing key** (optional, recommended: Marketplace shows signed plugins as verified).
+
+    ```bash
+    openssl genpkey -aes-256-cbc -algorithm RSA -out private.pem -pkeyopt rsa_keygen_bits:4096
+    openssl req -key private.pem -new -x509 -days 3650 -out chain.crt -subj "/CN=Djamel Eddine Korei"
+    ```
+
+4. **Repository secrets.**
+
+    ```bash
+    gh secret set JETBRAINS_PUBLISH_TOKEN        -R djamelkorei/looma                 # from step 2
+    gh secret set JETBRAINS_CERTIFICATE_CHAIN    -R djamelkorei/looma < chain.crt     # step 3, optional
+    gh secret set JETBRAINS_PRIVATE_KEY          -R djamelkorei/looma < private.pem   # step 3, optional
+    gh secret set JETBRAINS_PRIVATE_KEY_PASSWORD -R djamelkorei/looma                 # the passphrase from step 3
+    rm private.pem chain.crt                                                          # or keep them in a password manager
+    ```
+
+### Cutting a plugin release
+
+1. Set `pluginVersion` in `looma-intellij/gradle.properties` and add the version to `<change-notes>` in
+   `looma-intellij/src/main/resources/META-INF/plugin.xml`.
+2. Commit, then tag and push:
+
+    ```bash
+    git tag intellij-v0.1.0 && git push origin intellij-v0.1.0
+    ```
+
+The workflow refuses a tag that does not match `pluginVersion`, runs the tests and the compatibility verifier,
+signs and uploads the plugin, and attaches the zip to a GitHub release of the same name. A version such as
+`0.2.0-beta` goes to the Marketplace *beta* channel, which only users who added it see.
+
+To try the upload step locally: `PUBLISH_TOKEN=... ./gradlew publishPlugin`.
+
 ## If something goes wrong
 
 * **"Invalid signature" / "key not found" in the portal:** the public key is not on a keyserver yet (step 3), or it

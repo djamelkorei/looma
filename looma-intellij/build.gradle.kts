@@ -50,6 +50,20 @@ intellijPlatform {
             untilBuild = provider { null }
         }
     }
+    // JetBrains Marketplace: PUBLISH_TOKEN from https://plugins.jetbrains.com/author/me/tokens.
+    // Signing is optional but recommended; see docs/releasing.md for how to make the certificate and key.
+    signing {
+        certificateChain = providers.environmentVariable("CERTIFICATE_CHAIN")
+        privateKey = providers.environmentVariable("PRIVATE_KEY")
+        password = providers.environmentVariable("PRIVATE_KEY_PASSWORD")
+    }
+    publishing {
+        token = providers.environmentVariable("PUBLISH_TOKEN")
+        // A version like 0.2.0-beta goes to the "beta" channel, which only users who opt in see.
+        channels = providers.gradleProperty("pluginVersion").map { v ->
+            listOf(v.substringAfter('-', "").ifEmpty { "default" })
+        }
+    }
     pluginVerification {
         ides {
             // The oldest supported release, plus the installed IDE when building against one.

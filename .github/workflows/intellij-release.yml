@@ -1,0 +1,54 @@
+name: IntelliJ plugin release
+
+# Publishes the plugin to JetBrains Marketplace when a tag like intellij-v0.1.0 is pushed.
+# The version comes from the tag; it must match pluginVersion in looma-intellij/gradle.properties.
+on:
+  push:
+    tags: ['intellij-v*']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: looma-intellij
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: 21
+          cache: maven
+      - uses: gradle/actions/setup-gradle@v6
+      - name: Check the tag matches pluginVersion
+        if: github.ref_type == 'tag'
+        run: |
+          tag="${GITHUB_REF_NAME#intellij-v}"
+          version="$(sed -n 's/^pluginVersion=//p' gradle.properties)"
+          [ "$tag" = "$version" ] || { echo "Tag $tag does not match pluginVersion $version"; exit 1; }
+      - name: Compile looma-core
+        working-directory: .
+        run: ./mvnw -B -q -pl looma-core compile
+      - name: Test
+        run: ./gradlew test
+      - name: Verify compatibility
+        run: ./gradlew verifyPlugin
+      - name: Publish to JetBrains Marketplace
+        env:
+          PUBLISH_TOKEN: ${{ secrets.JETBRAINS_PUBLISH_TOKEN }}
+          CERTIFICATE_CHAIN: ${{ secrets.JETBRAINS_CERTIFICATE_CHAIN }}
+          PRIVATE_KEY: ${{ secrets.JETBRAINS_PRIVATE_KEY }}
+          PRIVATE_KEY_PASSWORD: ${{ secrets.JETBRAINS_PRIVATE_KEY_PASSWORD }}
+        run: ./gradlew publishPlugin
+      - name: Attach the zip to the GitHub release
+        if: github.ref_type == 'tag'
+        working-directory: .
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1 || gh release create "$GITHUB_REF_NAME" --title "IntelliJ plugin $GITHUB_REF_NAME" --generate-notes
+          gh release upload "$GITHUB_REF_NAME" looma-intellij/build/distributions/*.zip --clobber
