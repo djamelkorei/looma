@@ -90,6 +90,23 @@ public final class LoomaEngine {
         return cache ? cached.computeIfAbsent(name, this::compile) : compile(name);
     }
 
+    /**
+     * Parses the given templates and returns every syntax error found, one per broken template; an empty
+     * list means all are valid. Use it at startup or in CI to find mistakes before a request does.
+     * Templates are parsed but not rendered, so errors that depend on data are not found.
+     */
+    public List<LoomaException> check(Iterable<String> names) {
+        List<LoomaException> errors = new ArrayList<>();
+        for (String name : names) {
+            try {
+                template(name);
+            } catch (LoomaException e) {
+                errors.add(e.template() != null ? e : e.inTemplate(name));
+            }
+        }
+        return errors;
+    }
+
     public String render(String name, Map<String, ?> model) {
         return new RenderSession(this::template).render(template(name), model);
     }

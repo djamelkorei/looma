@@ -39,12 +39,12 @@ public final class Parser {
 
     public static Result parse(String source, DirectiveRegistry registry) {
         Parser parser = new Parser(Lexer.lex(source, registry), registry);
-        List<Node> nodes = parser.block(Set.of());
+        List<Node> nodes = parser.block(Set.of(), null);
         return new Result(nodes, parser.layout);
     }
 
     /** Parses nodes until a tag named in {@code stops} (left unconsumed) or, if none are given, the end. */
-    private List<Node> block(Set<String> stops) {
+    private List<Node> block(Set<String> stops, Token opener) {
         List<Node> nodes = new ArrayList<>();
         while (pos < tokens.size()) {
             Token t = tokens.get(pos);
@@ -70,8 +70,11 @@ public final class Parser {
             }
         }
         if (!stops.isEmpty()) {
-            int line = tokens.isEmpty() ? 0 : tokens.get(tokens.size() - 1).line();
-            throw new LoomaException("Unclosed block, expected one of " + stops, line, null);
+            // Point at the opening tag: that is where the missing end belongs, not the end of the file.
+            String what = opener.kind() == Kind.DIRECTIVE ? "@" + opener.text() : "<x-" + opener.text() + ">";
+            String needs = stops.contains(COMPONENT_END) ? "</x-" + opener.text().split(":")[0] + ">" : "one of " + new java.util.TreeSet<>(stops);
+            throw new LoomaException("Unclosed block: " + what + " is never closed, expected " + needs,
+                    opener.line(), null);
         }
         return nodes;
     }
@@ -89,7 +92,7 @@ public final class Parser {
     private Node component(Token t, boolean selfClosing) {
         List<Node> body = List.of();
         if (!selfClosing) {
-            body = block(Set.of(COMPONENT_END));
+            body = block(Set.of(COMPONENT_END), t);
             Token close = tokens.get(pos++);
             if (!close.text().equals(t.text().split(":")[0]) && !close.text().equals(t.text())) {
                 throw new LoomaException("Expected </x-" + t.text() + "> but found </x-" + close.text() + ">",
@@ -193,7 +196,7 @@ public final class Parser {
 
         @Override
         public Block block(String... endTags) {
-            List<Node> nodes = Parser.this.block(Set.of(endTags));
+            List<Node> nodes = Parser.this.block(Set.of(endTags), token);
             Token end = tokens.get(pos++);
             return new Block(nodes, new Tag(end.text(), end.args(), end.line()));
         }

@@ -320,4 +320,27 @@ class LoomaEngineTest {
         assertThrows(LoomaException.class, () -> render("@for($i = 0; $i < 200000; $i++)@endfor", Map.of()));
         assertThrows(LoomaException.class, () -> render("@for($i = 'a'; $i != 'b'; $i++)x@endfor", Map.of()));
     }
+
+    @Test
+    void checkReportsEverySyntaxErrorWithoutRendering() {
+        files.put("good", "@if($x){{ $y }}@endif");
+        files.put("bad1", "line\n@foreach($a as $b)never closed");
+        files.put("bad2", "{{ 1 + }}");
+        List<LoomaException> errors = engine.check(List.of("good", "bad1", "bad2", "missing"));
+        assertEquals(3, errors.size());
+        assertEquals(List.of("bad1", "bad2", "missing"), errors.stream().map(LoomaException::template).toList());
+        assertTrue(engine.check(List.of("good")).isEmpty());
+    }
+
+    @Test
+    void unclosedBlocksPointAtTheOpeningTag() {
+        LoomaException e = assertThrows(LoomaException.class,
+                () -> render("ok\nok\n@if($x)\nbody\nbody\nbody\nbody", Map.of()));
+        assertEquals(3, e.line());
+        assertTrue(e.getMessage().contains("@if is never closed"), e.getMessage());
+        files.put("c", "a\n<x-card>\nbody");
+        LoomaException c = assertThrows(LoomaException.class, () -> engine.render("c", Map.of()));
+        assertEquals(2, c.line());
+        assertTrue(c.getMessage().contains("</x-card>"), c.getMessage());
+    }
 }

@@ -17,6 +17,12 @@ public class LoomaProperties {
     /** Content-Type of rendered responses. */
     private String contentType = "text/html;charset=UTF-8";
 
+    /** Parse all templates at startup and fail fast on syntax errors. */
+    private boolean checkTemplates = true;
+
+    public boolean isCheckTemplates() { return checkTemplates; }
+    public void setCheckTemplates(boolean checkTemplates) { this.checkTemplates = checkTemplates; }
+
     public String getPrefix() { return prefix; }
     public void setPrefix(String prefix) { this.prefix = prefix; }
     public String getSuffix() { return suffix; }

@@ -116,4 +116,31 @@ class LoomaAutoConfigurationTests {
         }).withPropertyValues("looma.prefix=custom/", "looma.suffix=.tpl").run(ctx ->
                 assertThat(ctx.getBean(LoomaEngine.class).render("shouting", Map.of("x", "hey"))).isEqualTo("HEY!"));
     }
+
+    @Test
+    void startupFailsListingEveryBrokenTemplate() {
+        web.withPropertyValues("looma.prefix=broken/", "looma.suffix=.tpl").run(ctx -> {
+            assertThat(ctx).hasFailed();
+            assertThat(ctx.getStartupFailure().getMessage())
+                    .contains("2 Looma template(s) have syntax errors")
+                    .contains("In template 'oops' at line 2: Unclosed block: @if is never closed")
+                    .contains("'oops2'")
+                    .doesNotContain("'ok'")
+                    .contains("looma.check-templates=false");
+        });
+    }
+
+    @Test
+    void startupCheckCanBeDisabled() {
+        web.withPropertyValues("looma.prefix=broken/", "looma.suffix=.tpl", "looma.check-templates=false")
+                .run(ctx -> assertThat(ctx).hasNotFailed());
+    }
+
+    @Test
+    void validTemplatesPassTheStartupCheck() {
+        web.run(ctx -> {
+            assertThat(ctx).hasNotFailed();
+            assertThat(ctx).hasSingleBean(LoomaTemplateChecker.class);
+        });
+    }
 }

@@ -3,9 +3,8 @@ package io.github.djamelkorei.looma.internal;
 import io.github.djamelkorei.looma.Htmlable;
 import io.github.djamelkorei.looma.LoomaException;
 import io.github.djamelkorei.looma.Template;
-import io.github.djamelkorei.looma.directive.SectionNode;
-import io.github.djamelkorei.looma.directive.Sections;
 import io.github.djamelkorei.looma.spi.Expr;
+import io.github.djamelkorei.looma.spi.LayoutContribution;
 import io.github.djamelkorei.looma.spi.Html;
 import io.github.djamelkorei.looma.spi.Node;
 import io.github.djamelkorei.looma.spi.RenderContext;
@@ -63,10 +62,9 @@ public final class RenderSession {
                 ctx.render(t.nodes());
                 return;
             }
-            // A child template only contributes its sections; the parent layout produces the output.
-            Sections sections = ctx.state(Sections.class, Sections::new);
+            // A child template only contributes to its layout; the layout produces the output.
             for (Node n : t.nodes()) {
-                if (n instanceof SectionNode s) sections.register(s);
+                if (n instanceof LayoutContribution c) c.contribute(ctx);
             }
             renderTemplate(templates.apply(ctx.evalString(t.layout())), scope);
         } catch (LoomaException e) {
