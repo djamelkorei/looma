@@ -119,4 +119,4 @@ layout's own section instead of replacing it.
 - Enable `looma.template-dir=src/main/resources/templates` in development for live reload.
 
 The full feature-by-feature picture, including what Looma does not have, is in
-[Looma vs Thymeleaf vs Blade](comparison.md).
+[Looma vs Thymeleaf](comparison.md).

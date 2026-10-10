@@ -84,7 +84,7 @@ nav:
       - Security & operations: security.md
       - Extending & architecture: extending.md
   - Compare:
-      - Looma vs Thymeleaf vs Blade: comparison.md
+      - Looma vs Thymeleaf: comparison.md
       - Benchmarks: benchmarks.md
   - Project:
       - Releasing: releasing.md

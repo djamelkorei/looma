@@ -94,7 +94,7 @@ serves the rest. The attributes map almost one to one:
 
 The full mapping, the expression differences and what to check before going live:
 [Migrating from Thymeleaf](https://djamelkorei.github.io/looma/thymeleaf-migration/). An honest feature-by-feature
-comparison, gaps included: [Looma vs Thymeleaf vs Blade](https://djamelkorei.github.io/looma/comparison/).
+comparison, gaps included: [Looma vs Thymeleaf](https://djamelkorei.github.io/looma/comparison/).
 
 ## Modules
 
