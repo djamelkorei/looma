@@ -1,6 +1,8 @@
 package io.github.djamelkorei.looma.intellij.reference;
 
 import com.intellij.codeInsight.lookup.LookupElementBuilder;
+import com.intellij.psi.PsiElement;
+import com.intellij.psi.PsiFileSystemItem;
 import com.intellij.psi.PsiElementResolveResult;
 import com.intellij.psi.PsiPolyVariantReferenceBase;
 import com.intellij.psi.ResolveResult;
@@ -89,5 +91,11 @@ public final class LoomaNameReference extends PsiPolyVariantReferenceBase<LoomaS
     private static boolean isShown(LoomaStringLiteral literal) {
         var block = literal.getDirective().getBlock();
         return block != null && block.getTags().getLast().getName().equals("show");
+    }
+
+    /** Never a file: answering without resolving keeps template searches from computing models. */
+    @Override
+    public boolean isReferenceTo(@NotNull PsiElement element) {
+        return !(element instanceof PsiFileSystemItem) && super.isReferenceTo(element);
     }
 }

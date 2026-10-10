@@ -3,6 +3,7 @@ package io.github.djamelkorei.looma.intellij.java;
 import com.intellij.codeInsight.lookup.LookupElementBuilder;
 import com.intellij.icons.AllIcons;
 import com.intellij.psi.PsiElement;
+import com.intellij.psi.PsiFileSystemItem;
 import com.intellij.psi.PsiMethod;
 import com.intellij.psi.PsiReferenceBase;
 import com.intellij.psi.PsiType;
@@ -66,5 +67,11 @@ final class LoomaJavaMemberReference extends PsiReferenceBase<LoomaMember> {
             else if (name.startsWith("is") && name.length() > 2) name = Character.toLowerCase(name.charAt(2)) + name.substring(3);
         }
         return super.handleElementRename(name);
+    }
+
+    /** Never a file: answering without resolving keeps template searches from computing models. */
+    @Override
+    public boolean isReferenceTo(@NotNull PsiElement element) {
+        return !(element instanceof PsiFileSystemItem) && super.isReferenceTo(element);
     }
 }

@@ -2,6 +2,7 @@ package io.github.djamelkorei.looma.intellij.reference;
 
 import com.intellij.codeInsight.lookup.LookupElementBuilder;
 import com.intellij.psi.PsiElement;
+import com.intellij.psi.PsiFileSystemItem;
 import com.intellij.psi.PsiReferenceBase;
 import com.intellij.util.IncorrectOperationException;
 import io.github.djamelkorei.looma.intellij.LoomaIcons;
@@ -50,5 +51,11 @@ public final class LoomaVariableReference extends PsiReferenceBase<LoomaVariable
     @Override
     public PsiElement handleElementRename(@NotNull String newElementName) throws IncorrectOperationException {
         return super.handleElementRename(newElementName.startsWith("$") ? newElementName.substring(1) : newElementName);
+    }
+
+    /** Never a file: answering without resolving keeps template searches from computing models. */
+    @Override
+    public boolean isReferenceTo(@NotNull PsiElement element) {
+        return !(element instanceof PsiFileSystemItem) && super.isReferenceTo(element);
     }
 }

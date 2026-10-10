@@ -12,6 +12,7 @@ import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiFile;
 import com.intellij.psi.PsiManager;
 import io.github.djamelkorei.looma.intellij.lang.LoomaFileType;
+import io.github.djamelkorei.looma.intellij.lang.LoomaFileViewProvider;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -57,9 +58,9 @@ public final class LoomaTemplates {
 
     /** Template folders to search from {@code context}: its own folder for a template, else the module's. */
     public static @NotNull List<VirtualFile> roots(@NotNull PsiElement context) {
-        PsiFile file = context.getContainingFile();
+        PsiFile file = context.isValid() ? LoomaFiles.template(context) : null;
         Set<VirtualFile> roots = new LinkedHashSet<>();
-        if (file != null && file.getFileType() == LoomaFileType.INSTANCE) {
+        if (file != null && file.getViewProvider() instanceof LoomaFileViewProvider) {
             VirtualFile root = root(file);
             if (root != null) roots.add(root);
             return new ArrayList<>(roots);
