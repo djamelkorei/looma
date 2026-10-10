@@ -153,7 +153,7 @@ public final class LoomaEngine {
     public String render(String name, Map<String, ?> model) {
         Template template = template(name);
         int hint = sizeHints.getOrDefault(name, 256);
-        String html = new RenderSession(this::template, hint, globals).render(template, model);
+        String html = new RenderSession(this::template, hint, globals, this::exists).render(template, model);
         if (html.length() > hint && cache) {
             sizeHints.merge(name, html.length(), Math::max);
         }

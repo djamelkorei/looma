@@ -35,17 +35,27 @@ public final class RenderSession {
     private int depth;
 
     private final Scope globals;
+    private final java.util.function.Predicate<String> exists;
 
     public RenderSession(Function<String, Template> templates) {
-        this(templates, 256, null);
+        this(templates, 256, null, null);
     }
 
     /**
      * @param initialCapacity expected output size, so the buffer does not have to grow repeatedly
      * @param globals         helpers visible to every template, looked up after the model (may be null)
      */
-    public RenderSession(Function<String, Template> templates, int initialCapacity, Scope globals) {
+    public RenderSession(Function<String, Template> templates, int initialCapacity, Scope globals,
+            java.util.function.Predicate<String> exists) {
         this.templates = templates;
+        this.exists = exists != null ? exists : name -> {
+            try {
+                templates.apply(name);
+                return true;
+            } catch (LoomaException e) {
+                return false;
+            }
+        };
         this.out = new StringBuilder(initialCapacity);
         this.globals = globals;
     }
@@ -145,6 +155,11 @@ public final class RenderSession {
         @Override
         public void renderTemplate(String name) {
             RenderSession.this.renderTemplate(templates.apply(name), scope);
+        }
+
+        @Override
+        public boolean templateExists(String name) {
+            return exists.test(name);
         }
 
         @Override

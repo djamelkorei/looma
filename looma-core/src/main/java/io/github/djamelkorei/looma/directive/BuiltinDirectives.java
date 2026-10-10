@@ -43,6 +43,7 @@ public final class BuiltinDirectives {
                 new ErrorDirective(),
                 new LangDirective()));
         all.addAll(BooleanAttributeDirectives.all());
+        all.addAll(ConditionalIncludeDirectives.all());
         return List.copyOf(all);
     }
 }

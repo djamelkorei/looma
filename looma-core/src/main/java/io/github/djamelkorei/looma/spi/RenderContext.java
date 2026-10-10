@@ -55,6 +55,9 @@ public interface RenderContext {
     /** Renders another template in this scope. */
     void renderTemplate(String name);
 
+    /** Whether a template with this name exists (cheap; results are cached when template caching is on). */
+    boolean templateExists(String name);
+
     // --- loops
 
     /**

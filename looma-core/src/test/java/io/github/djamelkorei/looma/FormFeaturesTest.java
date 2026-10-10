@@ -42,4 +42,38 @@ class FormFeaturesTest {
         LoomaException e = assertThrows(LoomaException.class, () -> render("a\n@if()x@endif", Map.of()));
         assertEquals(2, e.line());
     }
+
+    @Test
+    void conditionalIncludes() {
+        files.put("promo", "[promo {{ $x ?? '' }}]");
+        files.put("admin", "[admin]");
+        files.put("nav", "[nav]");
+        assertEquals("a[promo 1]b", render("a@includeIf('promo', {'x': 1})b", Map.of()));
+        assertEquals("ab", render("a@includeIf('nope')b", Map.of()));
+        assertEquals("[admin]", render("@includeWhen($isAdmin, 'admin')", Map.of("isAdmin", true)));
+        assertEquals("", render("@includeWhen($isAdmin, 'admin')", Map.of("isAdmin", false)));
+        assertEquals("[admin]", render("@includeUnless($isAdmin, 'admin')", Map.of("isAdmin", false)));
+        assertEquals("[nav]", render("@includeFirst({'themes.dark.nav', 'nav'})", Map.of()));
+        LoomaException e = assertThrows(LoomaException.class, () -> render("@includeFirst({'x', 'y'})", Map.of()));
+        assertEquals(true, e.getMessage().contains("[x, y]"), e.getMessage());
+    }
+
+    @Test
+    void eachRendersAViewPerItemOrTheEmptyView() {
+        files.put("row", "<li>{{ $loop->iteration }}:{{ $order }}</li>");
+        files.put("none", "<li>none</li>");
+        assertEquals("<li>1:a</li><li>2:b</li>", render("@each('row', $orders, 'order', 'none')", Map.of("orders", java.util.List.of("a", "b"))));
+        assertEquals("<li>none</li>", render("@each('row', $orders, 'order', 'none')", Map.of("orders", java.util.List.of())));
+        assertEquals("", render("@each('row', $orders, 'order')", Map.of("orders", java.util.List.of())));
+    }
+
+    @Test
+    void startupCheckKnowsWhichIncludesMustExist() {
+        files.put("page", "@includeIf('optional')@includeWhen(true, 'required.one')@each('required.two', $x, 'i')");
+        java.util.List<String> missing = engine.check(java.util.List.of("page")).stream()
+                .map(LoomaException::getMessage).toList();
+        assertEquals(2, missing.size(), missing.toString());
+        assertEquals(true, missing.toString().contains("required.one") && missing.toString().contains("required.two")
+                && !missing.toString().contains("optional"), missing.toString());
+    }
 }
