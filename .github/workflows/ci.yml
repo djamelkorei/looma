@@ -19,7 +19,7 @@ jobs:
         java: [21, 25]
         boot: [3.3.13, 3.4.13, 3.5.16, 4.0.8]
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
       - uses: actions/setup-java@v5
         with:
           distribution: temurin
@@ -32,7 +32,7 @@ jobs:
   release-profile:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
       - uses: actions/setup-java@v5
         with:
           distribution: temurin
