@@ -2,5 +2,11 @@
     <extensions defaultExtensionNs="com.intellij">
         <psi.referenceContributor language="JAVA"
                                   implementation="io.github.djamelkorei.looma.intellij.java.LoomaJavaViewReferenceContributor"/>
+        <psi.referenceContributor language="Looma"
+                                  implementation="io.github.djamelkorei.looma.intellij.java.LoomaJavaMemberReferenceContributor"/>
+    </extensions>
+    <extensions defaultExtensionNs="io.github.djamelkorei.looma">
+        <modelVariables implementation="io.github.djamelkorei.looma.intellij.java.LoomaJavaModel"/>
+        <customDirectiveProvider implementation="io.github.djamelkorei.looma.intellij.java.LoomaJavaDirectives"/>
     </extensions>
 </idea-plugin>

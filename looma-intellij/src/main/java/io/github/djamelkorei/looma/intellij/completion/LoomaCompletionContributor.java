@@ -114,7 +114,8 @@ public final class LoomaCompletionContributor extends CompletionContributor {
     }
 
     private static void members(LoomaMember member, CompletionResultSet result) {
-        if (!(member.getQualifier() instanceof LoomaVariable qualifier)) return;
+        // With a known Java type the member's reference offers the real properties and methods.
+        if (!(member.getQualifier() instanceof LoomaVariable qualifier) || member.getReferences().length > 0) return;
         String name = qualifier.getName();
         Map<String, String> members = switch (name) {
             case "loop" -> LoomaScopes.LOOP_PROPERTIES;
