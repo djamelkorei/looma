@@ -75,7 +75,7 @@ set `skipPublishing`, so they are never uploaded.
 ## Trying the pipeline without publishing
 
 ```bash
-mvn -Prelease,central verify -DskipTests     # signs everything (needs MAVEN_GPG_KEY / MAVEN_GPG_PASSPHRASE in the env)
+./mvnw -Prelease,central verify -DskipTests     # signs everything (needs MAVEN_GPG_KEY / MAVEN_GPG_PASSPHRASE in the env)
 ```
 
 Without Central credentials `deploy` stops before uploading.

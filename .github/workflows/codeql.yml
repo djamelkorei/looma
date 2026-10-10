@@ -29,5 +29,5 @@ jobs:
           languages: ${{ matrix.language }}
           build-mode: ${{ matrix.language == 'java-kotlin' && 'manual' || 'none' }}
       - if: matrix.language == 'java-kotlin'
-        run: mvn -B -q -DskipTests package
+        run: ./mvnw -B -q -DskipTests package
       - uses: github/codeql-action/analyze@v3

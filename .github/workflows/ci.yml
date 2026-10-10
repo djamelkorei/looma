@@ -26,7 +26,7 @@ jobs:
           java-version: ${{ matrix.java }}
           cache: maven
       - name: Test against Spring Boot ${{ matrix.boot }}
-        run: mvn -B verify -Dspring-boot.version=${{ matrix.boot }}
+        run: ./mvnw -B verify -Dspring-boot.version=${{ matrix.boot }}
 
   # Sources + javadoc jars must build too.
   release-profile:
@@ -38,4 +38,4 @@ jobs:
           distribution: temurin
           java-version: 21
           cache: maven
-      - run: mvn -B -Prelease verify
+      - run: ./mvnw -B -Prelease verify

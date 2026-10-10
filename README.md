@@ -59,8 +59,8 @@ the view name from a controller. Version `0.1.0` is not published yet, so until 
 ## Build
 
 ```
-mvn verify            # Java 21+, Maven 3.9+
-mvn -Prelease verify  # also builds sources and javadoc jars
+./mvnw verify          # Java 21+; the wrapper pins Maven 3.9.16
+./mvnw -Prelease verify  # also builds sources and javadoc jars
 ```
 
 ## License

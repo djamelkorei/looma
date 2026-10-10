@@ -27,7 +27,7 @@ jobs:
       # The plugin's tests check its directive and helper tables against the compiled engine.
       - name: Compile looma-core
         working-directory: .
-        run: mvn -B -q -pl looma-core compile
+        run: ./mvnw -B -q -pl looma-core compile
       - name: Test
         run: ./gradlew test
       - name: Verify compatibility

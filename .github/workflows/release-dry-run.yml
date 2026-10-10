@@ -23,13 +23,13 @@ jobs:
           java-version: 21
           cache: maven
       - name: Set version
-        run: mvn -B -q versions:set -DnewVersion="${{ inputs.version }}" -DgenerateBackupPoms=false
+        run: ./mvnw -B -q versions:set -DnewVersion="${{ inputs.version }}" -DgenerateBackupPoms=false
       - name: Build, sign and bundle (upload refused on purpose)
         # Dummy credentials: the plugin builds the bundle, then Central rejects the upload with 401.
         run: |
           printf '<settings><servers><server><id>central</id><username>dry-run</username><password>dry-run</password></server></servers></settings>' > dry-run-settings.xml
-          mvn -B -s dry-run-settings.xml -Prelease,central deploy -DskipTests || true
-          mvn -v
+          ./mvnw -B -s dry-run-settings.xml -Prelease,central deploy -DskipTests || true
+          ./mvnw -v
           test -f target/central-publishing/central-bundle.zip
         env:
           MAVEN_GPG_KEY: ${{ secrets.MAVEN_GPG_KEY }}
