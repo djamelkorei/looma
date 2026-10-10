@@ -6,16 +6,26 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+import org.springframework.web.context.WebApplicationContext;
+import org.junit.jupiter.api.BeforeEach;
 
+// MockMvc is built by hand (not @AutoConfigureMockMvc, which moved packages in Spring Boot 4)
+// so these tests run unchanged on every supported Boot version.
 @SpringBootTest
-@AutoConfigureMockMvc
 class DemoApplicationTests {
 
     @Autowired
+    WebApplicationContext context;
+
     MockMvc mvc;
+
+    @BeforeEach
+    void setUp() {
+        mvc = MockMvcBuilders.webAppContextSetup(context).build();
+    }
 
     @Test
     void rendersHomeWithLayoutLoopAndEscaping() throws Exception {

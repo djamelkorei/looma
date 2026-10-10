@@ -144,6 +144,17 @@ test that boots the app catches a broken template before it ships. Programmatic 
 - `@for`/`@while` stop with an error after 100,000 passes, so a condition that never turns false cannot hang a request.
 - `looma.*` properties have IDE auto-completion through the generated configuration metadata.
 
+## Compatibility
+
+Tested on every push (see `.github/workflows/ci.yml`) with the full suite, including Spring Security:
+
+| | Spring Boot 3.3 | 3.4 | 3.5 | 4.0 | 4.1 |
+|---|---|---|---|---|---|
+| **Java 21** | ✅ | ✅ | ✅ | CI | ✅ |
+| **Java 25** | CI | CI | ✅ | ✅ | CI |
+
+✅ = run locally before release, CI = covered by the CI matrix. Java 17 is not supported (the engine uses Java 21 features).
+
 ## Build
 
     mvn verify            # Java 21+, Maven 3.9+

@@ -2,6 +2,7 @@ package io.github.djamelkorei.looma.it;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
+import static org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers.springSecurity;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
@@ -11,20 +12,28 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.mock.web.MockHttpSession;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+import org.springframework.web.context.WebApplicationContext;
+import org.junit.jupiter.api.BeforeEach;
 
 /** Looma running behind real Spring Security: the token @csrf renders must be the one Security accepts. */
 @SpringBootTest
-@AutoConfigureMockMvc
 class SpringSecurityTests {
 
     private static final Pattern TOKEN = Pattern.compile("name=\"_csrf\" value=\"([^\"]+)\"");
 
     @Autowired
+    WebApplicationContext context;
+
     MockMvc mvc;
+
+    @BeforeEach
+    void setUp() {
+        mvc = MockMvcBuilders.webAppContextSetup(context).apply(springSecurity()).build();
+    }
 
     private String renderedToken(MockHttpSession session) throws Exception {
         String html = mvc.perform(get("/form").session(session)).andExpect(status().isOk())
