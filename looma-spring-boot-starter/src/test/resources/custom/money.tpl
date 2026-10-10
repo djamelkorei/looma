@@ -1,0 +1,1 @@
+{{ Number.currency($amount, 'EUR') }} {{ Date.monthName($d) }}

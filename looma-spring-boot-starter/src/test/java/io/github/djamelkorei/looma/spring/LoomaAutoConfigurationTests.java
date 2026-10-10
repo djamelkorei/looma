@@ -226,4 +226,17 @@ class LoomaAutoConfigurationTests {
                 assertThat(ctx.getBean(LoomaEngine.class).render("helpers", Map.of("n", "Ada")))
                         .isEqualTo("Hello Ada / 7 / A-B"));
     }
+
+    @Test
+    void helpersFormatForTheRequestLocale() {
+        web.withPropertyValues("looma.prefix=custom/", "looma.suffix=.tpl").run(ctx -> {
+            View view = ctx.getBean(LoomaViewResolver.class).resolveViewName("money", null);
+            MockHttpServletRequest french = new MockHttpServletRequest();
+            french.addPreferredLocale(java.util.Locale.FRANCE);
+            MockHttpServletResponse response = new MockHttpServletResponse();
+            view.render(Map.of("amount", 1234.5, "d", java.time.LocalDate.of(2026, 10, 10)), french, response);
+            assertThat(response.getContentAsString().replace('\u202f', ' ').replace('\u00a0', ' '))
+                    .isEqualTo("1 234,50 € octobre");
+        });
+    }
 }

@@ -102,7 +102,8 @@ public class LoomaView implements View {
             throws Exception {
         response.setContentType(contentType);
         // Render fully before writing so a template error does not leave a half-sent page.
-        String html = engine.render(name, withRequestData(model, request, messages));
+        // The request's locale drives @lang and the Number/Date helpers.
+        String html = engine.render(name, withRequestData(model, request, messages), RequestContextUtils.getLocale(request));
         response.getWriter().write(html);
     }
 }

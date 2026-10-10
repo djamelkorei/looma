@@ -2,7 +2,10 @@ package io.github.djamelkorei.looma;
 
 import io.github.djamelkorei.looma.directive.BuiltinDirectives;
 import io.github.djamelkorei.looma.internal.DirectiveRegistry;
+import io.github.djamelkorei.looma.helper.DateHelper;
+import io.github.djamelkorei.looma.helper.ListHelper;
 import io.github.djamelkorei.looma.helper.MathHelper;
+import io.github.djamelkorei.looma.helper.NumberHelper;
 import io.github.djamelkorei.looma.helper.StringHelper;
 import io.github.djamelkorei.looma.internal.Parser;
 import io.github.djamelkorei.looma.internal.Scope;
@@ -12,6 +15,7 @@ import java.io.UncheckedIOException;
 import java.io.Writer;
 import io.github.djamelkorei.looma.spi.Directive;
 import io.github.djamelkorei.looma.spi.TemplateHelper;
+import io.github.djamelkorei.looma.spi.TemplateLocale;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -47,7 +51,10 @@ public final class LoomaEngine {
         all.addAll(custom);
         this.registry = new DirectiveRegistry(all);
         Map<String, Object> byName = new LinkedHashMap<>();
-        for (TemplateHelper helper : List.of(new StringHelper(), new MathHelper())) byName.put(helper.name(), helper);
+        for (TemplateHelper helper : List.of(new StringHelper(), new MathHelper(), new NumberHelper(), new DateHelper(),
+                new ListHelper())) {
+            byName.put(helper.name(), helper);
+        }
         for (TemplateHelper helper : helpers) {
             String name = helper.name();
             if (name == null || !name.matches("[A-Za-z_][A-Za-z0-9_]*")) {
@@ -151,6 +158,24 @@ public final class LoomaEngine {
     }
 
     public String render(String name, Map<String, ?> model) {
+        return render(name, model, (java.util.Locale) null);
+    }
+
+    /**
+     * Renders with a locale for helpers that format numbers and dates ({@code Number.currency}, {@code Date.format}...).
+     *
+     * @param locale the visitor's locale, or null for the JVM default
+     */
+    public String render(String name, Map<String, ?> model, java.util.Locale locale) {
+        java.util.Locale previous = TemplateLocale.enter(locale);
+        try {
+            return renderNow(name, model);
+        } finally {
+            TemplateLocale.exit(previous);
+        }
+    }
+
+    private String renderNow(String name, Map<String, ?> model) {
         Template template = template(name);
         int hint = sizeHints.getOrDefault(name, 256);
         String html = new RenderSession(this::template, hint, globals, this::exists).render(template, model);
