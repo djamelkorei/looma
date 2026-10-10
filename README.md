@@ -22,6 +22,7 @@ as `*.looma.html`, and return the view name from a controller:
 | `looma.prefix` | `templates/` | classpath folder |
 | `looma.suffix` | `.looma.html` | appended to the view name |
 | `looma.cache` | `true` | set `false` in development |
+| `looma.check-templates` | `true` | parse all templates at startup and fail on syntax errors |
 | `looma.content-type` | `text/html;charset=UTF-8` | |
 
 View names use dots or slashes for folders: `admin.users` -> `templates/admin/users.looma.html`.
@@ -58,6 +59,34 @@ Map literals use SpEL syntax: `{'key': value}`.
 Components run in an isolated scope: they only see their attributes, slots and `$attributes`.
 In the Spring starter every view also gets `request`, `principal` and, when Spring Security's
 CSRF filter is active, `_csrf`. Model attributes with the same names win.
+
+## Extending: your own directives
+
+A directive is one class. Declare it as a Spring bean (or pass it to `LoomaEngine.builder(...)`):
+
+```java
+@Component
+public class MoneyDirective implements Directive {
+    public String name() { return "money"; }
+    public Node parse(ParseContext p) {
+        Expr amount = p.expr();
+        return ctx -> ctx.writeEscaped(String.format("%.2f €", ((Number) ctx.eval(amount)).doubleValue()));
+    }
+}
+```
+```blade
+Total: @money($order.total)
+```
+
+The built-in directives are written the same way (see `looma-core/.../directive`). The full guide, including
+block directives, is in [ARCHITECTURE.md](ARCHITECTURE.md).
+
+## Fail fast
+
+`looma.check-templates` (default `true`) parses every template at startup and fails the boot with **all**
+syntax errors at once, naming template and line, for example
+`In template 'orders' at line 12: Unclosed block: @foreach is never closed`. Use it in CI too: a context
+test that boots the app catches a broken template before it ships. Programmatic access: `engine.check(names)`.
 
 ## Security model
 

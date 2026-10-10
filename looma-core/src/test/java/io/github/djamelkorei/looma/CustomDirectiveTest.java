@@ -140,4 +140,18 @@ class CustomDirectiveTest {
                 "push", "csrf", "lang", "switch")), names.toString());
         assertEquals(names.size(), names.stream().distinct().count(), "built-in names must be unique");
     }
+
+    /** The exact example from the README, so the documentation cannot rot. */
+    @Test
+    void readmeMoneyExampleWorks() {
+        Directive money = new Directive() {
+            public String name() { return "money"; }
+            public Node parse(ParseContext p) {
+                Expr amount = p.expr();
+                return ctx -> ctx.writeEscaped(String.format(java.util.Locale.ROOT, "%.2f \u20ac",
+                        ((Number) ctx.eval(amount)).doubleValue()));
+            }
+        };
+        assertEquals("Total: 12.50 \u20ac", render(money, "Total: @money($order.total)", Map.of("order", Map.of("total", 12.5))));
+    }
 }
