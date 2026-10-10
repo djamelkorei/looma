@@ -4,6 +4,8 @@ import com.intellij.lang.ASTNode;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiNameIdentifierOwner;
 import com.intellij.psi.impl.source.tree.LeafPsiElement;
+import com.intellij.psi.search.LocalSearchScope;
+import com.intellij.psi.search.SearchScope;
 import com.intellij.util.IncorrectOperationException;
 import org.jetbrains.annotations.NotNull;
 
@@ -37,6 +39,13 @@ public final class LoomaVariableDeclaration extends LoomaPsiElement implements P
     @Override
     public int getTextOffset() {
         return getTextRange().getStartOffset() + (getText().startsWith("$") ? 1 : 0);
+    }
+
+    /** Only the block of the declaring directive can see the variable. */
+    @Override
+    public @NotNull SearchScope getUseScope() {
+        LoomaBlock block = getDirective().getBlock();
+        return new LocalSearchScope(block != null ? block : getContainingFile());
     }
 
     /** The directive that declares this variable. */

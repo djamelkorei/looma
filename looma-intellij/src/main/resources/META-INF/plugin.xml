@@ -34,5 +34,27 @@
         <editorHighlighterProvider filetype="Looma"
                                    implementationClass="io.github.djamelkorei.looma.intellij.highlight.LoomaEditorHighlighterProvider"/>
         <colorSettingsPage implementation="io.github.djamelkorei.looma.intellij.highlight.LoomaColorSettingsPage"/>
+        <annotator language="Looma" implementationClass="io.github.djamelkorei.looma.intellij.annotator.LoomaAnnotator"/>
+        <annotator language="HTML"
+                   implementationClass="io.github.djamelkorei.looma.intellij.annotator.LoomaComponentAnnotator"/>
+
+        <psi.referenceContributor language="Looma"
+                                  implementation="io.github.djamelkorei.looma.intellij.reference.LoomaReferenceContributor"/>
+        <lang.elementManipulator forClass="io.github.djamelkorei.looma.intellij.psi.LoomaStringLiteral"
+                                 implementationClass="io.github.djamelkorei.looma.intellij.psi.LoomaTokenManipulator"/>
+        <lang.elementManipulator forClass="io.github.djamelkorei.looma.intellij.psi.LoomaVariable"
+                                 implementationClass="io.github.djamelkorei.looma.intellij.psi.LoomaTokenManipulator"/>
+        <lang.elementManipulator forClass="io.github.djamelkorei.looma.intellij.psi.LoomaMember"
+                                 implementationClass="io.github.djamelkorei.looma.intellij.psi.LoomaTokenManipulator"/>
+
+        <lang.findUsagesProvider language="Looma"
+                                 implementationClass="io.github.djamelkorei.looma.intellij.search.LoomaFindUsagesProvider"/>
+        <referencesSearch implementation="io.github.djamelkorei.looma.intellij.search.LoomaTemplateReferenceSearcher"/>
+        <referencesSearch implementation="io.github.djamelkorei.looma.intellij.search.LoomaVariableReferenceSearcher"/>
+
+        <xml.elementDescriptorProvider
+                implementation="io.github.djamelkorei.looma.intellij.component.LoomaComponentDescriptorProvider"/>
+        <xml.xmlExtension order="first" implementation="io.github.djamelkorei.looma.intellij.component.LoomaXmlExtension"/>
+        <xml.tagNameProvider implementation="io.github.djamelkorei.looma.intellij.component.LoomaComponentTagNameProvider"/>
     </extensions>
 </idea-plugin>
