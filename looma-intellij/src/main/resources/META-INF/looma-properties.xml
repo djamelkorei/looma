@@ -1,0 +1,6 @@
+<idea-plugin>
+    <extensions defaultExtensionNs="com.intellij">
+        <psi.referenceContributor language="Looma"
+                                  implementation="io.github.djamelkorei.looma.intellij.properties.LoomaMessageReferenceContributor"/>
+    </extensions>
+</idea-plugin>
