@@ -44,6 +44,12 @@ final class Sandbox {
             return !deniedTarget(target) && !deniedMember(name) && delegate.canRead(c, target, name);
         }
         @Override public TypedValue read(EvaluationContext c, Object target, String name) throws AccessException {
+            // SpEL caches the accessor that served the first read of an expression node and later calls read()
+            // directly, without canRead(). A loop can therefore warm the cache with a harmless object and then
+            // hand a blocked one to the same node, so the check must be repeated here.
+            if (deniedTarget(target) || deniedMember(name)) {
+                throw new AccessException("Property '" + name + "' is not allowed in templates");
+            }
             return delegate.read(c, target, name);
         }
         @Override public boolean canWrite(EvaluationContext c, Object target, String name) { return false; }
@@ -58,7 +64,9 @@ final class Sandbox {
         @Override
         public MethodExecutor resolve(EvaluationContext c, Object target, String name, List<TypeDescriptor> argTypes)
                 throws AccessException {
-            if (deniedTarget(target) || deniedMember(name)) {
+            // Scope is the template's own variable table (#root / #this): calling put() on it would let a
+            // template assign variables, which the language deliberately does not allow.
+            if (deniedTarget(target) || deniedMember(name) || target instanceof Scope) {
                 throw new AccessException("Method '" + name + "' is not allowed in templates");
             }
             return delegate.resolve(c, target, name, argTypes);
