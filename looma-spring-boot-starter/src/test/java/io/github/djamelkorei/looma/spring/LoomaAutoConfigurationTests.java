@@ -104,4 +104,16 @@ class LoomaAutoConfigurationTests {
             assertThat(response.getContentAsString()).isEmpty();
         });
     }
+
+    @Test
+    void directiveBeansAreRegisteredAutomatically() {
+        web.withBean("shout", io.github.djamelkorei.looma.spi.Directive.class, () -> new io.github.djamelkorei.looma.spi.Directive() {
+            public String name() { return "shout"; }
+            public io.github.djamelkorei.looma.spi.Node parse(io.github.djamelkorei.looma.spi.ParseContext p) {
+                io.github.djamelkorei.looma.spi.Expr value = p.expr();
+                return ctx -> ctx.writeEscaped(String.valueOf(ctx.eval(value)).toUpperCase() + "!");
+            }
+        }).withPropertyValues("looma.prefix=custom/", "looma.suffix=.tpl").run(ctx ->
+                assertThat(ctx.getBean(LoomaEngine.class).render("shouting", Map.of("x", "hey"))).isEqualTo("HEY!"));
+    }
 }
