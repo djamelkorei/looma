@@ -57,7 +57,7 @@ public final class RenderSession {
                     .inTemplate(t.name());
         }
         try {
-            Ctx ctx = new Ctx(scope);
+            Ctx ctx = new Ctx(scope, t.name());
             if (t.layout() == null) {
                 ctx.render(t.nodes());
                 return;
@@ -77,10 +77,14 @@ public final class RenderSession {
     private final class Ctx implements RenderContext {
 
         private final Scope scope;
+        private final String templateName;
 
-        Ctx(Scope scope) {
+        Ctx(Scope scope, String templateName) {
             this.scope = scope;
+            this.templateName = templateName;
         }
+
+        @Override public String templateName() { return templateName; }
 
         @Override public Object eval(Expr expr) { return Expressions.eval(expr, scope); }
         @Override public String evalString(Expr expr) { return Expressions.evalString(expr, scope); }
@@ -88,8 +92,8 @@ public final class RenderSession {
         @Override public Object get(String variable) { return scope.get(variable); }
         @Override public void set(String variable, Object value) { scope.put(variable, value); }
         @Override public void setAll(Map<?, ?> variables) { scope.putAll(variables); }
-        @Override public RenderContext child() { return new Ctx(new Scope(scope)); }
-        @Override public RenderContext isolated() { return new Ctx(new Scope(null)); }
+        @Override public RenderContext child() { return new Ctx(new Scope(scope), templateName); }
+        @Override public RenderContext isolated() { return new Ctx(new Scope(null), templateName); }
 
         @Override public void write(CharSequence text) { out.append(text); }
 

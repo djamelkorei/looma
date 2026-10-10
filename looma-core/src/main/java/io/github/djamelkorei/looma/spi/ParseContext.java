@@ -22,6 +22,13 @@ public interface ParseContext {
     /** Template line (1-based) of the opening tag. */
     int line();
 
+    /**
+     * Position of the opening tag among all tags of the template: unique within one template and stable
+     * across parses of the same source. Use it with {@link RenderContext#templateName()} to identify an
+     * occurrence of your directive at render time.
+     */
+    int index();
+
     /** The argument text as a single expression. */
     Expr expr();
 

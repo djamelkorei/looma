@@ -11,6 +11,9 @@ import java.util.function.UnaryOperator;
  */
 public interface RenderContext {
 
+    /** Name of the template whose nodes are currently rendering. */
+    String templateName();
+
     // --- expressions and variables
 
     Object eval(Expr expr);

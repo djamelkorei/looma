@@ -86,7 +86,7 @@ public final class Parser {
         if (directive == null) {
             throw new LoomaException("Unexpected @" + t.text(), t.line(), null);
         }
-        return directive.parse(new Call(t));
+        return directive.parse(new Call(t, pos - 1));
     }
 
     // ---- components
@@ -164,10 +164,14 @@ public final class Parser {
     private final class Call implements ParseContext {
 
         private final Token token;
+        private final int index;
 
-        Call(Token token) {
+        Call(Token token, int index) {
             this.token = token;
+            this.index = index;
         }
+
+        @Override public int index() { return index; }
 
         @Override public String name() { return token.text(); }
         @Override public String args() { return token.args(); }

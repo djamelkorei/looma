@@ -357,4 +357,38 @@ class LoomaEngineTest {
         assertTrue(errors.get(1).getMessage().contains("'components.ghost'") && errors.get(1).line() == 4);
         assertTrue(errors.get(2).getMessage().contains("In template 'child'") && errors.get(2).getMessage().contains("'no.layout'"));
     }
+
+    @Test
+    void onceRendersOncePerPageEvenInLoopsAndComponents() {
+        assertEquals("[S]ab", render("@foreach($xs as $x)@once[S]@endonce{{ $x }}@endforeach", Map.of("xs", List.of("a", "b"))));
+        files.put("components.badge", "@once<style>.b{}</style>@endonce<b>{{ $slot }}</b>");
+        assertEquals("<style>.b{}</style><b>1</b><b>2</b>", render("<x-badge>1</x-badge><x-badge>2</x-badge>", Map.of()));
+        // every page render starts fresh
+        assertEquals("<style>.b{}</style><b>3</b>", render("<x-badge>3</x-badge>", Map.of()));
+        // two different @once blocks are independent
+        assertEquals(" A B", render("@once A@endonce@once B@endonce", Map.of()));
+    }
+
+    public record Pt(int x, String label) {}
+
+    @Test
+    void jsonSerializesDataSafelyForScriptTags() {
+        Map<String, Object> m = new java.util.LinkedHashMap<>();
+        m.put("n", 1); m.put("s", "a\"b</script>"); m.put("l", List.of(1, "x", true)); m.put("none", null);
+        assertEquals("{\"n\":1,\"s\":\"a\\\"b\\u003c/script\\u003e\",\"l\":[1,\"x\",true],\"none\":null}",
+                render("@json($m)", Map.of("m", m)));
+        assertEquals("{\"x\":3,\"label\":\"p\"}", render("@json($p)", Map.of("p", new Pt(3, "p"))));
+        assertEquals("[\"it\\u0027s\"]", render("@json($a)", Map.of("a", new String[] {"it's"})));
+        assertEquals("\"\\u2028\"", render("@json($s)", Map.of("s", "\u2028")));
+        assertEquals("null", render("@json($missing)", Map.of()));
+        assertEquals("\"DAYS\"", render("@json($e)", Map.of("e", java.util.concurrent.TimeUnit.DAYS)));
+    }
+
+    @Test
+    void jsonRefusesCyclesAndDoesNotWalkReflectiveObjects() {
+        List<Object> cycle = new java.util.ArrayList<>();
+        cycle.add(cycle);
+        assertThrows(LoomaException.class, () -> render("@json($c)", Map.of("c", cycle)));
+        assertEquals("\"class java.lang.String\"", render("@json($k)", Map.of("k", String.class)));
+    }
 }

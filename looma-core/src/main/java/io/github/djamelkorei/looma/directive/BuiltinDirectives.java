@@ -33,6 +33,8 @@ public final class BuiltinDirectives {
                 StackDirectives.push(),
                 StackDirectives.prepend(),
                 StackDirectives.stack(),
+                new OnceDirective(),
+                new JsonDirective(),
                 // forms and i18n
                 FormDirectives.csrf(),
                 FormDirectives.method(),
