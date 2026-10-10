@@ -49,4 +49,18 @@ public class LoomaAnnotatorTest extends BasePlatformTestCase {
     public void testMissingTemplate() {
         check("@include('<error descr=\"Template 'nope' not found\">nope</error>')");
     }
+
+    public void testConditionalIncludes() {
+        myFixture.addFileToProject("templates/partials/row.looma.html", "{{ $order }}");
+        var file = myFixture.addFileToProject("templates/page.looma.html", """
+                @includeIf('partials.maybe')
+                @includeFirst({'themes.dark.nav', 'partials.row'})
+                @includeWhen($a, 'partials.row', {'x': 1})
+                @includeUnless($a, '<error descr="Template 'partials.nope' not found">partials.nope</error>')
+                @each('partials.row', $orders, 'order', '<error descr="Template 'partials.none' not found">partials.none</error>')
+                <input type="checkbox" @checked($on) @disabled(!$on)>
+                """);
+        myFixture.configureFromExistingVirtualFile(file.getVirtualFile());
+        myFixture.checkHighlighting(false, false, false);
+    }
 }

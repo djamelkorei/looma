@@ -37,6 +37,17 @@ public final class LoomaStringLiteral extends LoomaPsiElement implements Contrib
         return PsiTreeUtil.getParentOfType(this, LoomaDirective.class, true, LoomaEcho.class);
     }
 
+    /** Which argument of its directive this literal is (and nothing else), or -1. */
+    public int argumentIndex() {
+        LoomaDirective directive = getDirective();
+        if (directive == null || directive.getArguments() == null) return -1;
+        var args = directive.getArguments().split();
+        for (int i = 0; i < args.size(); i++) {
+            if (args.get(i).size() == 1 && args.get(i).get(0) == this) return i;
+        }
+        return -1;
+    }
+
     /** True if this is the {@code index}-th argument of its directive and nothing else. */
     public boolean isArgument(int index) {
         LoomaDirective directive = getDirective();

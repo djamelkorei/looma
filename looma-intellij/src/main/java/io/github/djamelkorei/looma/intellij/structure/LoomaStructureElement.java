@@ -21,7 +21,8 @@ import org.jetbrains.annotations.NotNull;
 final class LoomaStructureElement implements StructureViewTreeElement {
 
     /** Inline directives worth showing. */
-    private static final Set<String> SHOWN = Set.of("extends", "include", "yield", "stack", "section", "lang");
+    private static final Set<String> SHOWN = Set.of("extends", "include", "includeIf", "includeWhen", "includeUnless",
+            "includeFirst", "each", "yield", "stack", "section", "lang");
 
     private final PsiElement element;
 

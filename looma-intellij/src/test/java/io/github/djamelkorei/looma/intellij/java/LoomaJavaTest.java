@@ -171,4 +171,11 @@ public class LoomaJavaTest extends LightJavaCodeInsightFixtureTestCase {
         PsiElement method = resolveInTemplate("templates/q.looma.html", "{{ Price.e<caret>ur(1) }}");
         assertTrue(String.valueOf(method), method instanceof PsiMethod);
     }
+
+    public void testEachGivesTheRowTemplateItsVariable() {
+        myFixture.addFileToProject("templates/home.looma.html", "@each('partials.post', $posts, 'post')");
+        PsiElement target = resolveInTemplate("templates/partials/post.looma.html", "{{ $post->tit<caret>le }}");
+        assertTrue(String.valueOf(target), target instanceof PsiMethod);
+        assertEquals("title", ((PsiMethod) target).getName());
+    }
 }

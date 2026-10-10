@@ -25,7 +25,10 @@ public class LoomaEditorTest extends BasePlatformTestCase {
 
     public void testCompletingBlockDirectiveAddsEndTag() {
         myFixture.configureByText("t.looma.html", "  @unl<caret>");
-        myFixture.completeBasic();
+        var items = myFixture.completeBasic(); // also offers includeUnless
+        myFixture.getLookup().setCurrentItem(java.util.Arrays.stream(items)
+                .filter(i -> i.getLookupString().equals("unless")).findFirst().orElseThrow());
+        myFixture.finishLookup(com.intellij.codeInsight.lookup.Lookup.NORMAL_SELECT_CHAR);
         myFixture.checkResult("  @unless(<caret>)\n  @endunless");
     }
 

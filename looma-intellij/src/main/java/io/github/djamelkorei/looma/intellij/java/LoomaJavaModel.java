@@ -13,6 +13,7 @@ import com.intellij.psi.util.InheritanceUtil;
 import com.intellij.psi.util.PsiModificationTracker;
 import com.intellij.psi.util.PsiTreeUtil;
 import com.intellij.psi.util.PsiUtil;
+import io.github.djamelkorei.looma.intellij.psi.LoomaDirective;
 import io.github.djamelkorei.looma.intellij.psi.LoomaFiles;
 import io.github.djamelkorei.looma.intellij.psi.LoomaPsiFile;
 import io.github.djamelkorei.looma.intellij.psi.LoomaStringLiteral;
@@ -51,6 +52,9 @@ public final class LoomaJavaModel implements LoomaModelVariables {
             "org.springframework.web.bind.annotation.RequestAttribute",
             "org.springframework.security.core.annotation.AuthenticationPrincipal");
     private static final int MAX_DEPTH = 5;
+    /** Directives through which a template sees the scope of the one using it. */
+    private static final Set<String> INCLUDERS = Set.of("include", "extends", "includeIf", "includeWhen",
+            "includeUnless", "includeFirst", "each");
 
     @Override
     public @Nullable PsiElement resolve(@NotNull PsiFile template, @NotNull String name) {
@@ -100,12 +104,25 @@ public final class LoomaJavaModel implements LoomaModelVariables {
                 PsiMethod method = PsiTreeUtil.getParentOfType(literal, PsiMethod.class);
                 if (method != null) fromMethod(method, literal, out);
             } else if (element instanceof LoomaStringLiteral literal && literal.getDirective() != null
-                    && Set.of("include", "extends").contains(literal.getDirective().getName())) {
+                    && INCLUDERS.contains(literal.getDirective().getName())) {
                 LoomaPsiFile user = LoomaFiles.looma(literal.getContainingFile());
                 if (user != null && user != template) users.add(user);
+                if (literal.getDirective().getName().equals("each") && literal.argumentIndex() == 0) {
+                    fromEach(literal.getDirective(), out);
+                }
             }
         }
         for (LoomaPsiFile user : users) collect(user, out, seen, depth + 1);
+    }
+
+    /** {@code @each('row', $orders, 'order')}: the row template gets {@code order}, an element of {@code $orders}. */
+    private static void fromEach(LoomaDirective each, Map<String, Attribute> out) {
+        if (each.getArguments() == null) return;
+        LoomaStringLiteral name = each.getArguments().literal(2);
+        if (name == null) return;
+        List<List<PsiElement>> args = each.getArguments().split();
+        PsiType items = args.size() > 1 && args.get(1).size() == 1 ? LoomaJavaTypes.typeOf(args.get(1).get(0)) : null;
+        add(out, name.getValue(), name, items == null ? null : LoomaJavaTypes.elementType(items, name));
     }
 
     private static void fromMethod(PsiMethod method, PsiLiteralExpression view, Map<String, Attribute> out) {

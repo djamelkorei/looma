@@ -131,6 +131,17 @@ public final class LoomaDirectives {
         // composition
         d.add(inline("include", Syntax.REQUIRED, "@include('partials.nav', {'key': value})",
                 "Renders another template with the current scope plus the given variables."));
+        d.add(inline("includeIf", Syntax.REQUIRED, "@includeIf('partials.promo', {'key': value})",
+                "Includes the template only if it exists."));
+        d.add(inline("includeWhen", Syntax.REQUIRED, "@includeWhen($user.admin, 'partials.admin', {'key': value})",
+                "Includes the template when the condition is truthy."));
+        d.add(inline("includeUnless", Syntax.REQUIRED, "@includeUnless($cart.isEmpty(), 'partials.cart')",
+                "Includes the template when the condition is falsy."));
+        d.add(inline("includeFirst", Syntax.REQUIRED, "@includeFirst({'themes.dark.nav', 'nav'}, {'key': value})",
+                "Includes the first of the templates that exists."));
+        d.add(inline("each", Syntax.REQUIRED, "@each('partials.row', $orders, 'order', 'partials.no-orders')",
+                "Includes the template once per item, with the item as the named variable (and"
+                        + " <code>$loop</code>); the last template is used when there are no items."));
         d.add(inline("extends", Syntax.REQUIRED, "@extends('layouts.app')",
                 "Renders this template inside a layout; its <code>@section</code>s fill the layout's"
                         + " <code>@yield</code>s."));
@@ -154,6 +165,10 @@ public final class LoomaDirectives {
                 "Builds a <code>style=\"...\"</code> attribute: strings always, map keys when truthy."));
         d.add(block("once", Syntax.NONE, Map.of(), "endonce", "@once ... @endonce",
                 "Renders the body only the first time per page."));
+        for (String attribute : List.of("checked", "selected", "disabled", "readonly", "required")) {
+            d.add(inline(attribute, Syntax.REQUIRED, "@" + attribute + "(condition)",
+                    "Writes the <code>" + attribute + "</code> attribute when the condition is truthy."));
+        }
         d.add(inline("json", Syntax.REQUIRED, "@json($data)",
                 "Outputs JSON that is safe inside <code>&lt;script&gt;</code>."));
         // forms and i18n
