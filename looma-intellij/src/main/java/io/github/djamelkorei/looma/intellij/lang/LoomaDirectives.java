@@ -100,6 +100,10 @@ public final class LoomaDirectives {
                 "@unless(condition) ... @endunless", "Renders the body when the condition is falsy."));
         d.add(block("isset", Syntax.REQUIRED, Map.of("else", Syntax.NONE), "endisset",
                 "@isset(value) ... @endisset", "Renders the body when the value is not null."));
+        d.add(block("empty", Syntax.OPTIONAL, Map.of("else", Syntax.NONE), "endempty",
+                "@empty($items) ... @endempty",
+                "Renders the body when the value is empty: null, false, 0, \"\" or an empty collection. "
+                        + "Without parentheses, <code>@empty</code> is the separator inside <code>@forelse</code>."));
         d.add(block("auth", Syntax.OPTIONAL, Map.of("else", Syntax.NONE), "endauth",
                 "@auth ... @endauth, @auth('ADMIN', 'EDITOR')",
                 "Renders the body when <code>principal</code> is set and, with roles, the request is in one of"
@@ -124,7 +128,7 @@ public final class LoomaDirectives {
                 "Loops over a collection, array or map (map entries have <code>key</code> and"
                         + " <code>value</code>). Inside, <code>$loop</code> has index, iteration, count, first,"
                         + " last, odd, even, remaining, parent and depth."));
-        d.add(block("forelse", Syntax.REQUIRED, Map.of("empty", Syntax.NONE), "endforelse",
+        d.add(block("forelse", Syntax.REQUIRED, Map.of("empty", Syntax.OPTIONAL), "endforelse",
                 "@forelse($items as $item) ... @empty ... @endforelse",
                 "Like <code>@foreach</code>, with an <code>@empty</code> branch for empty or null collections."));
         d.add(block("for", Syntax.REQUIRED, Map.of(), "endfor", "@for($i = 0; $i < 10; $i++) ... @endfor",
@@ -142,6 +146,12 @@ public final class LoomaDirectives {
                 "Renders another template with the current scope plus the given variables."));
         d.add(inline("includeIf", Syntax.REQUIRED, "@includeIf('partials.promo', {'key': value})",
                 "Includes the template only if it exists."));
+        d.add(inline("props", Syntax.REQUIRED, "@props({'type': 'info', 'dismissible': false})",
+                "At the top of a component: defaults for props the caller did not pass. Declared props are removed "
+                        + "from <code>$attributes</code>."));
+        d.add(block("fragment", Syntax.REQUIRED, Map.of(), "endfragment", "@fragment('rows') ... @endfragment",
+                "A part of the page that can be rendered alone, e.g. for htmx: return the view name "
+                        + "<code>\"page :: rows\"</code>."));
         d.add(inline("includeWhen", Syntax.REQUIRED, "@includeWhen($user.admin, 'partials.admin', {'key': value})",
                 "Includes the template when the condition is truthy."));
         d.add(inline("includeUnless", Syntax.REQUIRED, "@includeUnless($cart.isEmpty(), 'partials.cart')",
