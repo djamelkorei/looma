@@ -9,6 +9,36 @@
   <packaging>pom</packaging>
   <name>Looma</name>
   <description>Blade-style template engine for Spring Boot</description>
+  <url>https://github.com/djamelkorei/looma</url>
+
+  <licenses>
+    <license>
+      <name>Apache License, Version 2.0</name>
+      <url>https://www.apache.org/licenses/LICENSE-2.0.txt</url>
+      <distribution>repo</distribution>
+    </license>
+  </licenses>
+
+  <developers>
+    <developer>
+      <name>Djamel Eddine Korei</name>
+      <url>https://github.com/djamelkorei</url>
+    </developer>
+  </developers>
+
+  <scm>
+    <connection>scm:git:https://github.com/djamelkorei/looma.git</connection>
+    <developerConnection>scm:git:git@github.com:djamelkorei/looma.git</developerConnection>
+    <url>https://github.com/djamelkorei/looma</url>
+  </scm>
+
+  <distributionManagement>
+    <repository>
+      <id>github</id>
+      <name>GitHub Packages</name>
+      <url>https://maven.pkg.github.com/djamelkorei/looma</url>
+    </repository>
+  </distributionManagement>
 
   <modules>
     <module>looma-core</module>
