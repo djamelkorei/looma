@@ -44,6 +44,7 @@
     <module>looma-core</module>
     <module>looma-spring-boot-starter</module>
     <module>looma-demo</module>
+    <module>looma-it</module>
   </modules>
 
   <properties>

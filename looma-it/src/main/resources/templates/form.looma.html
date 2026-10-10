@@ -1,0 +1,9 @@
+<form method="post" action="/submit">
+@csrf
+@auth
+<p class="who">Hi {{ $principal->name }}</p>
+@endauth
+@guest
+<p class="who">guest</p>
+@endguest
+</form>
