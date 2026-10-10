@@ -9,7 +9,7 @@ public final class BuiltinDirectives {
     private BuiltinDirectives() {}
 
     public static List<Directive> all() {
-        return List.of(
+        List<Directive> all = new java.util.ArrayList<>(List.of(
                 // conditionals
                 ConditionalDirective.ifDirective(),
                 ConditionalDirective.unless(),
@@ -41,6 +41,8 @@ public final class BuiltinDirectives {
                 FormDirectives.csrf(),
                 FormDirectives.method(),
                 new ErrorDirective(),
-                new LangDirective());
+                new LangDirective()));
+        all.addAll(BooleanAttributeDirectives.all());
+        return List.copyOf(all);
     }
 }

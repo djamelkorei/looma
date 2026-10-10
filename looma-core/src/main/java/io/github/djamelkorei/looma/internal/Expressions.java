@@ -25,6 +25,10 @@ public final class Expressions {
     private Expressions() {}
 
     public static Expr parse(String source, int line) {
+        if (source == null || source.isBlank()) {
+            // SpEL throws IllegalArgumentException here; report it like any other template mistake
+            throw new LoomaException("Missing expression", line, null);
+        }
         try {
             String spel = translate(source);
             // Always parse with SpEL too: it validates the syntax and is the fallback for the fast path.
