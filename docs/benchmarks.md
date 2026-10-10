@@ -1,3 +1,7 @@
+---
+title: Benchmarks
+---
+
 # Benchmarks
 
 Numbers for orientation, not a ranking. One machine, one template, and engines differ in features that

@@ -1,0 +1,88 @@
+---
+title: Releasing
+---
+
+# Releasing (maintainers)
+
+Releases go to **Maven Central** (so users add one dependency, no token) and also to GitHub Packages.
+Everything is automated by `.github/workflows/release.yml` once the one-time setup below is done.
+
+## One-time setup
+
+You need four things that only the project owner can create. Do these once.
+
+### 1. Central Portal account and namespace
+
+1. Sign in at <https://central.sonatype.com> **with GitHub**.
+2. Open **Namespaces**. `io.github.djamelkorei` is the namespace this project uses. Signing in with GitHub
+   normally registers it for you; if it shows as *unverified*, follow the portal's instructions (it asks you to
+   create a temporary public repository whose name is a key it shows you, then press *Verify*).
+
+### 2. A user token
+
+In the portal: your name (top right) → **View Account** → **Generate User Token**. Keep the username and
+password it shows; they are *not* your login.
+
+### 3. A signing key
+
+Central requires every file to be signed with a PGP key whose **public** half is on a public keyserver.
+
+```bash
+brew install gnupg                       # macOS; any gpg 2.x works
+gpg --full-generate-key                  # RSA 4096, expiry 2y is fine, use your real name and a passphrase
+gpg --list-secret-keys --keyid-format long   # note the key id after "rsa4096/"
+gpg --keyserver keyserver.ubuntu.com --send-keys <KEY_ID>
+gpg --armor --export-secret-keys <KEY_ID> > looma-signing.key   # keep this file private, never commit it
+```
+
+Also upload the public key at <https://keys.openpgp.org> (it emails you to confirm) so more verifiers find it.
+
+### 4. Repository secrets
+
+```bash
+gh secret set CENTRAL_USERNAME   -R djamelkorei/looma     # from step 2
+gh secret set CENTRAL_PASSWORD   -R djamelkorei/looma     # from step 2
+gh secret set MAVEN_GPG_KEY      -R djamelkorei/looma < looma-signing.key
+gh secret set MAVEN_GPG_PASSPHRASE -R djamelkorei/looma   # the passphrase from step 3
+rm looma-signing.key                                      # or store it in a password manager
+```
+
+Signing runs inside Maven (BouncyCastle), so the CI runner needs no gpg install.
+
+## Cutting a release
+
+```bash
+gh release create v0.1.0 --generate-notes
+```
+
+The workflow takes `0.1.0` from the tag, runs the full test suite, builds sources and javadoc jars, signs
+everything and uploads one bundle to Central.
+
+By default the upload is **not published automatically**: open the
+[Central Portal → Deployments](https://central.sonatype.com/publishing/deployments), check that it says
+*Validated*, and press **Publish**. This is a safety net for the first releases, because a published version can
+never be changed or deleted. Once you trust the pipeline, set `<autoPublish>true</autoPublish>` in the `central`
+profile of the root `pom.xml`.
+
+The artifact appears on <https://repo.maven.apache.org/maven2/io/github/djamelkorei/> within about 30 minutes
+and in search somewhat later.
+
+## What gets published
+
+`looma-parent`, `looma-core` and `looma-spring-boot-starter`. The demo, integration-test and benchmark modules
+set `skipPublishing`, so they are never uploaded.
+
+## Trying the pipeline without publishing
+
+```bash
+mvn -Prelease,central verify -DskipTests     # signs everything (needs MAVEN_GPG_KEY / MAVEN_GPG_PASSPHRASE in the env)
+```
+
+Without Central credentials `deploy` stops before uploading.
+
+## If something goes wrong
+
+* **"Invalid signature" / "key not found" in the portal:** the public key is not on a keyserver yet (step 3), or it
+  needs a few minutes to propagate.
+* **"Namespace not verified":** finish step 1.
+* **A published version is wrong:** it cannot be removed. Fix it and release the next version.

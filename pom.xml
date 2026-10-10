@@ -138,6 +138,48 @@
   </build>
 
   <profiles>
+    <!--
+      Maven Central: mvn -Prelease,central deploy
+      Needs the 'central' server (Central Portal user token) in settings.xml and the signing key in the
+      environment (MAVEN_GPG_KEY armored private key, MAVEN_GPG_PASSPHRASE). See docs/releasing.md.
+      Signing uses BouncyCastle inside Maven, so no gpg binary is required (locally or in CI).
+    -->
+    <profile>
+      <id>central</id>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-gpg-plugin</artifactId>
+            <version>3.2.8</version>
+            <configuration>
+              <signer>bc</signer>
+            </configuration>
+            <executions>
+              <execution>
+                <id>sign-artifacts</id>
+                <phase>verify</phase>
+                <goals>
+                  <goal>sign</goal>
+                </goals>
+              </execution>
+            </executions>
+          </plugin>
+          <plugin>
+            <groupId>org.sonatype.central</groupId>
+            <artifactId>central-publishing-maven-plugin</artifactId>
+            <version>0.11.0</version>
+            <extensions>true</extensions>
+            <configuration>
+              <publishingServerId>central</publishingServerId>
+              <!-- false: upload, then review and press "Publish" in the Central Portal. true: publish if valid. -->
+              <autoPublish>false</autoPublish>
+            </configuration>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+
     <!-- mvn -Pbench package: JMH benchmarks against other engines (not part of normal builds). -->
     <profile>
       <id>bench</id>

@@ -441,7 +441,7 @@ class LoomaEngineTest {
         public boolean isPublished() { return false; }
     }
 
-    /** The snippet from GETTING_STARTED.md section 4, verbatim, so the guide cannot rot. */
+    /** The snippet from docs/getting-started.md section 4, verbatim, so the guide cannot rot. */
     @Test
     void gettingStartedLoopSnippetWorks() {
         String snippet = "<ul>\n@forelse($posts as $post)\n    <li @class({'first': $loop->first})>\n"

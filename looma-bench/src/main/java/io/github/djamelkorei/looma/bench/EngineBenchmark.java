@@ -30,7 +30,7 @@ import org.thymeleaf.templateresolver.ClassLoaderTemplateResolver;
  * Renders the same table (a loop, an escaped value, a conditional and the loop counter per row) with each
  * engine, warm and with its template cache on, which is how an application runs in production.
  *
- * <p>Run: {@code mvn -Pbench -pl looma-bench -am package -DskipTests} then see BENCHMARKS.md.
+ * <p>Run: {@code mvn -Pbench -pl looma-bench -am package -DskipTests} then see docs/benchmarks.md.
  */
 @State(Scope.Benchmark)
 @BenchmarkMode(Mode.AverageTime)

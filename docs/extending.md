@@ -1,3 +1,7 @@
+---
+title: Extending & architecture
+---
+
 # Architecture
 
 Looma is built so that the common change, *adding or fixing a directive*, touches **one file**.

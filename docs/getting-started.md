@@ -1,17 +1,21 @@
+---
+title: Getting started
+---
+
 # Getting started
 
-About ten minutes. Every snippet here exists in [`looma-demo`](looma-demo), where it is tested.
+About ten minutes. Every snippet here exists in [`looma-demo`](https://github.com/djamelkorei/looma/tree/main/looma-demo), where it is tested.
 
 ## 1. Add it
 
-Add the repository and dependency from the [README](README.md#install) (GitHub Packages needs a token). That is
+Add the repository and dependency from the [Installation](installation.md) (GitHub Packages needs a token). That is
 the only setup: Spring Boot auto-configures the engine and the view resolver.
 
 ## 2. Your first page
 
 `src/main/resources/templates/hello.looma.html`
 
-```blade
+```html
 <h1>Hello, {{ $name }}!</h1>
 ```
 
@@ -34,7 +38,7 @@ class HelloController {
 
 `templates/layouts/app.looma.html`
 
-```blade
+```html
 <!DOCTYPE html>
 <html>
 <head>
@@ -51,7 +55,7 @@ class HelloController {
 
 `templates/hello.looma.html`
 
-```blade
+```html
 @extends('layouts.app')
 
 @section('title', 'Hello')
@@ -64,7 +68,7 @@ class HelloController {
 
 ## 4. Loops and conditions
 
-```blade
+```html
 <ul>
 @forelse($posts as $post)
     <li @class({'first': $loop->first})>
@@ -82,10 +86,10 @@ Expressions are SpEL with Blade conveniences: `$post->title`, `$post.title` and 
 
 ## 5. A form with validation
 
-[`signup.looma.html`](looma-demo/src/main/resources/templates/signup.looma.html) and
-[`SignupController`](looma-demo/src/main/java/io/github/djamelkorei/looma/demo/SignupController.java):
+[`signup.looma.html`](https://github.com/djamelkorei/looma/blob/main/looma-demo/src/main/resources/templates/signup.looma.html) and
+[`SignupController`](https://github.com/djamelkorei/looma/blob/main/looma-demo/src/main/java/io/github/djamelkorei/looma/demo/SignupController.java):
 
-```blade
+```html
 <form method="post" action="/signup">
     @csrf
     <input name="email" value="{{ $form.email }}" @class({'invalid': $errors.containsKey('email')})>
@@ -108,11 +112,11 @@ With Spring Security, `@csrf` renders the token the filter expects (tested in `l
 
 `templates/components/alert.looma.html`
 
-```blade
+```html
 <div {{ $attributes->except('type')->merge({'class': 'alert alert-' + $type}) }}>{{ $slot }}</div>
 ```
 
-```blade
+```html
 <x-alert type="info" class="mb-4">Saved!</x-alert>
 ```
 
@@ -131,11 +135,11 @@ class MoneyDirective implements Directive {
 }
 ```
 
-```blade
+```html
 Total: @money($order.total)
 ```
 
-Block directives, loops and more: [ARCHITECTURE.md](ARCHITECTURE.md).
+Block directives, loops and more: [Extending & architecture](extending.md).
 
 ## 8. Before you ship
 
@@ -143,7 +147,7 @@ Block directives, loops and more: [ARCHITECTURE.md](ARCHITECTURE.md).
 * The app fails at startup, naming template and line, if any template has a syntax error or points at a
   missing `@include` / `@extends` / `<x-…>`. Boot it once in CI and typos never reach users.
 * Templates are trusted code. Never build template names from request input. See
-  [the security model](README.md#security-model).
+  [the security model](security.md).
 
 ## Coming from Thymeleaf?
 
