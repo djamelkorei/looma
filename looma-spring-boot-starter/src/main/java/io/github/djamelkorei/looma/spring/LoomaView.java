@@ -30,6 +30,7 @@ public class LoomaView implements View {
     private final String contentType;
     private final MessageSource messages;
     private final Function<HttpServletRequest, Authorizer> authorizers;
+    private final String fragment;
 
     public LoomaView(LoomaEngine engine, String name, String contentType, MessageSource messages) {
         this(engine, name, contentType, messages, RequestAuthorizer::new);
@@ -37,6 +38,13 @@ public class LoomaView implements View {
 
     public LoomaView(LoomaEngine engine, String name, String contentType, MessageSource messages,
             Function<HttpServletRequest, Authorizer> authorizers) {
+        this(engine, name, null, contentType, messages, authorizers);
+    }
+
+    /** @param fragment render only this {@code @fragment} of the template, or null for the whole page */
+    public LoomaView(LoomaEngine engine, String name, String fragment, String contentType, MessageSource messages,
+            Function<HttpServletRequest, Authorizer> authorizers) {
+        this.fragment = fragment;
         this.authorizers = authorizers;
         this.engine = engine;
         this.name = name;
@@ -114,7 +122,9 @@ public class LoomaView implements View {
         response.setContentType(contentType);
         // Render fully before writing so a template error does not leave a half-sent page.
         // The request's locale drives @lang and the Number/Date helpers.
-        String html = engine.render(name, withRequestData(model, request, messages, authorizers), RequestContextUtils.getLocale(request));
+        Map<String, Object> data = withRequestData(model, request, messages, authorizers);
+        java.util.Locale locale = RequestContextUtils.getLocale(request);
+        String html = fragment == null ? engine.render(name, data, locale) : engine.renderFragment(name, fragment, data, locale);
         response.getWriter().write(html);
     }
 }

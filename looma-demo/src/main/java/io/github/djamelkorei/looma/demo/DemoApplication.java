@@ -33,6 +33,13 @@ public class DemoApplication {
         return "home";
     }
 
+    /** htmx-style partial update: only the list items, e.g. for hx-get="/posts" hx-target="#posts". */
+    @GetMapping("/posts")
+    public String postsFragment(Model model) {
+        home(model);
+        return "home :: posts";
+    }
+
     @GetMapping("/form")
     public String form() {
         return "form";

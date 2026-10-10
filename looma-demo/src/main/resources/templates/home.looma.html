@@ -7,7 +7,8 @@
     <p class="greeting">@lang('greeting', $user)</p>
     <x-alert type="info" class="mb-4">Rendered by a component</x-alert>
     {{-- this comment never reaches the browser --}}
-    <ul>
+    <ul id="posts">
+    @fragment('posts')
     @forelse($posts as $post)
         <li class="{{ $loop->first ? 'first' : '' }}">
             {{ $loop->iteration }}/{{ $loop->count }}: {{ $post->title }}
@@ -16,6 +17,7 @@
     @empty
         <li>No posts yet</li>
     @endforelse
+    @endfragment
     </ul>
     @push('scripts')<script>console.log('home')</script>@endpush
 @endsection

@@ -33,7 +33,17 @@ public class LoomaViewResolver implements ViewResolver, Ordered {
 
     @Override
     public View resolveViewName(String viewName, Locale locale) {
-        return engine.exists(viewName) ? new LoomaView(engine, viewName, contentType, messages, authorizers) : null;
+        // "contacts :: rows" renders only @fragment('rows') of contacts (same syntax as Thymeleaf), e.g. for htmx
+        String template = viewName;
+        String fragment = null;
+        int sep = viewName.indexOf("::");
+        if (sep > 0) {
+            template = viewName.substring(0, sep).trim();
+            fragment = viewName.substring(sep + 2).trim();
+        }
+        return engine.exists(template)
+                ? new LoomaView(engine, template, fragment, contentType, messages, authorizers)
+                : null;
     }
 
     @Override

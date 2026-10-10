@@ -60,16 +60,25 @@ public final class RenderSession {
         this.globals = globals;
     }
 
+    /** Pre-populates per-render state before {@link #render} (engine-internal, e.g. a fragment request). */
+    public <T> void seed(Class<T> type, T value) {
+        if (state == null) state = new HashMap<>();
+        state.put(type, value);
+    }
+
+    /** Applies the end-of-render hooks (e.g. filling @stack placeholders) to any piece of output. */
+    public String finish(String output) {
+        String result = output;
+        if (finishers != null) {
+            for (UnaryOperator<String> finisher : finishers) result = finisher.apply(result);
+        }
+        return result;
+    }
+
     public String render(Template template, Map<String, ?> model) {
         Scope scope = new Scope(globals, model); // reads the model in place, no copy; helpers come after it
         renderTemplate(template, scope);
-        String result = out.toString();
-        if (finishers != null) {
-            for (UnaryOperator<String> finisher : finishers) {
-                result = finisher.apply(result);
-            }
-        }
-        return result;
+        return finish(out.toString());
     }
 
     private void renderTemplate(Template t, Scope scope) {

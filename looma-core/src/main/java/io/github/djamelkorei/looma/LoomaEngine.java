@@ -1,6 +1,7 @@
 package io.github.djamelkorei.looma;
 
 import io.github.djamelkorei.looma.directive.BuiltinDirectives;
+import io.github.djamelkorei.looma.directive.FragmentDirective;
 import io.github.djamelkorei.looma.internal.DirectiveRegistry;
 import io.github.djamelkorei.looma.helper.DateHelper;
 import io.github.djamelkorei.looma.helper.ListHelper;
@@ -187,6 +188,33 @@ public final class LoomaEngine {
         } finally {
             TemplateLocale.exit(previous);
         }
+    }
+
+    /**
+     * Renders only {@code @fragment(fragment)} of a template (for htmx-style partial updates). The whole template is
+     * evaluated as usual, so a fragment inside a layout section or an include is found.
+     *
+     * @throws LoomaException if the template has no such fragment
+     */
+    public String renderFragment(String name, String fragment, Map<String, ?> model, java.util.Locale locale) {
+        java.util.Locale previous = TemplateLocale.enter(locale);
+        try {
+            Template template = template(name);
+            RenderSession session = new RenderSession(this::template, 256, globals, this::exists);
+            FragmentDirective.Target target = new FragmentDirective.Target(fragment);
+            session.seed(FragmentDirective.Target.class, target);
+            session.render(template, model);
+            if (target.html() == null) {
+                throw new LoomaException("No @fragment('" + fragment + "') in this template").inTemplate(name);
+            }
+            return session.finish(target.html());
+        } finally {
+            TemplateLocale.exit(previous);
+        }
+    }
+
+    public String renderFragment(String name, String fragment, Map<String, ?> model) {
+        return renderFragment(name, fragment, model, null);
     }
 
     private String renderNow(String name, Map<String, ?> model) {

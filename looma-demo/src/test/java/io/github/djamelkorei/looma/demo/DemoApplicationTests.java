@@ -95,4 +95,14 @@ class DemoApplicationTests {
                 .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("class=\"error\""))))
                 .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("invalid"))));
     }
+
+    @Test
+    void fragmentViewReturnsOnlyThePostsList() throws Exception {
+        String html = mvc.perform(get("/posts")).andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+        org.assertj.core.api.Assertions.assertThat(html).contains("1/2: Hello Looma").contains("2/2: Draft: Blade for Java")
+                .doesNotContain("<html").doesNotContain("<title>").doesNotContain("<ul");
+        // and the full page still renders the list inside its layout
+        mvc.perform(get("/")).andExpect(content().string(org.hamcrest.Matchers.containsString("<ul id=\"posts\">")));
+    }
 }

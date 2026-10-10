@@ -31,6 +31,7 @@ public final class BuiltinDirectives {
                 // composition
                 new IncludeDirective(),
                 new PropsDirective(),
+                new FragmentDirective(),
                 LayoutDirectives.extendsDirective(),
                 LayoutDirectives.section(),
                 LayoutDirectives.yield(),

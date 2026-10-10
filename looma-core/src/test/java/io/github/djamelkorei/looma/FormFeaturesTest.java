@@ -155,4 +155,17 @@ class FormFeaturesTest {
         files.put("components.bad", "@props('title')x");
         assertThrows(LoomaException.class, () -> render("<x-bad />", Map.of()));
     }
+
+    @Test
+    void fragmentsRenderOnTheirOwnOrInvisiblyInPlace() {
+        files.put("layout", "<html>@yield('content')@stack('js')</html>");
+        files.put("rows", "<tr>{{ $r }}</tr>");
+        files.put("contacts", "@extends('layout')@section('content')<h1>Contacts</h1><table>@fragment('rows')"
+                + "@foreach($list as $r)@include('rows')@endforeach@push('js')<s>@endpush@endfragment</table>@endsection");
+        Map<String, Object> m = Map.of("list", java.util.List.of("a", "b"));
+        assertEquals("<html><h1>Contacts</h1><table><tr>a</tr><tr>b</tr></table><s></html>", engine.render("contacts", m));
+        assertEquals("<tr>a</tr><tr>b</tr>", engine.renderFragment("contacts", "rows", m));
+        LoomaException e = assertThrows(LoomaException.class, () -> engine.renderFragment("contacts", "nope", m));
+        assertEquals(true, e.getMessage().contains("No @fragment('nope')") && "contacts".equals(e.template()), e.getMessage());
+    }
 }
