@@ -30,6 +30,7 @@ public final class BuiltinDirectives {
                 LoopControlDirective.continueDirective(),
                 // composition
                 new IncludeDirective(),
+                new PropsDirective(),
                 LayoutDirectives.extendsDirective(),
                 LayoutDirectives.section(),
                 LayoutDirectives.yield(),

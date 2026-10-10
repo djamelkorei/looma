@@ -136,4 +136,23 @@ class FormFeaturesTest {
         LoomaException e = assertThrows(LoomaException.class, () -> render("@empty x", Map.of()));
         assertEquals(true, e.getMessage().contains("only belongs inside @forelse"), e.getMessage());
     }
+
+    @Test
+    void propsGiveDefaultsAndLeaveOnlyRealAttributes() {
+        files.put("components.alert", "@props({'type': 'info', 'dismissible': false, 'alertTitle': null})"
+                + "<div {{ $attributes->merge({'class': 'alert alert-' + $type}) }}>{{ $alertTitle ?? '' }}{{ $slot }}"
+                + "@if($dismissible)[x]@endif</div>");
+        assertEquals("<div class=\"alert alert-info\">Hi</div>", render("<x-alert>Hi</x-alert>", Map.of()));
+        assertEquals("<div class=\"alert alert-error mb-2\" id=\"a1\">T: Oops[x]</div>",
+                render("<x-alert type=\"error\" class=\"mb-2\" id=\"a1\" :dismissible=\"true\" alert-title=\"T: \">Oops</x-alert>", Map.of()));
+    }
+
+    @Test
+    void propsWithNamesOnlyAndInvalidSpecs() {
+        files.put("components.card", "@props({'title'})<section {{ $attributes }}>{{ $title ?? 'untitled' }}</section>");
+        assertEquals("<section data-x=\"1\">Hello</section>", render("<x-card title=\"Hello\" data-x=\"1\" />", Map.of()));
+        assertEquals("<section >untitled</section>", render("<x-card />", Map.of()));
+        files.put("components.bad", "@props('title')x");
+        assertThrows(LoomaException.class, () -> render("<x-bad />", Map.of()));
+    }
 }
