@@ -143,4 +143,13 @@ class LoomaAutoConfigurationTests {
             assertThat(ctx).hasSingleBean(LoomaTemplateChecker.class);
         });
     }
+
+    @Test
+    void startupFailsOnReferencesToMissingTemplates() {
+        web.withPropertyValues("looma.prefix=missing/", "looma.suffix=.tpl").run(ctx -> {
+            assertThat(ctx).hasFailed();
+            assertThat(ctx.getStartupFailure().getMessage())
+                    .contains("In template 'page' at line 2: References missing template 'does.not.exist'");
+        });
+    }
 }

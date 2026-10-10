@@ -122,7 +122,8 @@ block directives, is in [ARCHITECTURE.md](ARCHITECTURE.md).
 
 `looma.check-templates` (default `true`) parses every template at startup and fails the boot with **all**
 syntax errors at once, naming template and line, for example
-`In template 'orders' at line 12: Unclosed block: @foreach is never closed`. Use it in CI too: a context
+`In template 'orders' at line 12: Unclosed block: @foreach is never closed`. It also reports literal
+`@include('x')`, `@extends('x')` and `<x-x>` references to templates that do not exist. Use it in CI too: a context
 test that boots the app catches a broken template before it ships. Programmatic access: `engine.check(names)`.
 
 ## Security model

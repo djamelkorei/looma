@@ -18,6 +18,8 @@ public final class LayoutDirectives {
         return new Directive() {
             @Override public String name() { return "extends"; }
             @Override public Node parse(ParseContext p) {
+                String fixed = p.literalOrNull(p.args());
+                if (fixed != null) p.references(fixed);
                 p.layout(p.expr());
                 return null;
             }

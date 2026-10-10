@@ -91,15 +91,21 @@ public final class LoomaEngine {
     }
 
     /**
-     * Parses the given templates and returns every syntax error found, one per broken template; an empty
-     * list means all are valid. Use it at startup or in CI to find mistakes before a request does.
-     * Templates are parsed but not rendered, so errors that depend on data are not found.
+     * Parses the given templates and returns every problem found: syntax errors, and literal
+     * {@code @include} / {@code @extends} / {@code <x-...>} references to templates that do not exist.
+     * An empty list means all are valid. Use it at startup or in CI to find mistakes before a request does.
+     * Templates are parsed but not rendered, so errors that depend on data, or on dynamic template names, are not found.
      */
     public List<LoomaException> check(Iterable<String> names) {
         List<LoomaException> errors = new ArrayList<>();
         for (String name : names) {
             try {
-                template(name);
+                for (Template.Reference ref : template(name).references()) {
+                    if (!loader.exists(ref.name())) {
+                        errors.add(new LoomaException("References missing template '" + ref.name() + "'", ref.line(), null)
+                                .inTemplate(name));
+                    }
+                }
             } catch (LoomaException e) {
                 errors.add(e.template() != null ? e : e.inTemplate(name));
             }
@@ -124,7 +130,7 @@ public final class LoomaEngine {
         String source = loader.load(name);
         try {
             Parser.Result parsed = Parser.parse(source, registry);
-            return new Template(name, parsed.nodes(), parsed.layout());
+            return new Template(name, parsed.nodes(), parsed.layout(), parsed.references());
         } catch (LoomaException e) {
             throw e.inTemplate(name);
         }

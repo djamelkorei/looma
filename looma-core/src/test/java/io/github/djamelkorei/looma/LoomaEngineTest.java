@@ -343,4 +343,18 @@ class LoomaEngineTest {
         assertEquals(2, c.line());
         assertTrue(c.getMessage().contains("</x-card>"), c.getMessage());
     }
+
+    @Test
+    void checkFindsMissingIncludesLayoutsAndComponents() {
+        files.put("page", "ok\n@include('partials.gone')\n@include($dynamic)\n<x-ghost />\n@include('page')");
+        files.put("child", "@extends('no.layout')");
+        files.put("components.real", "x");
+        files.put("uses", "<x-real />");
+        List<LoomaException> errors = engine.check(List.of("page", "child", "uses"));
+        assertEquals(3, errors.size(), errors.toString());
+        assertTrue(errors.get(0).getMessage().contains("In template 'page' at line 2: References missing template 'partials.gone'"),
+                errors.get(0).getMessage());
+        assertTrue(errors.get(1).getMessage().contains("'components.ghost'") && errors.get(1).line() == 4);
+        assertTrue(errors.get(2).getMessage().contains("In template 'child'") && errors.get(2).getMessage().contains("'no.layout'"));
+    }
 }

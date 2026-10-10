@@ -40,6 +40,15 @@ public interface ParseContext {
     /** Unquotes a string literal like {@code 'name'}; fails if it is not one. */
     String literal(String quoted);
 
+    /** Like {@link #literal} but returns null if the text is not a quoted literal (e.g. a variable). */
+    String literalOrNull(String text);
+
+    /**
+     * Declares that this template uses another template by a fixed name, so a missing one is reported
+     * by {@code LoomaEngine.check} instead of failing at render time. Skip it for dynamic names.
+     */
+    void references(String templateName);
+
     /**
      * Parses a body until one of the given tags and consumes that tag.
      *

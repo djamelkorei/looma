@@ -40,6 +40,14 @@ final class Args {
         return parts;
     }
 
+    /** Like {@link #literal} but null when {@code arg} is not a quoted string. */
+    static String literalOrNull(String arg) {
+        if (arg == null || arg.length() < 2) return null;
+        char q = arg.charAt(0);
+        return (q == '\'' || q == '"') && arg.charAt(arg.length() - 1) == q && arg.indexOf(q, 1) == arg.length() - 1
+                ? arg.substring(1, arg.length() - 1) : null;
+    }
+
     /** Unquotes a string literal such as {@code 'content'}. */
     static String literal(String arg, int line) {
         if (arg.length() >= 2) {

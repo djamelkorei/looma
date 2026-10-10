@@ -73,6 +73,9 @@ Things the SPI gives you for free: error messages with template name and line, e
 (`runLoopBody`), per-render state, an end-of-render hook (`onFinish`), and a parse-time marker mechanism
 (`within` / `isWithin`) so a directive can insist on being used inside another one.
 
+If your directive names another template by a fixed name, call `p.references(name)` (use `p.literalOrNull(arg)`
+to tell a fixed name from an expression) and the startup check will report it when it is missing.
+
 Names must be letters only; `verbatim` is reserved by the lexer; clashes fail when the engine is built.
 
 ## Testing conventions

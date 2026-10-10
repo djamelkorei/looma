@@ -1,6 +1,7 @@
 package io.github.djamelkorei.looma.internal;
 
 import io.github.djamelkorei.looma.LoomaException;
+import io.github.djamelkorei.looma.Template;
 import io.github.djamelkorei.looma.spi.Directive;
 import io.github.djamelkorei.looma.spi.Expr;
 import io.github.djamelkorei.looma.spi.Node;
@@ -22,7 +23,7 @@ import java.util.function.Supplier;
 public final class Parser {
 
     /** Result of parsing one template. */
-    public record Result(List<Node> nodes, Expr layout) {}
+    public record Result(List<Node> nodes, Expr layout, List<Template.Reference> references) {}
 
     private static final String COMPONENT_END = "</x>";
 
@@ -31,6 +32,7 @@ public final class Parser {
     private final Map<String, Integer> markers = new HashMap<>();
     private int pos;
     private Expr layout;
+    private final List<Template.Reference> references = new ArrayList<>();
 
     private Parser(List<Token> tokens, DirectiveRegistry registry) {
         this.tokens = tokens;
@@ -40,7 +42,7 @@ public final class Parser {
     public static Result parse(String source, DirectiveRegistry registry) {
         Parser parser = new Parser(Lexer.lex(source, registry), registry);
         List<Node> nodes = parser.block(Set.of(), null);
-        return new Result(nodes, parser.layout);
+        return new Result(nodes, parser.layout, List.copyOf(parser.references));
     }
 
     /** Parses nodes until a tag named in {@code stops} (left unconsumed) or, if none are given, the end. */
@@ -114,6 +116,7 @@ public final class Parser {
             if (n instanceof SlotNode s) slots.put(s.name(), s.body());
             else main.add(n);
         }
+        references.add(new Template.Reference("components." + name, t.line()));
         return new ComponentNode(name, attrs, main, slots);
     }
 
@@ -193,6 +196,10 @@ public final class Parser {
 
         @Override public List<String> split(String text, char delimiter) { return Args.split(text, delimiter); }
         @Override public String literal(String quoted) { return Args.literal(quoted, token.line()); }
+        @Override public String literalOrNull(String text) { return Args.literalOrNull(text); }
+        @Override public void references(String templateName) {
+            references.add(new Template.Reference(templateName, token.line()));
+        }
 
         @Override
         public Block block(String... endTags) {
