@@ -41,3 +41,31 @@ Map literals use SpEL syntax: `{'key': value}`.
 Components run in an isolated scope: they only see their attributes, slots and `$attributes`.
 In the Spring starter every view also gets `request`, `principal` and, when Spring Security's
 CSRF filter is active, `_csrf`. Model attributes with the same names win.
+
+## Calling Java methods
+
+**Methods on a value** work directly, so all of `String`'s instance methods are available on any text:
+
+```html
+{{ $name.toUpperCase() }}   {{ $name.substring(0, 3) }}   {{ $title.replace('-', ' ') }}
+{{ $email.split('@')[0] }}  {{ $items.size() }}            @if($name.startsWith('A')) ... @endif
+```
+
+**Class (static) methods** go through *helpers*, objects that expose a chosen set of methods. Two are built in:
+
+| Helper | Methods |
+|---|---|
+| `String` | `format(fmt, args...)`, `formatLocale('fr', fmt, args...)`, `join(', ', list)` / `join('-', a, b...)`, `valueOf(x)`, `isEmpty(s)`, `isBlank(s)` (null-safe) |
+| `Math` | `max`, `min`, `abs` (whole numbers stay whole), `round`, `ceil`, `floor` (return whole numbers), `pow`, `sqrt` |
+
+```html
+{{ String.format('%.2f €', $price) }}     {{ String.join(', ', $tags) }}
+{{ Math.ceil($total / 20.0) }} pages      @if(String.isBlank($bio)) No bio yet @endif
+```
+
+Add your own with a `TemplateHelper` bean ([see Extending](extending.md#template-helpers)). A model attribute with
+the same name as a helper wins.
+
+**Why not `T(String).format(...)`?** `T(...)` can reach *any* class, including `java.lang.Runtime`, so allowing it
+would let a template run system commands. Helpers give you the useful functions without that door; `T(...)`,
+`new`, and reflection stay blocked.

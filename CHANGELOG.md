@@ -23,3 +23,5 @@ First version.
   inside loops, and blocked method calls on the template's own scope (`#root.put(...)`). Abuse cases are covered by
   `SecurityTest`. Added `SECURITY.md`, private vulnerability reporting, Dependabot and CodeQL.
 - Rendering is about 1.8× faster (fast path for simple expressions, fewer allocations).
+- Template helpers: `{{ String.format(...) }}`, `String.join`, `Math.max`... built in, and your own via
+  `TemplateHelper` beans. Class access through `T(...)` stays blocked.

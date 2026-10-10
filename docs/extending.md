@@ -82,6 +82,32 @@ to tell a fixed name from an expression) and the startup check will report it wh
 
 Names must be letters only; `verbatim` is reserved by the lexer; clashes fail when the engine is built.
 
+## Template helpers
+
+When templates need *functions* rather than new syntax (formatting money, building URLs, date helpers),
+a helper is simpler than a directive. Any public class implementing `TemplateHelper` is callable as
+`Name.method(...)`:
+
+```java
+@Component
+public class PriceHelper implements TemplateHelper {
+    public String name() { return "Price"; }
+    public String eur(Number amount) { return String.format("%.2f €", amount.doubleValue()); }
+}
+```
+
+```html
+Total: {{ Price.eur($order.total) }}
+```
+
+Without Spring: `LoomaEngine.builder(loader).helper(new PriceHelper()).build()`. Helpers are visible in every
+template, including includes and components, below the model in lookup order. Their output is escaped like any
+other value. The built-in `String` and `Math` helpers are written the same way (`looma-core/.../helper`); a helper
+of yours with the same name replaces them.
+
+Only expose methods you would be happy for any template to call; helpers are the deliberate, reviewed way to
+give templates access to Java code, as opposed to `T(...)`, which stays blocked.
+
 ## Testing conventions
 
 * **Behaviour tests** render a template string and compare the output (`LoomaEngineTest`). They know nothing
