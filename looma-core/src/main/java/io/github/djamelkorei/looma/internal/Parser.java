@@ -65,7 +65,9 @@ public final class Parser {
         List<Node> nodes = new ArrayList<>();
         while (pos < tokens.size()) {
             Token t = tokens.get(pos);
-            if (t.kind() == Kind.DIRECTIVE && stops.contains(t.text())) {
+            if (t.kind() == Kind.DIRECTIVE && stops.contains(t.text())
+                    && !(t.args() != null && registry.isDirectiveAndTag(t.text()))) {
+                // A name that is both (like @empty): with arguments it is the directive, bare it is the tag.
                 return nodes;
             }
             if (t.kind() == Kind.COMPONENT_CLOSE && stops.contains(COMPONENT_END)) {

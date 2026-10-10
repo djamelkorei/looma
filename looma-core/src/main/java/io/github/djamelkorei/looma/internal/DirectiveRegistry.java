@@ -15,13 +15,17 @@ public final class DirectiveRegistry {
 
     private final Map<String, Directive> directives = new HashMap<>();
     private final Map<String, Syntax> syntax = new HashMap<>();
+    private final java.util.Set<String> tags = new java.util.HashSet<>();
 
     public DirectiveRegistry(Collection<? extends Directive> all) {
         for (Directive d : all) {
             add(d.name(), d.syntax(), d);
         }
         for (Directive d : all) {
-            d.tags().forEach((tag, tagSyntax) -> add(tag, tagSyntax, null));
+            d.tags().forEach((tag, tagSyntax) -> {
+                add(tag, tagSyntax, null);
+                tags.add(tag);
+            });
         }
     }
 
@@ -45,6 +49,11 @@ public final class DirectiveRegistry {
     /** The directive that starts with this name, or null (also null for secondary tags such as 'endif'). */
     public Directive directive(String name) {
         return directives.get(name);
+    }
+
+    /** True if {@code name} is both a directive and a secondary tag (like {@code @empty}). */
+    public boolean isDirectiveAndTag(String name) {
+        return tags.contains(name) && directives.containsKey(name);
     }
 
     /** How {@code @name} is written, or null if the name is not a known directive or tag. */

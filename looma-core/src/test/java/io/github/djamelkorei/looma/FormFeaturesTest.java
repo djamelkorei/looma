@@ -110,4 +110,30 @@ class FormFeaturesTest {
         assertEquals("false 0", render("{{ $errors.containsKey('email') }} {{ $errors.size() }}", Map.of()));
         assertEquals("true", render("{{ $errors.containsKey('email') }}", Map.of("errors", Map.of("email", "bad"))));
     }
+
+    @Test
+    void unlessUsesTruthinessForAnyValue() {
+        Map<String, Object> m = Map.of("items", java.util.List.of(), "name", "", "full", java.util.List.of(1));
+        assertEquals("none", render("@unless($items)none@endunless", m));
+        assertEquals("no name", render("@unless($name)no name@endunless", m));
+        assertEquals(" has items", render("@unless($full)none@else has items@endunless", m));
+    }
+
+    @Test
+    void emptyDirective() {
+        Map<String, Object> m = Map.of("items", java.util.List.of(), "zero", 0, "text", "x", "map", Map.of());
+        assertEquals("[empty][zero][map]", render("@empty($items)[empty]@endempty@empty($zero)[zero]@endempty"
+                + "@empty($text)[text]@endempty@empty($map)[map]@endempty@empty($missing)@endempty", m));
+        assertEquals(" has", render("@empty($text)none@else has@endempty", m));
+    }
+
+    @Test
+    void emptyStillSeparatesForelseEvenWhenNested() {
+        Map<String, Object> m = Map.of("rows", java.util.List.of(java.util.List.of(), java.util.List.of(1)));
+        assertEquals("(no cells)(1)", render("@forelse($rows as $r)(@empty($r)no cells@else{{ $r[0] }}@endempty)"
+                + "@empty nothing@endforelse", m));
+        assertEquals(" nothing", render("@forelse($rows as $r)x@empty nothing@endforelse", Map.of("rows", java.util.List.of())));
+        LoomaException e = assertThrows(LoomaException.class, () -> render("@empty x", Map.of()));
+        assertEquals(true, e.getMessage().contains("only belongs inside @forelse"), e.getMessage());
+    }
 }

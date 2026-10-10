@@ -58,7 +58,7 @@ public final class ForeachDirective implements Directive {
 
     @Override
     public Map<String, Syntax> tags() {
-        return forelse ? Map.of("empty", Syntax.NONE, "endforelse", Syntax.NONE) : Map.of("endforeach", Syntax.NONE);
+        return forelse ? Map.of("empty", Syntax.OPTIONAL, "endforelse", Syntax.NONE) : Map.of("endforeach", Syntax.NONE);
     }
 
     @Override

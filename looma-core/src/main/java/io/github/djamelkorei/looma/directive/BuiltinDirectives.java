@@ -14,6 +14,7 @@ public final class BuiltinDirectives {
                 ConditionalDirective.ifDirective(),
                 ConditionalDirective.unless(),
                 ConditionalDirective.isset(),
+                ConditionalDirective.empty(),
                 ConditionalDirective.auth(),
                 ConditionalDirective.guest(),
                 ConditionalDirective.can(),

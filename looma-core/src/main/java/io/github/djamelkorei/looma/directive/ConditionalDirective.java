@@ -21,11 +21,13 @@ public final class ConditionalDirective implements Directive {
 
     private record Branch(Expr test, List<Node> body) {}
 
-    private record IfNode(List<Branch> branches, List<Node> orElse) implements Node {
+    /** @param negateFirst the first condition is negated by truthiness ({@code @unless}, {@code @empty}), not by SpEL's boolean-only '!' */
+    private record IfNode(List<Branch> branches, List<Node> orElse, boolean negateFirst) implements Node {
         @Override
         public void render(RenderContext ctx) {
-            for (Branch b : branches) {
-                if (ctx.test(b.test())) {
+            for (int i = 0; i < branches.size(); i++) {
+                Branch b = branches.get(i);
+                if (ctx.test(b.test()) != (i == 0 && negateFirst)) {
                     ctx.render(b.body());
                     return;
                 }
@@ -39,9 +41,16 @@ public final class ConditionalDirective implements Directive {
     private final boolean allowElseif;
     private final Syntax syntax;
     private final Function<ParseContext, String> condition;
+    private final boolean negate;
 
     private ConditionalDirective(String name, boolean allowElseif, Syntax syntax,
             Function<ParseContext, String> condition) {
+        this(name, allowElseif, syntax, condition, false);
+    }
+
+    private ConditionalDirective(String name, boolean allowElseif, Syntax syntax,
+            Function<ParseContext, String> condition, boolean negate) {
+        this.negate = negate;
         this.name = name;
         this.end = "end" + name;
         this.allowElseif = allowElseif;
@@ -54,7 +63,20 @@ public final class ConditionalDirective implements Directive {
     }
 
     public static ConditionalDirective unless() {
-        return new ConditionalDirective("unless", false, Syntax.REQUIRED, p -> "!(" + p.args() + ")");
+        return new ConditionalDirective("unless", false, Syntax.REQUIRED, ParseContext::args, true);
+    }
+
+    /**
+     * {@code @empty($x) ... @endempty}: null, false, 0, "" or an empty collection/map/array. Without parentheses,
+     * {@code @empty} is the separator inside {@code @forelse}.
+     */
+    public static ConditionalDirective empty() {
+        return new ConditionalDirective("empty", false, Syntax.OPTIONAL, p -> {
+            if (p.args() == null) {
+                throw p.error("@empty needs an argument, e.g. @empty($items); without one it only belongs inside @forelse");
+            }
+            return p.args();
+        }, true);
     }
 
     public static ConditionalDirective isset() {
@@ -128,6 +150,6 @@ public final class ConditionalDirective implements Directive {
                 break;
             }
         }
-        return new IfNode(branches, orElse);
+        return new IfNode(branches, orElse, negate);
     }
 }
