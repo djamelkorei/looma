@@ -53,7 +53,7 @@ public final class LoomaJavaTypes {
         if (local instanceof LoomaVariableDeclaration d) return typeOf(d);
         Project project = v.getProject();
         if (local instanceof LoomaDirective) return classType(project, LOOP, v);
-        PsiFile file = v.getContainingFile();
+        PsiFile file = LoomaFiles.template(v);
         LoomaJavaModel.Attribute attribute = file == null ? null : LoomaJavaModel.attributes(file).get(v.getName());
         if (attribute != null) return attribute.type();
         PsiClass helper = LoomaJavaHelpers.helper(project, v.getName());

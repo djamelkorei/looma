@@ -29,6 +29,8 @@ public final class LoomaLexer extends LexerBase {
             "-=", "!", "<", ">", "+", "-", "*", "/", "%", "^", "=", "?", "#", "@"};
 
     private final LoomaDirectives directives;
+    /** Lex the whole range as one expression (component attributes like {@code :count="..."}). */
+    private final boolean expressionOnly;
 
     private CharSequence buffer = "";
     private int bufferEnd;
@@ -44,7 +46,12 @@ public final class LoomaLexer extends LexerBase {
     }
 
     public LoomaLexer(LoomaDirectives directives) {
+        this(directives, false);
+    }
+
+    public LoomaLexer(LoomaDirectives directives, boolean expressionOnly) {
         this.directives = directives;
+        this.expressionOnly = expressionOnly;
     }
 
     @Override
@@ -54,7 +61,8 @@ public final class LoomaLexer extends LexerBase {
         this.count = 0;
         this.index = 0;
         this.textStart = -1;
-        tokenize(startOffset, endOffset);
+        if (expressionOnly) expression(startOffset, endOffset);
+        else tokenize(startOffset, endOffset);
         add(null, endOffset, 0); // sentinel holding the end of the last token
         count--;
     }

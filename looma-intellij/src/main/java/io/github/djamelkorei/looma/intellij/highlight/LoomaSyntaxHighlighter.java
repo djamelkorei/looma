@@ -47,14 +47,21 @@ public final class LoomaSyntaxHighlighter extends SyntaxHighlighterBase {
     }
 
     private final LoomaDirectives directives;
+    private final boolean expressionOnly;
 
     public LoomaSyntaxHighlighter(LoomaDirectives directives) {
+        this(directives, false);
+    }
+
+    /** @param expressionOnly highlight a bare expression, as injected into component attributes */
+    public LoomaSyntaxHighlighter(LoomaDirectives directives, boolean expressionOnly) {
         this.directives = directives;
+        this.expressionOnly = expressionOnly;
     }
 
     @Override
     public @NotNull Lexer getHighlightingLexer() {
-        return new LoomaLexer(directives);
+        return new LoomaLexer(directives, expressionOnly);
     }
 
     @Override

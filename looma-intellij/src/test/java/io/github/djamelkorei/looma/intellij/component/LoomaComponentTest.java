@@ -19,6 +19,12 @@ public class LoomaComponentTest extends BasePlatformTestCase {
                 "<div {{ $attributes }}>{{ $title }} {{ $type }} {{ $slot }}</div>");
     }
 
+    private PsiFile html() {
+        PsiFile top = com.intellij.lang.injection.InjectedLanguageManager.getInstance(getProject())
+                .getTopLevelFile(myFixture.getFile());
+        return top.getViewProvider().getPsi(com.intellij.lang.html.HTMLLanguage.INSTANCE);
+    }
+
     private void configure(String text) {
         PsiFile file = myFixture.addFileToProject("templates/page.looma.html", text);
         myFixture.configureFromExistingVirtualFile(file.getVirtualFile());
@@ -75,5 +81,21 @@ public class LoomaComponentTest extends BasePlatformTestCase {
         assertNotNull(alert);
         myFixture.renameElement(alert, "callout.looma.html");
         myFixture.checkResult("<x-callout type=\"info\">hi</x-callout>");
+    }
+
+    public void testAttributeExpressionIsInjected() {
+        configure("@foreach($posts as $post) <x-alert :title=\"$po<caret>st.title\"></x-alert> @endforeach");
+        // The caret is inside the injection, so the fixture works on the injected expression.
+        assertTrue(myFixture.getFile() instanceof io.github.djamelkorei.looma.intellij.injection.LoomaExpressionFile);
+        PsiReference ref = myFixture.getFile().findReferenceAt(myFixture.getCaretOffset());
+        assertNotNull(ref);
+        assertTrue(String.valueOf(ref.resolve()),
+                ref.resolve() instanceof io.github.djamelkorei.looma.intellij.psi.LoomaVariableDeclaration);
+    }
+
+    public void testPlainAttributeIsNotInjected() {
+        configure("<x-alert title=\"$po<caret>st\"></x-alert>");
+        assertNull(com.intellij.lang.injection.InjectedLanguageManager.getInstance(getProject())
+                .findInjectedElementAt(html(), myFixture.getCaretOffset()));
     }
 }

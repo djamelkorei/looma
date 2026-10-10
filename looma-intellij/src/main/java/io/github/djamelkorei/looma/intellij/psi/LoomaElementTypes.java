@@ -7,6 +7,9 @@ import io.github.djamelkorei.looma.intellij.lang.LoomaLanguage;
 public interface LoomaElementTypes {
 
     IFileElementType FILE = new IFileElementType("LOOMA_FILE", LoomaLanguage.INSTANCE);
+    /** An expression injected into a component attribute: {@code :count="items.size()"}. */
+    IFileElementType EXPRESSION_FILE = new IFileElementType("LOOMA_EXPRESSION_FILE",
+            io.github.djamelkorei.looma.intellij.injection.LoomaExpressionLanguage.INSTANCE);
 
     /** {@code {{ expr }}}. */
     IElementType ECHO = new LoomaElementType("ECHO");

@@ -54,6 +54,7 @@ public final class LoomaScopes {
 
     /** The declaration or directive that defines {@code name} at {@code place}, or null. */
     public static @Nullable PsiElement resolve(@NotNull PsiElement place, @NotNull String name) {
+        place = LoomaFiles.scopeAnchor(place);
         for (LoomaBlock block = enclosingBlock(place); block != null; block = enclosingBlock(block)) {
             LoomaDirective opener = block.getOpener();
             boolean inOpener = PsiTreeUtil.isAncestor(opener, place, false);
@@ -70,6 +71,7 @@ public final class LoomaScopes {
 
     /** Every variable visible at {@code place} with a short description, innermost first. */
     public static @NotNull Map<String, String> visible(@NotNull PsiElement place) {
+        place = LoomaFiles.scopeAnchor(place);
         Map<String, String> vars = new LinkedHashMap<>();
         for (LoomaBlock block = enclosingBlock(place); block != null; block = enclosingBlock(block)) {
             LoomaDirective opener = block.getOpener();

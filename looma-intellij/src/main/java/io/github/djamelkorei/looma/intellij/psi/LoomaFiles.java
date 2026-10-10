@@ -1,5 +1,6 @@
 package io.github.djamelkorei.looma.intellij.psi;
 
+import com.intellij.lang.injection.InjectedLanguageManager;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiFile;
@@ -28,6 +29,27 @@ public final class LoomaFiles {
 
     public static @Nullable LoomaPsiFile looma(@NotNull PsiElement context, @NotNull VirtualFile vf) {
         return looma(PsiManager.getInstance(context.getProject()).findFile(vf));
+    }
+
+    /**
+     * The template file of {@code element}; for an expression injected into a component attribute, the
+     * template around it.
+     */
+    public static @Nullable PsiFile template(@NotNull PsiElement element) {
+        return InjectedLanguageManager.getInstance(element.getProject()).getTopLevelFile(element);
+    }
+
+    /**
+     * Where to start looking for enclosing blocks: {@code element} itself, or for an injected expression the
+     * Looma element at the attribute in the template.
+     */
+    public static @NotNull PsiElement scopeAnchor(@NotNull PsiElement element) {
+        InjectedLanguageManager manager = InjectedLanguageManager.getInstance(element.getProject());
+        PsiElement host = manager.getInjectionHost(element);
+        if (host == null) return element;
+        PsiFile top = host.getContainingFile();
+        PsiElement anchor = top.getViewProvider().findElementAt(host.getTextRange().getStartOffset(), LoomaLanguage.INSTANCE);
+        return anchor != null ? anchor : element;
     }
 
     /** Every directive of the file, in order (cached until the file changes). */

@@ -37,6 +37,7 @@
                                    implementationClass="io.github.djamelkorei.looma.intellij.highlight.LoomaEditorHighlighterProvider"/>
         <colorSettingsPage implementation="io.github.djamelkorei.looma.intellij.highlight.LoomaColorSettingsPage"/>
         <annotator language="Looma" implementationClass="io.github.djamelkorei.looma.intellij.annotator.LoomaAnnotator"/>
+        <annotator language="LoomaExpression" implementationClass="io.github.djamelkorei.looma.intellij.annotator.LoomaAnnotator"/>
         <annotator language="HTML"
                    implementationClass="io.github.djamelkorei.looma.intellij.annotator.LoomaComponentAnnotator"/>
 
@@ -71,6 +72,12 @@
         <internalFileTemplate name="Looma Page"/>
         <internalFileTemplate name="Looma Layout"/>
         <internalFileTemplate name="Looma Component"/>
+
+        <lang.parserDefinition language="LoomaExpression"
+                               implementationClass="io.github.djamelkorei.looma.intellij.injection.LoomaExpressionParserDefinition"/>
+        <lang.syntaxHighlighterFactory language="LoomaExpression"
+                                       implementationClass="io.github.djamelkorei.looma.intellij.injection.LoomaExpressionHighlighterFactory"/>
+        <multiHostInjector implementation="io.github.djamelkorei.looma.intellij.injection.LoomaAttributeInjector"/>
 
         <xml.elementDescriptorProvider
                 implementation="io.github.djamelkorei.looma.intellij.component.LoomaComponentDescriptorProvider"/>

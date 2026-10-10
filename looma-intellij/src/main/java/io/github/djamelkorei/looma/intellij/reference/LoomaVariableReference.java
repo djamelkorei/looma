@@ -5,6 +5,7 @@ import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiReferenceBase;
 import com.intellij.util.IncorrectOperationException;
 import io.github.djamelkorei.looma.intellij.LoomaIcons;
+import io.github.djamelkorei.looma.intellij.psi.LoomaFiles;
 import io.github.djamelkorei.looma.intellij.psi.LoomaScopes;
 import io.github.djamelkorei.looma.intellij.psi.LoomaVariable;
 import java.util.ArrayList;
@@ -29,7 +30,7 @@ public final class LoomaVariableReference extends PsiReferenceBase<LoomaVariable
         PsiElement local = LoomaScopes.resolve(getElement(), name);
         if (local != null) return local;
         for (LoomaModelVariables provider : LoomaModelVariables.EP.getExtensionList()) {
-            PsiElement target = provider.resolve(getElement().getContainingFile(), name);
+            PsiElement target = provider.resolve(LoomaFiles.template(getElement()), name);
             if (target != null) return target;
         }
         return null;
@@ -41,7 +42,7 @@ public final class LoomaVariableReference extends PsiReferenceBase<LoomaVariable
         LoomaScopes.visible(getElement()).forEach((name, description) -> variants.add(
                 LookupElementBuilder.create(name).withIcon(LoomaIcons.FILE).withTypeText(description, true)));
         for (LoomaModelVariables provider : LoomaModelVariables.EP.getExtensionList()) {
-            variants.addAll(provider.variants(getElement().getContainingFile()));
+            variants.addAll(provider.variants(LoomaFiles.template(getElement())));
         }
         return variants.toArray();
     }

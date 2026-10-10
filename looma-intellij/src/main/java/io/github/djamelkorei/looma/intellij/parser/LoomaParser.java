@@ -38,6 +38,12 @@ public final class LoomaParser implements PsiParser {
     public @NotNull ASTNode parse(@NotNull IElementType root, @NotNull PsiBuilder builder) {
         this.builder = builder;
         PsiBuilder.Marker file = builder.mark();
+        if (root == LoomaElementTypes.EXPRESSION_FILE) {
+            while (!builder.eof()) {
+                expression(false, null);
+                if (!builder.eof()) builder.advanceLexer();
+            }
+        }
         while (!builder.eof()) {
             content();
         }
