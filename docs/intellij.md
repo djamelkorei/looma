@@ -30,8 +30,8 @@ components.
 | `Price.eur(...)`, `@priceService.format(...)` | your `TemplateHelper` / `@TemplateAccessible` class and method |
 | `@bind('form')`, `@field('address.city')` | the model attribute, then each property of the path |
 
-Layouts and partials see the model of the templates that extend or include them; components only see their
-attributes.
+Layouts and partials see the model of the templates that extend or include them; components see their
+attributes plus the request-level variables (`$errors`, `$principal`, `$request`, `$_csrf`).
 
 **Completion** for directives (with their end tag), template, section and stack names, message keys, model
 variables, Java properties and methods, helpers, beans, `$loop->...`, component tags and their attributes

@@ -25,7 +25,7 @@ public final class LoomaLexer extends LexerBase {
 
     private static final Set<String> KEYWORDS = Set.of("as", "true", "false", "null", "and", "or", "not",
             "instanceof", "matches", "between", "eq", "ne", "lt", "gt", "le", "ge", "div", "mod");
-    private static final String[] OPERATORS = {"??", "?:", "==", "!=", "<=", ">=", "&&", "||", "++", "--", "+=",
+    private static final String[] OPERATORS = {"??", "?:", "=>", "==", "!=", "<=", ">=", "&&", "||", "++", "--", "+=",
             "-=", "!", "<", ">", "+", "-", "*", "/", "%", "^", "=", "?", "#", "@"};
 
     private final LoomaDirectives directives;

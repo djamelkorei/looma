@@ -164,6 +164,7 @@ public final class LoomaParser implements PsiParser {
         int depth = arguments ? 1 : 0; // bracket depth of the top level
         IElementType previous = null;
         boolean afterAs = false;
+        boolean afterKeyDeclaration = false; // the token before was the $key of "as $key => $value"
         boolean first = true;
         while (!builder.eof() && EXPRESSION.contains(builder.getTokenType())) {
             IElementType type = builder.getTokenType();
@@ -177,6 +178,11 @@ public final class LoomaParser implements PsiParser {
                     m.drop(); // a function call or a map key, not a variable
                 } else if (declares(declaring, afterAs, first)) {
                     m.done(LoomaElementTypes.VARIABLE_DECLARATION);
+                    previous = type;
+                    afterAs = false;
+                    afterKeyDeclaration = true;
+                    first = false;
+                    continue;
                 } else {
                     m.done(LoomaElementTypes.VARIABLE);
                 }
@@ -185,7 +191,9 @@ public final class LoomaParser implements PsiParser {
                 builder.advanceLexer();
                 m.done(type == STRING ? LoomaElementTypes.STRING_LITERAL : LoomaElementTypes.BEAN);
             } else {
-                boolean as = type == KEYWORD && "as".equals(builder.getTokenText()) && brackets.size() == depth;
+                // @foreach($items as $item) and @foreach($map as $key => $value): both names are declarations
+                boolean as = brackets.size() == depth && ((type == KEYWORD && "as".equals(builder.getTokenText()))
+                        || (type == OPERATOR && "=>".equals(builder.getTokenText()) && afterKeyDeclaration));
                 if (OPENING.contains(type)) brackets.push(type);
                 if (CLOSING.contains(type) && !brackets.isEmpty()) brackets.pop();
                 if (type == COMMA && brackets.size() == depth) commas++;
@@ -195,11 +203,13 @@ public final class LoomaParser implements PsiParser {
                 if (type == RPAREN && --parens == 0 && arguments) return commas; // end of the argument list
                 previous = type;
                 afterAs = as;
+                afterKeyDeclaration = false;
                 if (!opener) first = false;
                 continue;
             }
             previous = type;
             afterAs = false;
+            afterKeyDeclaration = false;
             first = false;
         }
         return commas;

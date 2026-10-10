@@ -4,6 +4,7 @@ import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiFile;
 import com.intellij.psi.PsiPolyVariantReference;
 import com.intellij.psi.PsiReference;
+import com.intellij.psi.util.PsiTreeUtil;
 import com.intellij.testFramework.fixtures.BasePlatformTestCase;
 import io.github.djamelkorei.looma.intellij.psi.LoomaDirective;
 import io.github.djamelkorei.looma.intellij.psi.LoomaStringLiteral;
@@ -17,6 +18,24 @@ public class LoomaReferenceTest extends BasePlatformTestCase {
         PsiReference ref = myFixture.getFile().findReferenceAt(myFixture.getCaretOffset());
         assertNotNull("no reference at caret", ref);
         return ref;
+    }
+
+    public void testForeachKeyValueDeclaresBoth() {
+        myFixture.configureByText("t.looma.html",
+                "@foreach($m as $k => $v) {{ $k }} {{ $<caret>v }} @endforeach");
+        PsiElement target = referenceAtCaret().resolve();
+        assertTrue(String.valueOf(target), target instanceof LoomaVariableDeclaration);
+        assertEquals("v", ((LoomaVariableDeclaration) target).getName());
+        List<String> declared = PsiTreeUtil.findChildrenOfType(myFixture.getFile(), LoomaVariableDeclaration.class)
+                .stream().map(LoomaVariableDeclaration::getName).toList();
+        assertEquals(List.of("k", "v"), declared);
+    }
+
+    public void testEchoInsideComponentAttributeResolves() {
+        myFixture.configureByText("t.looma.html",
+                "@foreach($posts as $post)<x-card title=\"Post {{ $po<caret>st->title }}\" />@endforeach");
+        PsiElement target = referenceAtCaret().resolve();
+        assertTrue(String.valueOf(target), target instanceof LoomaVariableDeclaration);
     }
 
     public void testIncludeResolvesToTemplate() {

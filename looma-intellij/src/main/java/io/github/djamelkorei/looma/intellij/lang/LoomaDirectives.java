@@ -124,9 +124,11 @@ public final class LoomaDirectives {
                 "Renders the matching <code>@case</code>; stacked cases share a body, <code>@break</code> ends"
                         + " a case."));
         // loops
-        d.add(block("foreach", Syntax.REQUIRED, Map.of(), "endforeach", "@foreach($items as $item) ... @endforeach",
-                "Loops over a collection, array or map (map entries have <code>key</code> and"
-                        + " <code>value</code>). Inside, <code>$loop</code> has index, iteration, count, first,"
+        d.add(block("foreach", Syntax.REQUIRED, Map.of(), "endforeach",
+                "@foreach($items as $item) ... @endforeach, @foreach($map as $key => $value) ... @endforeach",
+                "Loops over a collection, array or map. <code>$key => $value</code> gives map entries, or the"
+                        + " index and item of a list; a map iterated as one variable has <code>key</code> and"
+                        + " <code>value</code>. Inside, <code>$loop</code> has index, iteration, count, first,"
                         + " last, odd, even, remaining, parent and depth."));
         d.add(block("forelse", Syntax.REQUIRED, Map.of("empty", Syntax.OPTIONAL), "endforelse",
                 "@forelse($items as $item) ... @empty ... @endforelse",
