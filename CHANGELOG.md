@@ -25,3 +25,9 @@ First version.
 - Rendering is about 1.8× faster (fast path for simple expressions, fewer allocations).
 - Template helpers: `{{ String.format(...) }}`, `String.join`, `Math.max`... built in, and your own via
   `TemplateHelper` beans. Class access through `T(...)` stays blocked.
+- Form binding (`@bind`, `@field`, `@name`, `@value`, `@checkbox`, `@radio`, `@option`) backed by Spring's
+  `BindingResult`; boolean attributes (`@checked`, `@selected`, `@disabled`, `@readonly`, `@required`);
+  conditional includes (`@includeIf`, `@includeWhen`, `@includeUnless`, `@includeFirst`, `@each`).
+- Permissions: `@can`, `@cannot`, `@canany` (Spring Security authorities and `PermissionEvaluator`, fail closed).
+- Helpers: `Number`, `Date`, `List` and many more `String` functions, formatted for the visitor's locale; opt-in
+  Spring bean access with `@bean.method()` (`@TemplateAccessible`, `looma.beans.*`).

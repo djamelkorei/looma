@@ -30,7 +30,7 @@ Versions compared: Looma 0.1.0, Thymeleaf 3.1 (with Spring integration), Laravel
 | Inline expressions in text | ✅ `[[...]]` / `[(...)]` | ✅ | ✅ |
 | Comments not sent to the browser | ✅ `<!--/* */-->` | ✅ `{{-- --}}` | ✅ `{{-- --}}` |
 | Expression language | OGNL, or SpEL with Spring | Unrestricted (any code) | SpEL subset (`$x->y`, `??` supported) |
-| Utility functions | ✅ `#strings`, `#numbers`, `#temporals`, `#lists`... | ✅ any function | ⚠️ `String` and `Math` helpers, plus your own [helpers](extending.md#template-helpers); no date/number formatting helpers yet |
+| Utility functions | ✅ `#strings`, `#numbers`, `#temporals`, `#lists`... | ✅ any function | ✅ `String`, `Number`, `Date`, `List`, `Math` helpers, locale-aware, with extras Thymeleaf lacks: relative dates, compact numbers, file sizes, `chunk`, `groupBy`, `slug`, `plural` |
 | JSON safe for `<script>` | ✅ JavaScript inlining | ✅ `@json` / `@js` | ✅ `@json` |
 | Text/JS/CSS/XML template modes | ✅ | ⚠️ any text, HTML escaping only | ⚠️ any text, HTML escaping only |
 
@@ -53,7 +53,7 @@ Versions compared: Looma 0.1.0, Thymeleaf 3.1 (with Spring integration), Laravel
 | Layout inheritance | ⚠️ Layout Dialect (third-party) or fragments | ✅ `@extends` / `@section` / `@yield` | ✅ `@extends` / `@section` / `@yield` |
 | Append to the parent's section | ⚠️ Layout Dialect | ✅ `@parent` | ✅ `@parent` |
 | Includes / partials | ✅ `th:insert` / `th:replace` | ✅ | ✅ |
-| Conditional includes | ⚠️ with `th:if` | ✅ `@includeIf` / `When` / `First`, `@each` | ❌ (use `@if` around `@include`) |
+| Conditional includes | ⚠️ with `th:if` | ✅ `@includeIf` / `When` / `First`, `@each` | ✅ `@includeIf` / `When` / `Unless` / `First`, `@each` |
 | Components with attributes | ⚠️ parameterised fragments | ✅ class and anonymous components | ✅ anonymous components (`<x-alert>`) |
 | Named slots | ⚠️ fragment expressions `~{}` | ✅ | ✅ `<x-slot:title>` |
 | Attribute bag (`merge`, `except`) | ❌ | ✅ | ✅ |
@@ -69,10 +69,10 @@ Versions compared: Looma 0.1.0, Thymeleaf 3.1 (with Spring integration), Laravel
 | CSRF token | ✅ automatic in `th:action` forms | ✅ `@csrf` | ✅ `@csrf` (works with Spring Security) |
 | PUT / PATCH / DELETE forms | ✅ `th:method` | ✅ `@method` | ✅ `@method` |
 | Validation error messages | ✅ `#fields.hasErrors`, `th:errors` | ✅ `@error` | ✅ `@error` (from `@Valid` `BindingResult`) |
-| Form field binding (name, value, checked from the object) | ✅ `th:object` + `th:field` | ⚠️ `old()` | ❌ write `name` / `value` yourself |
-| Conditional boolean attributes | ✅ `th:checked`, `th:selected`... | ✅ `@checked`, `@selected`, `@disabled`... | ❌ (use `@if` or the attribute bag) |
+| Form field binding (name, value, checked from the object) | ✅ `th:object` + `th:field` | ⚠️ `old()` | ✅ `@bind` + `@field`, `@checkbox`, `@radio`, `@option`; shows rejected input after a failed submit |
+| Conditional boolean attributes | ✅ `th:checked`, `th:selected`... | ✅ `@checked`, `@selected`, `@disabled`... | ✅ `@checked`, `@selected`, `@disabled`, `@readonly`, `@required` |
 | Conditional classes / styles | ✅ `th:classappend`, `th:styleappend` | ✅ `@class` / `@style` | ✅ `@class` / `@style` |
-| Signed-in / role checks | ✅ `sec:authorize` (Spring Security extras) | ✅ `@auth`, `@can` (policies) | ⚠️ `@auth`, `@auth('ROLE')`, `@guest`; no permission expressions |
+| Signed-in, role and permission checks | ✅ `sec:authorize` (Spring Security extras) | ✅ `@auth`, `@can` (policies) | ✅ `@auth('ROLE')`, `@can('authority')`, `@can('edit', $post)` via `PermissionEvaluator`, `@canany`; fail closed |
 | Translations | ✅ `#{key}` | ✅ `@lang` / `__()` | ✅ `@lang` (Spring `MessageSource`, request locale) |
 
 ## Safety and reliability
@@ -94,7 +94,7 @@ Versions compared: Looma 0.1.0, Thymeleaf 3.1 (with Spring integration), Laravel
 | Spring Boot starter | ✅ official | ❌ | ✅ |
 | Usable without Spring | ✅ | n/a (Laravel) | ✅ `looma-core` |
 | Custom tags / directives | ⚠️ dialects and processors (powerful, verbose) | ✅ `Blade::directive`, `Blade::if` | ✅ one class per directive, auto-registered as a Spring bean |
-| Expose your own functions | ✅ custom expression objects | ✅ any function | ✅ `TemplateHelper` beans |
+| Call Spring beans / your own functions | ✅ `${@bean...}` (every bean), custom expression objects | ✅ any function | ✅ `@bean.method()` (opt-in: `@TemplateAccessible`), `TemplateHelper` beans |
 | Live reload in development | ✅ cache off + DevTools | ✅ recompiles on change | ✅ `looma.template-dir` |
 | Template caching | ✅ | ✅ compiled and cached | ✅ parsed once, thread-safe |
 | IDE support | ✅ IntelliJ Ultimate, VS Code | ✅ JetBrains IDEs, VS Code | ⚠️ IntelliJ plugin in development |
@@ -112,16 +112,18 @@ Blade is not a Java engine, so it is not part of this measurement.
 
 ## When to choose which
 
-**Choose Thymeleaf** if designers edit templates as static HTML (natural templates), you rely on `th:field`
-form binding or htmx fragment rendering, or you need a mature engine with a long track record and wide IDE support.
+**Choose Thymeleaf** if designers edit templates as static HTML (natural templates), you rely on htmx fragment
+rendering or raw `sec:authorize` expressions, or you need a mature engine with a long track record and wide IDE
+support.
 
-**Choose Looma** if your team prefers Blade-style templates on Spring, you want layouts, components, slots and
-stacks without add-ons, a stricter sandbox, startup validation and speed, and you are comfortable adopting a
-new 0.x project.
+**Choose Looma** if your team prefers Blade-style templates on Spring, you want layouts, components, slots, stacks
+and Spring-aware form binding without add-ons, richer formatting helpers, a stricter sandbox (bean access is opt-in),
+startup validation and speed, and you are comfortable adopting a new 0.x project.
 
 **Blade** is the right choice only inside Laravel; Looma exists for people who like Blade and work on the JVM.
 
 ## Gaps Looma may close next
 
-Conditional includes (`@includeIf` / `@includeWhen` / `@each`), `@props` with defaults, `@checked` /
-`@selected` / `@disabled`, fragment rendering for htmx, date and number formatting helpers, and form field binding.
+`@props` with defaults for components, fragment rendering for htmx, `@empty($x)`, and localized relative dates.
+Two differences are deliberate: no natural templates (that is what lets templates read like text), and no raw
+`sec:authorize`-style security expressions (they would run outside the sandbox).

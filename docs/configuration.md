@@ -20,9 +20,31 @@ as `*.looma.html`, and return the view name from a controller:
 | `looma.template-dir` | unset | load templates from this folder on disk (live reload, no rebuild) |
 | `looma.check-templates` | `true` | parse all templates at startup and fail on syntax errors |
 | `looma.content-type` | `text/html;charset=UTF-8` | |
+| `looma.beans.access` | `annotated` | which Spring beans templates may call as `@name`: `none`, `annotated`, `all` |
+| `looma.beans.allowed` | empty | extra bean names templates may call (e.g. library beans you cannot annotate) |
 
 View names use dots or slashes for folders: `admin.users` -> `templates/admin/users.looma.html`.
 Unknown views fall through to other `ViewResolver`s.
+
+## Spring beans in templates
+
+`{{ @priceService.format($total) }}` calls a Spring bean, like Thymeleaf's `${@priceService.format(total)}`.
+Unlike Thymeleaf, not every bean is reachable by default:
+
+```java
+@Service
+@TemplateAccessible          // io.github.djamelkorei.looma.spi.TemplateAccessible
+public class PriceService { public String format(BigDecimal amount) { ... } }
+```
+
+```properties
+looma.beans.allowed=urlHelper,featureFlags   # beans you cannot annotate
+looma.beans.access=all                       # every bean, like Thymeleaf (not recommended)
+looma.beans.access=none                      # no bean access at all
+```
+
+A template that names a bean it may not use fails with a message saying how to allow it. Calls still go through
+the sandbox (no `getClass()`, reflection, etc.).
 
 ## Live reload in development
 

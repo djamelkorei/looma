@@ -92,11 +92,17 @@ Expressions are SpEL with Blade conveniences: `$post->title`, `$post.title` and 
 ```html
 <form method="post" action="/signup">
     @csrf
-    <input name="email" value="{{ $form.email }}" @class({'invalid': $errors.containsKey('email')})>
-    @error('email')<small class="error">{{ $message }}</small>@enderror
+    @bind('form')
+        <input type="email" @field('email') @class({'invalid': $errors.containsKey('email')})>
+        @error('email')<small class="error">{{ $message }}</small>@enderror
+    @endbind
     <button>Create account</button>
 </form>
 ```
+
+`@bind('form')` + `@field('email')` writes `id`, `name` and `value` from the `form` object. After a failed submit
+the field shows what the user typed, as with Thymeleaf's `th:field`. See [form binding](syntax.md#form-binding)
+for checkboxes, radios and selects.
 
 ```java
 @PostMapping("/signup")
