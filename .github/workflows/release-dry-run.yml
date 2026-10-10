@@ -1,0 +1,40 @@
+name: Release dry run
+
+# Builds and signs the Maven Central bundle exactly like the Release workflow, but never uploads it:
+# the bundle is attached to the run as an artifact so it can be inspected (or validated by hand).
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Version to build the bundle as
+        default: 0.0.0-dryrun
+
+permissions:
+  contents: read
+
+jobs:
+  bundle:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: 21
+          cache: maven
+      - name: Set version
+        run: mvn -B -q versions:set -DnewVersion="${{ inputs.version }}" -DgenerateBackupPoms=false
+      - name: Build, sign and bundle (upload refused on purpose)
+        # Dummy credentials: the plugin builds the bundle, then Central rejects the upload with 401.
+        run: |
+          printf '<settings><servers><server><id>central</id><username>dry-run</username><password>dry-run</password></server></servers></settings>' > dry-run-settings.xml
+          mvn -B -s dry-run-settings.xml -Prelease,central deploy -DskipTests || true
+          mvn -v
+          test -f target/central-publishing/central-bundle.zip
+        env:
+          MAVEN_GPG_KEY: ${{ secrets.MAVEN_GPG_KEY }}
+          MAVEN_GPG_PASSPHRASE: ${{ secrets.MAVEN_GPG_PASSPHRASE }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: central-bundle
+          path: target/central-publishing/central-bundle.zip
