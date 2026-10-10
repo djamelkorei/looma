@@ -36,7 +36,10 @@ public interface RenderContext {
     /** A new scope that sees this one's variables; assignments stay local. */
     RenderContext child();
 
-    /** A new scope that sees nothing from this one (used by components). */
+    /**
+     * A new scope that sees nothing from this one except the request-level variables ({@code errors},
+     * {@code principal}, {@code request} and {@code _}-prefixed names such as {@code _csrf}); used by components.
+     */
     RenderContext isolated();
 
     // --- output

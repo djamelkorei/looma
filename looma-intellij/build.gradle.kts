@@ -59,3 +59,8 @@ intellijPlatform {
         }
     }
 }
+
+// ./gradlew runIde -PrunIdeArgs=/path/to/project opens that project in the sandbox IDE.
+tasks.named<org.jetbrains.intellij.platform.gradle.tasks.RunIdeTask>("runIde") {
+    providers.gradleProperty("runIdeArgs").orNull?.let { args = listOf(it) }
+}

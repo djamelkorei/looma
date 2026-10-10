@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+- Components now see the request-level variables (`errors`, `principal`, `request`, `_csrf` and the other
+  `_`-prefixed ones), so `@error`, `@csrf`, `@auth`, `@can`, `@lang` and `@bind` / `@field` work inside
+  `<x-input>`-style form components. Ordinary model variables stay hidden, as before.
+- `{{ }}` interpolates inside plain component attributes: `<x-alert title="Hello {{ $name }}">`.
+- `@foreach($map as $key => $value)` (and `@forelse`); on a list `$key` is the index.
+
 ## 0.1.1 (2026-10-10)
 
 Fixes found by running a realistic application (Spring Security, validation, a deliberately complex dashboard)

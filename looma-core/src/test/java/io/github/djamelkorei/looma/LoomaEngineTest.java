@@ -157,6 +157,30 @@ class LoomaEngineTest {
     }
 
     @Test
+    void componentsSeeRequestLevelVariables() {
+        files.put("components.input", "@error($name){{ $message }}@enderror@csrf@auth|A@endauth[{{ $secret ?? 'none' }}]");
+        String out = render("<x-input name=\"email\" />", Map.of("errors", Map.of("email", List.of("bad")),
+                "_csrf", new CsrfToken("_t", "v"), "principal", "me", "secret", "s"));
+        assertEquals("bad<input type=\"hidden\" name=\"_t\" value=\"v\">|A[none]", out);
+    }
+
+    @Test
+    void componentAttributesInterpolate() {
+        files.put("components.tag", "{{ $title }}|{{ $n }}|{{ $items.size() }}");
+        String t = "<x-tag title=\"it's {{ $name }} ({{ $items.size() }})\" n=\"{{ $missing }}\" items=\"{{ $items }}\" />";
+        assertEquals("it&#39;s &lt;Ann&gt; (2)||2", render(t, Map.of("name", "<Ann>", "items", List.of(1, 2))));
+        LoomaException e = assertThrows(LoomaException.class, () -> render("<x-tag title=\"{{ $x\" />", Map.of()));
+        assertTrue(e.getMessage().contains("Unclosed '{{'"), e.getMessage());
+    }
+
+    @Test
+    void foreachKeyValue() {
+        assertEquals("a=1,", render("@foreach($m as $k => $v){{ $k }}={{ $v }},@endforeach", Map.of("m", Map.of("a", 1))));
+        assertEquals("0:x,1:y,", render("@foreach($xs as $i => $x){{ $i }}:{{ $x }},@endforeach", Map.of("xs", List.of("x", "y"))));
+        assertEquals("none", render("@forelse($xs as $i => $x){{ $i }}@empty none@endforelse", Map.of("xs", List.of())).trim());
+    }
+
+    @Test
     void csrfAndMethodSpoofing() {
         assertEquals("<input type=\"hidden\" name=\"_token\" value=\"a&quot;b\">",
                 render("@csrf", Map.of("_csrf", new CsrfToken("_token", "a\"b"))));

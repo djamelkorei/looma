@@ -35,6 +35,8 @@ public final class RenderSession {
     private int depth;
 
     private final Scope globals;
+    /** What a component sees besides its own attributes: the helpers plus the request-level model variables. */
+    private Scope ambient;
     private final java.util.function.Predicate<String> exists;
 
     public RenderSession(Function<String, Template> templates) {
@@ -77,8 +79,29 @@ public final class RenderSession {
 
     public String render(Template template, Map<String, ?> model) {
         Scope scope = new Scope(globals, model); // reads the model in place, no copy; helpers come after it
+        ambient = ambient(model);
         renderTemplate(template, scope);
         return finish(out.toString());
+    }
+
+    /**
+     * Variables that belong to the request rather than to one page, so a component can use {@code @error},
+     * {@code @csrf}, {@code @auth}, {@code @can}, {@code @lang} and form binding like any other template:
+     * {@code errors}, {@code principal}, {@code request} and every {@code _}-prefixed name the starter adds.
+     */
+    static boolean isAmbient(String name) {
+        return name.startsWith("_") || name.equals("errors") || name.equals("principal") || name.equals("request");
+    }
+
+    private Scope ambient(Map<String, ?> model) {
+        Map<String, Object> shared = null;
+        for (Map.Entry<String, ?> e : model.entrySet()) {
+            if (isAmbient(e.getKey())) {
+                if (shared == null) shared = new HashMap<>();
+                shared.put(e.getKey(), e.getValue());
+            }
+        }
+        return shared == null ? globals : new Scope(globals, shared);
     }
 
     private void renderTemplate(Template t, Scope scope) {
@@ -126,7 +149,7 @@ public final class RenderSession {
         @Override public void set(String variable, Object value) { scope.put(variable, value); }
         @Override public void setAll(Map<?, ?> variables) { scope.putAll(variables); }
         @Override public RenderContext child() { return new Ctx(new Scope(scope), templateName); }
-        @Override public RenderContext isolated() { return new Ctx(new Scope(globals), templateName); } // helpers only
+        @Override public RenderContext isolated() { return new Ctx(new Scope(ambient != null ? ambient : globals), templateName); }
 
         @Override public void write(CharSequence text) { out.append(text); }
 

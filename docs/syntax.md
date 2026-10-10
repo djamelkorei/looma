@@ -12,7 +12,7 @@ Every directive in one place. The built-in ones are ordinary classes in `looma-c
 | `{{-- comment --}}`, `@{{ x }}`, `@@` | comment, literal braces, literal `@` |
 | `@if @elseif @else @endif`, `@unless`, `@isset`, `@empty($x)` | conditionals; `@unless` and `@empty` use the same truthiness as `@if` (null, false, 0, `""` and empty collections are empty) |
 | `@switch($x) @case(1) ... @break @default ... @endswitch` | switch (stacked `@case`s share a body) |
-| `@foreach($xs as $x)`, `@forelse ... @empty ... @endforelse` | loops; `$loop->index/iteration/count/first/last/odd/even/remaining/parent/depth`; maps give `$e->key`, `$e->value` |
+| `@foreach($xs as $x)`, `@foreach($map as $k => $v)`, `@forelse ... @empty ... @endforelse` | loops; `$loop->index/iteration/count/first/last/odd/even/remaining/parent/depth`; `$k => $v` gives map entries, or index and item for a list (a map iterated as `$e` has `$e->key`, `$e->value`) |
 | `@for($i = 0; $i < 10; $i++)` ... `@endfor` | counted loop; step is `++`, `--`, `+= n` or `-= n` on the loop variable (`$i` is local to the loop) |
 | `@while($it.hasNext())` ... `@endwhile` | loops while the condition is truthy; the body must change it (e.g. `$it.next()`) |
 | `@break`, `@continue`, `@break($cond)`, `@continue($cond)` | in any loop; `@break` in a `@switch` ends the switch; both are errors outside a loop |
@@ -22,7 +22,7 @@ Every directive in one place. The built-in ones are ordinary classes in `looma-c
 | `@includeFirst({'themes.dark.nav', 'nav'})` | the first template of the list that exists |
 | `@each('partials.row', $orders, 'order', 'partials.empty')` | one include per item (with `$loop`), or the empty view |
 | `@push('js')`, `@prepend`, `@stack('js')` | stacks, usable before the pushes happen |
-| `<x-alert type="info" :count="items.size()">..</x-alert>` | components from `templates/components/` |
+| `<x-alert type="info" :count="items.size()" title="Hi {{ $name }}">..</x-alert>` | components from `templates/components/`; `:attr` is an expression, `{{ }}` interpolates inside a plain attribute |
 | `<x-slot:title>..</x-slot:title>` | named slots; the body is `$slot` |
 | `@props({'type': 'info', 'dismissible': false})` | at the top of a component: defaults for missing props; declared props are removed from `$attributes` |
 | `@fragment('rows') ... @endfragment` | a part of the page that can be rendered alone ([htmx](#partial-updates-htmx)) |
@@ -48,9 +48,10 @@ Expressions are SpEL with Blade conveniences: a leading `$` is optional, `->` is
 `SimpleEvaluationContext`: no `T(...)`, constructors or bean references.
 Map literals use SpEL syntax: `{'key': value}`.
 
-Components run in an isolated scope: they only see their attributes, slots and `$attributes`.
-In the Spring starter every view also gets `request`, `principal` and, when Spring Security's
-CSRF filter is active, `_csrf`. Model attributes with the same names win.
+Components run in an isolated scope: they see their attributes, slots and `$attributes`, plus the request-level
+variables `errors`, `principal`, `request` and the `_`-prefixed ones (`_csrf`, ...), so `@error`, `@csrf`, `@auth`,
+`@can`, `@lang` and form binding work inside a component. In the Spring starter every view gets `request`,
+`principal` and, when Spring Security's CSRF filter is active, `_csrf`. Model attributes with the same names win.
 
 ## Calling Java methods
 

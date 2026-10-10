@@ -190,12 +190,46 @@ public final class Parser {
                         Expressions.parse(value == null ? "true" : value, t.line(), templateName)));
             } else if (value == null) {
                 attrs.add(new ComponentNode.Attr(name, Expressions.parse("true", t.line(), templateName)));
+            } else if (value.contains("{{")) {
+                attrs.add(new ComponentNode.Attr(name, Expressions.parse(interpolate(value, t.line()), t.line(), templateName)));
             } else {
                 attrs.add(new ComponentNode.Attr(name, new Expr(
                         new org.springframework.expression.common.LiteralExpression(value), value, t.line())));
             }
         }
         return attrs;
+    }
+
+    /**
+     * {@code title="Hello {{ $name }}"} as one expression: {@code 'Hello ' + (($name) ?? '')}. A value that is a single
+     * {@code {{ }}} keeps its type, so {@code :items} and {@code items="{{ $items }}"} are the same.
+     */
+    static String interpolate(String value, int line) {
+        StringBuilder sb = new StringBuilder();
+        int i = 0;
+        while (i < value.length()) {
+            int open = value.indexOf("{{", i);
+            if (open < 0) {
+                literal(sb, value.substring(i));
+                break;
+            }
+            int close = value.indexOf("}}", open + 2);
+            if (close < 0) throw new LoomaException("Unclosed '{{' in attribute value: " + value, line, null);
+            String expr = value.substring(open + 2, close).trim();
+            if (expr.isEmpty()) throw new LoomaException("Empty '{{ }}' in attribute value: " + value, line, null);
+            if (open == 0 && close + 2 == value.length()) return expr;
+            literal(sb, value.substring(i, open));
+            if (sb.length() > 0) sb.append(" + ");
+            sb.append("((").append(expr).append(") ?? '')");
+            i = close + 2;
+        }
+        return sb.toString();
+    }
+
+    private static void literal(StringBuilder sb, String text) {
+        if (text.isEmpty()) return;
+        if (sb.length() > 0) sb.append(" + ");
+        sb.append('\'').append(text.replace("'", "''")).append('\'');
     }
 
     /** The {@link ParseContext} handed to a directive for one opening tag. */
