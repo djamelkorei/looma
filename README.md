@@ -1,42 +1,32 @@
 # Looma
 
-A Blade-style template engine for Spring Boot.
+[![CI](https://github.com/djamelkorei/looma/actions/workflows/ci.yml/badge.svg)](https://github.com/djamelkorei/looma/actions/workflows/ci.yml)
+[![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
 
-**New here?** → [Getting started](GETTING_STARTED.md) · [Architecture & custom directives](ARCHITECTURE.md) · [Benchmarks](BENCHMARKS.md)
+**Blade-style templates for Spring Boot.** Write HTML with `{{ }}` and `@directives`, and get layouts, components,
+validation errors and CSRF without ceremony.
 
-```
-looma-core                  parser, AST, renderer (depends only on spring-expression)
-looma-spring-boot-starter   auto-configured engine + ViewResolver
-looma-demo                  sample app
+📖 **Documentation: <https://djamelkorei.github.io/looma/>**
+
+```html
+@extends('layouts.app')
+
+@section('content')
+    <h1>Hello, {{ $user.name }}!</h1>
+
+    @forelse($posts as $post)
+        <li @class({'first': $loop->first})>{{ $post.title }}</li>
+    @empty
+        <li>No posts yet</li>
+    @endforelse
+
+    <x-alert type="info">Saved!</x-alert>
+@endsection
 ```
 
 ## Install
 
-Looma is published to GitHub Packages, which requires a token even to download. Create a
-[personal access token](https://github.com/settings/tokens) with `read:packages` and add it to `~/.m2/settings.xml`:
-
 ```xml
-<settings>
-  <servers>
-    <server>
-      <id>github</id>
-      <username>YOUR_GITHUB_USERNAME</username>
-      <password>YOUR_TOKEN</password>
-    </server>
-  </servers>
-</settings>
-```
-
-Then in your project:
-
-```xml
-<repositories>
-  <repository>
-    <id>github</id>
-    <url>https://maven.pkg.github.com/djamelkorei/looma</url>
-  </repository>
-</repositories>
-
 <dependency>
   <groupId>io.github.djamelkorei</groupId>
   <artifactId>looma-spring-boot-starter</artifactId>
@@ -44,144 +34,34 @@ Then in your project:
 </dependency>
 ```
 
-Releasing (maintainers): create a GitHub release tagged `v0.1.0`; the *Publish* workflow sets the version
-from the tag and deploys.
+Needs Java 21+ and Spring Boot 3.3+. Put templates in `src/main/resources/templates/` as `*.looma.html` and return
+the view name from a controller. Version `0.1.0` is not published yet, so until then build from source
+(`mvn install`); see [Installation](https://djamelkorei.github.io/looma/installation/) for GitHub Packages.
 
-## Use it
+## Why Looma
 
-Add `looma-spring-boot-starter`, put templates in `src/main/resources/templates/`
-as `*.looma.html`, and return the view name from a controller:
+* **Familiar**: if you know Laravel Blade, you know the syntax.
+* **Safe by default**: escaped output, a sandboxed expression language, bounded loops, and a startup check that
+  fails the app (with file and line) if any template is broken or points at a missing one.
+* **Easy to extend**: every directive is one small class behind a public API; yours are plain Spring beans.
+* **Fast**: about 2.3× faster than Thymeleaf and level with Pebble on the same page ([benchmarks](https://djamelkorei.github.io/looma/benchmarks/)).
+* **Tested widely**: Java 21 and 25 × Spring Boot 3.3, 3.4, 3.5 and 4.0, including Spring Security, on every push.
 
-```java
-@GetMapping("/") String home(Model m) { m.addAttribute("user", "Ada"); return "home"; }
-```
+## Learn more
 
-| Property | Default | |
-|---|---|---|
-| `looma.prefix` | `templates/` | classpath folder |
-| `looma.suffix` | `.looma.html` | appended to the view name |
-| `looma.cache` | `true` (`false` if `template-dir` is set) | parsed-template cache |
-| `looma.template-dir` | unset | load templates from this folder on disk (live reload, no rebuild) |
-| `looma.check-templates` | `true` | parse all templates at startup and fail on syntax errors |
-| `looma.content-type` | `text/html;charset=UTF-8` | |
-
-View names use dots or slashes for folders: `admin.users` -> `templates/admin/users.looma.html`.
-Unknown views fall through to other `ViewResolver`s.
-
-## Syntax
-
-| | |
-|---|---|
-| `{{ $x }}` / `{!! $x !!}` | escaped / raw output |
-| `{{-- comment --}}`, `@{{ x }}`, `@@` | comment, literal braces, literal `@` |
-| `@if @elseif @else @endif`, `@unless`, `@isset` | conditionals |
-| `@switch($x) @case(1) ... @break @default ... @endswitch` | switch (stacked `@case`s share a body) |
-| `@foreach($xs as $x)`, `@forelse ... @empty ... @endforelse` | loops; `$loop->index/iteration/count/first/last/odd/even/remaining/parent/depth`; maps give `$e->key`, `$e->value` |
-| `@for($i = 0; $i < 10; $i++)` ... `@endfor` | counted loop; step is `++`, `--`, `+= n` or `-= n` on the loop variable (`$i` is local to the loop) |
-| `@while($it.hasNext())` ... `@endwhile` | loops while the condition is truthy; the body must change it (e.g. `$it.next()`) |
-| `@break`, `@continue`, `@break($cond)`, `@continue($cond)` | in any loop; `@break` in a `@switch` ends the switch; both are errors outside a loop |
-| `@extends('layouts.app')`, `@section`, `@yield('x', 'default')`, `@parent`, `@show` | layouts |
-| `@include('partials.nav', {'n': 1})` | partials, inheriting the current scope |
-| `@push('js')`, `@prepend`, `@stack('js')` | stacks, usable before the pushes happen |
-| `<x-alert type="info" :count="items.size()">..</x-alert>` | components from `templates/components/` |
-| `<x-slot:title>..</x-slot:title>` | named slots; the body is `$slot` |
-| `{{ $attributes->except('type')->merge({'class': 'a'}) }}` | attribute bag |
-| `@csrf`, `@method('PUT')` | hidden inputs |
-| `@auth ... @endauth`, `@guest` | signed in / not signed in (based on `principal`) |
-| `@auth('ADMIN')`, `@auth('ADMIN', 'EDITOR')` | signed in **and** in one of the roles (`request.isUserInRole`; with Spring Security a role `ADMIN` matches authority `ROLE_ADMIN`) |
-| `@error('email') {{ $message }} @enderror` | shown only if the field has a validation error; `$message` is the first, `$messages` all. Filled from `@Valid` `BindingResult`s via your `MessageSource`; global errors are under `_global`; `$errors` is the whole map |
-| `<li @class('nav', {'active': $on})>` | builds `class="nav active"`; strings always, map keys when truthy, lists flattened; omitted if empty |
-| `<p @style('margin: 0', {'color: red': $err})>` | same for `style="margin: 0; color: red;"` |
-| `@once ... @endonce` | renders only the first time per page, even inside loops and components (e.g. a component's `<style>`) |
-| `@json($data)` | JSON safe inside `<script>` (`< > & '` are escaped); in an attribute use single quotes: `data-x='@json($x)'` |
-| `@verbatim ... @endverbatim` | no processing |
-
-Expressions are SpEL with Blade conveniences: a leading `$` is optional, `->` is `.`,
-`??` is the Elvis operator, and `&&`, `||`, `!` work. PHP-style truthiness applies to
-`@if` (null, `0`, `""` and empty collections are false). Templates run in SpEL's
-`SimpleEvaluationContext`: no `T(...)`, constructors or bean references.
-Map literals use SpEL syntax: `{'key': value}`.
-
-Components run in an isolated scope: they only see their attributes, slots and `$attributes`.
-In the Spring starter every view also gets `request`, `principal` and, when Spring Security's
-CSRF filter is active, `_csrf`. Model attributes with the same names win.
-
-## Extending: your own directives
-
-A directive is one class. Declare it as a Spring bean (or pass it to `LoomaEngine.builder(...)`):
-
-```java
-@Component
-public class MoneyDirective implements Directive {
-    public String name() { return "money"; }
-    public Node parse(ParseContext p) {
-        Expr amount = p.expr();
-        return ctx -> ctx.writeEscaped(String.format("%.2f €", ((Number) ctx.eval(amount)).doubleValue()));
-    }
-}
-```
-```blade
-Total: @money($order.total)
-```
-
-The built-in directives are written the same way (see `looma-core/.../directive`). The full guide, including
-block directives, is in [ARCHITECTURE.md](ARCHITECTURE.md).
-
-## Live reload in development
-
-```properties
-looma.template-dir=src/main/resources/templates
-```
-
-Templates are read from that folder on every request (caching switches off automatically), so you edit a
-`.looma.html` file and refresh the browser, with no rebuild or restart. Leave the property unset in production
-to load from the classpath with caching on.
-
-## Fail fast
-
-`looma.check-templates` (default `true`) parses every template at startup and fails the boot with **all**
-syntax errors at once, naming template and line, for example
-`In template 'orders' at line 12: Unclosed block: @foreach is never closed`. It also reports literal
-`@include('x')`, `@extends('x')` and `<x-x>` references to templates that do not exist. Use it in CI too: a context
-test that boots the app catches a broken template before it ships. Programmatic access: `engine.check(names)`.
-
-## Security model
-
-- `{{ }}` and `@lang` HTML-escape; only `{!! !!}`, component slots and `$attributes` emit markup as-is.
-  Never put untrusted input in `{!! !!}`.
-- Templates are **trusted code** written by developers, not by end users. The expression sandbox
-  is defense in depth (no `T()`, `new`, bean references, `class`/`getClass()`, or calls on
-  `Class`/`ClassLoader`/`Method`/`Runtime`/`Process`); it is not meant for running user-submitted templates.
-- Do not build `@include` / `@extends` / `<x-...>` names from request input.
-- Template names are validated (`[A-Za-z0-9_-./]`, no `..`), so view names cannot escape the template folder.
-- Rendering is buffered, so an error produces a normal error response instead of half a page.
-
-## Operations
-
-- Parsed templates are immutable and cached per `LoomaEngine` (thread-safe); keep `looma.cache=true` in production.
-- Errors are `LoomaException`s naming the template and line, e.g. `In template 'home' at line 12: ...`.
-- `@include`/`@extends`/components may nest 100 deep before failing, which stops accidental recursion.
-- `@for`/`@while` stop with an error after 100,000 passes, so a condition that never turns false cannot hang a request.
-- `looma.*` properties have IDE auto-completion through the generated configuration metadata.
-
-## Compatibility
-
-The full suite (including Spring Security) runs in CI on every push for each of these:
-
-| | Spring Boot 3.3 | 3.4 | 3.5 | 4.0 |
-|---|---|---|---|---|
-| **Java 21** | ✅ | ✅ | ✅ | ✅ |
-| **Java 25** | ✅ | ✅ | ✅ | ✅ |
-
-Spring Boot 4.1 was also run (Java 21) before release but is not in the CI matrix. Java 17 is not supported
-(the engine uses Java 21 features).
+[Getting started](https://djamelkorei.github.io/looma/getting-started/) ·
+[Template syntax](https://djamelkorei.github.io/looma/syntax/) ·
+[Configuration](https://djamelkorei.github.io/looma/configuration/) ·
+[Extending & architecture](https://djamelkorei.github.io/looma/extending/) ·
+[Security](https://djamelkorei.github.io/looma/security/) ·
+[Changelog](CHANGELOG.md)
 
 ## Build
 
-    mvn verify            # Java 21+, Maven 3.9+
-    mvn -Prelease verify  # also builds sources and javadoc jars
-
-Publishing (group id, repository, signing) is not configured; set that up for your registry before releasing.
+```
+mvn verify            # Java 21+, Maven 3.9+
+mvn -Prelease verify  # also builds sources and javadoc jars
+```
 
 ## License
 
