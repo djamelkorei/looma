@@ -32,7 +32,7 @@ dependencies {
     testImplementation("junit:junit:4.13.2")
     // The engine's compiled classes (mvn -pl looma-core compile), to check the directive table against them.
     testRuntimeOnly(files("../looma-core/target/classes"))
-    testRuntimeOnly("org.springframework:spring-expression:6.2.19")
+    testRuntimeOnly("org.springframework:spring-expression:7.0.9")
     testImplementation("org.opentest4j:opentest4j:1.3.0")
 }
 
