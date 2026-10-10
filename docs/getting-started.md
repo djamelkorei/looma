@@ -126,7 +126,8 @@ With Spring Security, `@csrf` renders the token the filter expects (tested in `l
 <x-alert type="info" class="mb-4">Saved!</x-alert>
 ```
 
-Components see only what you pass them. Named slots: `<x-slot:title>…</x-slot:title>` becomes `$title`.
+Declare a component's props and their defaults at its top with `@props({'type': 'info'})`; declared props are
+removed from `$attributes`, so only real HTML attributes are written. Components see only what you pass them. Named slots: `<x-slot:title>…</x-slot:title>` becomes `$title`.
 
 ## 7. Your own directive
 

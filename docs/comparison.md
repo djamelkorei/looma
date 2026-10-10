@@ -39,7 +39,7 @@ Versions compared: Looma 0.1.0, Thymeleaf 3.1 (with Spring integration), Laravel
 | Feature | Thymeleaf | Blade | Looma |
 |---|---|---|---|
 | if / else-if / else, unless | ✅ (`th:if`, `th:unless`; no else-if) | ✅ | ✅ |
-| isset / empty checks | ⚠️ via expressions | ✅ `@isset` `@empty` | ✅ `@isset` (no `@empty($x)`) |
+| isset / empty checks | ⚠️ via expressions | ✅ `@isset` `@empty` | ✅ `@isset` `@empty` |
 | switch | ✅ `th:switch` | ✅ | ✅ |
 | for-each with loop variable | ✅ status: index, count, first, last, even, odd | ✅ `$loop` incl. depth, parent | ✅ `$loop` incl. depth, parent |
 | Empty-list fallback | ⚠️ separate `th:if` | ✅ `@forelse` | ✅ `@forelse` |
@@ -57,10 +57,10 @@ Versions compared: Looma 0.1.0, Thymeleaf 3.1 (with Spring integration), Laravel
 | Components with attributes | ⚠️ parameterised fragments | ✅ class and anonymous components | ✅ anonymous components (`<x-alert>`) |
 | Named slots | ⚠️ fragment expressions `~{}` | ✅ | ✅ `<x-slot:title>` |
 | Attribute bag (`merge`, `except`) | ❌ | ✅ | ✅ |
-| Declared props with defaults | ⚠️ fragment parameters | ✅ `@props`, `@aware` | ❌ |
+| Declared props with defaults | ⚠️ fragment parameters | ✅ `@props`, `@aware` | ✅ `@props` (no `@aware`) |
 | Stacks (`@push` into a layout's `<head>`) | ❌ | ✅ (incl. `@pushOnce`) | ✅ `@push` / `@prepend` / `@stack` |
 | Render once per page | ❌ | ✅ `@once` | ✅ `@once` |
-| Render only a fragment (htmx-style partial updates) | ✅ `view :: fragment` | ✅ `@fragment` | ❌ |
+| Render only a fragment (htmx-style partial updates) | ✅ `view :: fragment` | ✅ `@fragment` | ✅ `@fragment`, view name `view :: fragment` |
 
 ## Forms and web
 
@@ -112,9 +112,8 @@ Blade is not a Java engine, so it is not part of this measurement.
 
 ## When to choose which
 
-**Choose Thymeleaf** if designers edit templates as static HTML (natural templates), you rely on htmx fragment
-rendering or raw `sec:authorize` expressions, or you need a mature engine with a long track record and wide IDE
-support.
+**Choose Thymeleaf** if designers edit templates as static HTML (natural templates), you rely on raw
+`sec:authorize` expressions, or you need a mature engine with a long track record and wide IDE support.
 
 **Choose Looma** if your team prefers Blade-style templates on Spring, you want layouts, components, slots, stacks
 and Spring-aware form binding without add-ons, richer formatting helpers, a stricter sandbox (bean access is opt-in),
@@ -122,8 +121,8 @@ startup validation and speed, and you are comfortable adopting a new 0.x project
 
 **Blade** is the right choice only inside Laravel; Looma exists for people who like Blade and work on the JVM.
 
-## Gaps Looma may close next
+## Remaining differences
 
-`@props` with defaults for components, fragment rendering for htmx, `@empty($x)`, and localized relative dates.
-Two differences are deliberate: no natural templates (that is what lets templates read like text), and no raw
-`sec:authorize`-style security expressions (they would run outside the sandbox).
+Small gaps: `@aware` (reading a parent component's props) and localized relative dates (`Date.relative` is in
+English). Two differences are deliberate: no natural templates (that is what lets templates read like text), and no
+raw `sec:authorize`-style security expressions (they would run outside the sandbox).

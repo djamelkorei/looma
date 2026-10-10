@@ -31,3 +31,6 @@ First version.
 - Permissions: `@can`, `@cannot`, `@canany` (Spring Security authorities and `PermissionEvaluator`, fail closed).
 - Helpers: `Number`, `Date`, `List` and many more `String` functions, formatted for the visitor's locale; opt-in
   Spring bean access with `@bean.method()` (`@TemplateAccessible`, `looma.beans.*`).
+- `@empty($x)`, `@props` with defaults for components, and fragment rendering (`@fragment`, view name
+  `"page :: fragment"`, `engine.renderFragment`) for htmx-style partial updates.
+- Fixed: `@unless` failed for non-boolean values (lists, strings); it now uses the same truthiness as `@if`.

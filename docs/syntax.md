@@ -10,7 +10,7 @@ Every directive in one place. The built-in ones are ordinary classes in `looma-c
 |---|---|
 | `{{ $x }}` / `{!! $x !!}` | escaped / raw output |
 | `{{-- comment --}}`, `@{{ x }}`, `@@` | comment, literal braces, literal `@` |
-| `@if @elseif @else @endif`, `@unless`, `@isset` | conditionals |
+| `@if @elseif @else @endif`, `@unless`, `@isset`, `@empty($x)` | conditionals; `@unless` and `@empty` use the same truthiness as `@if` (null, false, 0, `""` and empty collections are empty) |
 | `@switch($x) @case(1) ... @break @default ... @endswitch` | switch (stacked `@case`s share a body) |
 | `@foreach($xs as $x)`, `@forelse ... @empty ... @endforelse` | loops; `$loop->index/iteration/count/first/last/odd/even/remaining/parent/depth`; maps give `$e->key`, `$e->value` |
 | `@for($i = 0; $i < 10; $i++)` ... `@endfor` | counted loop; step is `++`, `--`, `+= n` or `-= n` on the loop variable (`$i` is local to the loop) |
@@ -24,6 +24,8 @@ Every directive in one place. The built-in ones are ordinary classes in `looma-c
 | `@push('js')`, `@prepend`, `@stack('js')` | stacks, usable before the pushes happen |
 | `<x-alert type="info" :count="items.size()">..</x-alert>` | components from `templates/components/` |
 | `<x-slot:title>..</x-slot:title>` | named slots; the body is `$slot` |
+| `@props({'type': 'info', 'dismissible': false})` | at the top of a component: defaults for missing props; declared props are removed from `$attributes` |
+| `@fragment('rows') ... @endfragment` | a part of the page that can be rendered alone ([htmx](#partial-updates-htmx)) |
 | `{{ $attributes->except('type')->merge({'class': 'a'}) }}` | attribute bag |
 | `@csrf`, `@method('PUT')` | hidden inputs |
 | `@checked($c)`, `@selected($c)`, `@disabled($c)`, `@readonly($c)`, `@required($c)` | writes the boolean attribute only when the condition is truthy |
@@ -154,3 +156,29 @@ Checks **fail closed**: anonymous users have no authorities, there is no permiss
 and without Spring Security only servlet roles are checked. Raw security expressions (`sec:authorize="hasRole(...)"`)
 are deliberately not supported: they run in Spring Security's unrestricted expression language, outside Looma's
 sandbox.
+
+## Partial updates (htmx)
+
+Wrap the part of a page you want to refresh in `@fragment`, and render only that part:
+
+```html
+{{-- contacts.looma.html --}}
+@extends('layouts.app')
+@section('content')
+    <input hx-get="/contacts/search" hx-trigger="keyup changed delay:300ms" hx-target="#rows" name="q">
+    <table><tbody id="rows">
+        @fragment('rows')
+            @foreach($contacts as $c)<tr><td>{{ $c.name }}</td></tr>@endforeach
+        @endfragment
+    </tbody></table>
+@endsection
+```
+
+```java
+@GetMapping("/contacts")        String page(Model m)                  { m.addAttribute("contacts", all());     return "contacts"; }
+@GetMapping("/contacts/search") String rows(@RequestParam String q, Model m) { m.addAttribute("contacts", find(q)); return "contacts :: rows"; }
+```
+
+`"contacts :: rows"` (the same syntax as Thymeleaf) returns only the fragment's HTML; in a normal render the markers
+are invisible. The fragment can sit inside a layout section, a loop or an include. Without Spring:
+`engine.renderFragment("contacts", "rows", model)`.
