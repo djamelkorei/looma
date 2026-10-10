@@ -4,12 +4,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
-import java.util.regex.Pattern;
 
 /** Loads templates from the classpath: {@code prefix + name (dots become slashes) + suffix}. */
 public class ClasspathTemplateLoader implements TemplateLoader {
-
-    private static final Pattern VALID_NAME = Pattern.compile("[A-Za-z0-9_\\-./]+");
 
     private final String prefix;
     private final String suffix;
@@ -44,9 +41,7 @@ public class ClasspathTemplateLoader implements TemplateLoader {
     }
 
     private URL locate(String name) {
-        if (name == null || !VALID_NAME.matcher(name).matches() || name.startsWith("/") || name.contains("..")) {
-            return null;
-        }
-        return classLoader.getResource(prefix + name.replace('.', '/') + suffix);
+        String path = TemplateNames.toPath(name);
+        return path == null ? null : classLoader.getResource(prefix + path + suffix);
     }
 }

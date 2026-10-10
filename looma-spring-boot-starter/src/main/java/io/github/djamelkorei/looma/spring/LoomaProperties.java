@@ -11,8 +11,17 @@ public class LoomaProperties {
     /** Suffix appended to the view name. */
     private String suffix = ".looma.html";
 
-    /** Cache parsed templates. Disable during development. */
-    private boolean cache = true;
+    /**
+     * Cache parsed templates. Unset means: on, except when looma.template-dir is set (development), where
+     * it is off so edits show up on the next request.
+     */
+    private Boolean cache;
+
+    /**
+     * Load templates from this folder on disk instead of the classpath, e.g. src/main/resources/templates,
+     * for live reload without rebuilding.
+     */
+    private String templateDir;
 
     /** Content-Type of rendered responses. */
     private String contentType = "text/html;charset=UTF-8";
@@ -27,8 +36,10 @@ public class LoomaProperties {
     public void setPrefix(String prefix) { this.prefix = prefix; }
     public String getSuffix() { return suffix; }
     public void setSuffix(String suffix) { this.suffix = suffix; }
-    public boolean isCache() { return cache; }
-    public void setCache(boolean cache) { this.cache = cache; }
+    public boolean isCache() { return cache != null ? cache : templateDir == null; }
+    public void setCache(Boolean cache) { this.cache = cache; }
+    public String getTemplateDir() { return templateDir; }
+    public void setTemplateDir(String templateDir) { this.templateDir = templateDir; }
     public String getContentType() { return contentType; }
     public void setContentType(String contentType) { this.contentType = contentType; }
 }

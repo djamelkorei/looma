@@ -3,6 +3,9 @@ package io.github.djamelkorei.looma.spring;
 import io.github.djamelkorei.looma.LoomaEngine;
 import io.github.djamelkorei.looma.LoomaException;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.stream.Stream;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -19,8 +22,10 @@ public class LoomaTemplateChecker implements SmartInitializingSingleton {
     private final LoomaEngine engine;
     private final String prefix;
     private final String suffix;
+    private final String templateDir;
 
-    public LoomaTemplateChecker(LoomaEngine engine, String prefix, String suffix) {
+    public LoomaTemplateChecker(LoomaEngine engine, String prefix, String suffix, String templateDir) {
+        this.templateDir = templateDir;
         this.engine = engine;
         this.prefix = prefix.isEmpty() || prefix.endsWith("/") ? prefix : prefix + "/";
         this.suffix = suffix;
@@ -39,6 +44,18 @@ public class LoomaTemplateChecker implements SmartInitializingSingleton {
     /** Logical names (as used by controllers) of all templates found under the prefix. */
     List<String> templateNames() {
         List<String> names = new ArrayList<>();
+        if (templateDir != null) {
+            Path root = Path.of(templateDir).toAbsolutePath().normalize();
+            try (Stream<Path> files = Files.walk(root)) {
+                files.filter(f -> f.toString().endsWith(suffix)).forEach(f -> {
+                    String relative = root.relativize(f).toString().replace(java.io.File.separatorChar, '/');
+                    names.add(relative.substring(0, relative.length() - suffix.length()));
+                });
+            } catch (IOException e) {
+                throw new IllegalStateException("Cannot list Looma templates under " + root, e);
+            }
+            return names;
+        }
         try {
             for (Resource r : new PathMatchingResourcePatternResolver()
                     .getResources("classpath*:" + prefix + "**/*" + suffix)) {

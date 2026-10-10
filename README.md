@@ -58,7 +58,8 @@ as `*.looma.html`, and return the view name from a controller:
 |---|---|---|
 | `looma.prefix` | `templates/` | classpath folder |
 | `looma.suffix` | `.looma.html` | appended to the view name |
-| `looma.cache` | `true` | set `false` in development |
+| `looma.cache` | `true` (`false` if `template-dir` is set) | parsed-template cache |
+| `looma.template-dir` | unset | load templates from this folder on disk (live reload, no rebuild) |
 | `looma.check-templates` | `true` | parse all templates at startup and fail on syntax errors |
 | `looma.content-type` | `text/html;charset=UTF-8` | |
 
@@ -117,6 +118,16 @@ Total: @money($order.total)
 
 The built-in directives are written the same way (see `looma-core/.../directive`). The full guide, including
 block directives, is in [ARCHITECTURE.md](ARCHITECTURE.md).
+
+## Live reload in development
+
+```properties
+looma.template-dir=src/main/resources/templates
+```
+
+Templates are read from that folder on every request (caching switches off automatically), so you edit a
+`.looma.html` file and refresh the browser, with no rebuild or restart. Leave the property unset in production
+to load from the classpath with caching on.
 
 ## Fail fast
 

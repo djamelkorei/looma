@@ -152,4 +152,34 @@ class LoomaAutoConfigurationTests {
                     .contains("In template 'page' at line 2: References missing template 'does.not.exist'");
         });
     }
+
+    @Test
+    void templateDirLoadsFromDiskAndReloadsWithoutCaching(@org.junit.jupiter.api.io.TempDir java.nio.file.Path dir)
+            throws Exception {
+        java.nio.file.Path file = dir.resolve("live.looma.html");
+        java.nio.file.Files.writeString(file, "one");
+        web.withPropertyValues("looma.template-dir=" + dir).run(ctx -> {
+            LoomaEngine engine = ctx.getBean(LoomaEngine.class);
+            assertThat(engine.render("live", Map.of())).isEqualTo("one");
+            java.nio.file.Files.writeString(file, "two");
+            assertThat(engine.render("live", Map.of())).as("cache is off by default with template-dir").isEqualTo("two");
+        });
+    }
+
+    @Test
+    void templateDirIsCheckedAtStartupAndCachingCanBeForcedOn(@org.junit.jupiter.api.io.TempDir java.nio.file.Path dir)
+            throws Exception {
+        java.nio.file.Path file = dir.resolve("sub/x.looma.html");
+        java.nio.file.Files.createDirectories(file.getParent());
+        java.nio.file.Files.writeString(file, "@if(true)never closed");
+        web.withPropertyValues("looma.template-dir=" + dir).run(ctx ->
+                assertThat(ctx.getStartupFailure()).hasMessageContaining("In template 'sub/x'"));
+        java.nio.file.Files.writeString(file, "cached");
+        web.withPropertyValues("looma.template-dir=" + dir, "looma.cache=true").run(ctx -> {
+            LoomaEngine engine = ctx.getBean(LoomaEngine.class);
+            assertThat(engine.render("sub/x", Map.of())).isEqualTo("cached");
+            java.nio.file.Files.writeString(file, "changed");
+            assertThat(engine.render("sub/x", Map.of())).isEqualTo("cached");
+        });
+    }
 }
