@@ -1,0 +1,1 @@
+{{ @userRepository.deleteAll() }}

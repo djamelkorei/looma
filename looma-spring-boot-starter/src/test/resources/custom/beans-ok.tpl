@@ -1,0 +1,1 @@
+{{ @priceService.eur(12.5) }}

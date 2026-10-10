@@ -239,4 +239,40 @@ class LoomaAutoConfigurationTests {
                     .isEqualTo("1 234,50 € octobre");
         });
     }
+
+    @io.github.djamelkorei.looma.spi.TemplateAccessible
+    public static class PriceService {
+        public String eur(Number n) { return String.format(java.util.Locale.ROOT, "%.2f EUR", n.doubleValue()); }
+    }
+
+    public static class UserRepository {
+        public String deleteAll() { return "deleted everything"; }
+    }
+
+    @Test
+    void annotatedBeansAreCallableOthersAreRefused() {
+        web.withBean("priceService", PriceService.class).withBean("userRepository", UserRepository.class)
+                .withPropertyValues("looma.prefix=custom/", "looma.suffix=.tpl").run(ctx -> {
+                    LoomaEngine engine = ctx.getBean(LoomaEngine.class);
+                    assertThat(engine.render("beans-ok", Map.of())).isEqualTo("12.50 EUR");
+                    assertThat(org.junit.jupiter.api.Assertions.assertThrows(io.github.djamelkorei.looma.LoomaException.class,
+                            () -> engine.render("beans-denied", Map.of())).getMessage())
+                            .contains("Bean 'userRepository' is not accessible from templates")
+                            .contains("@TemplateAccessible").contains("looma.beans.allowed");
+                });
+    }
+
+    @Test
+    void beanAccessCanBeWidenedOrDisabled() {
+        web.withBean("userRepository", UserRepository.class)
+                .withPropertyValues("looma.prefix=custom/", "looma.suffix=.tpl", "looma.beans.allowed=userRepository")
+                .run(ctx -> assertThat(ctx.getBean(LoomaEngine.class).render("beans-denied", Map.of())).isEqualTo("deleted everything"));
+        web.withBean("userRepository", UserRepository.class)
+                .withPropertyValues("looma.prefix=custom/", "looma.suffix=.tpl", "looma.beans.access=all")
+                .run(ctx -> assertThat(ctx.getBean(LoomaEngine.class).render("beans-denied", Map.of())).isEqualTo("deleted everything"));
+        web.withBean("priceService", PriceService.class)
+                .withPropertyValues("looma.prefix=custom/", "looma.suffix=.tpl", "looma.beans.access=none")
+                .run(ctx -> assertThat(org.junit.jupiter.api.Assertions.assertThrows(io.github.djamelkorei.looma.LoomaException.class,
+                        () -> ctx.getBean(LoomaEngine.class).render("beans-ok", Map.of())).getMessage()).contains("looma.beans.access=none"));
+    }
 }

@@ -36,12 +36,13 @@ public class LoomaAutoConfiguration {
     @Bean
     @ConditionalOnMissingBean
     public LoomaEngine loomaEngine(TemplateLoader loader, LoomaProperties props, ObjectProvider<Directive> directives,
-            ObjectProvider<TemplateHelper> helpers) {
+            ObjectProvider<TemplateHelper> helpers, ApplicationContext context) {
         // Every Directive bean is a custom directive and every TemplateHelper bean a helper; nothing else to register.
         return LoomaEngine.builder(loader)
                 .cache(props.isCache())
                 .directives(directives.orderedStream().toList())
                 .helpers(helpers.orderedStream().toList())
+                .beans(new SpringBeanResolver(context, props.getBeans()))
                 .build();
     }
 

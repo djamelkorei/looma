@@ -29,6 +29,34 @@ public class LoomaProperties {
     /** Parse all templates at startup and fail fast on syntax errors. */
     private boolean checkTemplates = true;
 
+    /** Which Spring beans templates may call as {@code @name.method(...)}. */
+    private final Beans beans = new Beans();
+
+    public Beans getBeans() { return beans; }
+
+    public static class Beans {
+
+        public enum Access {
+            /** No bean is reachable. */
+            NONE,
+            /** Beans annotated with {@code @TemplateAccessible}, plus those listed in {@code allowed} (default). */
+            ANNOTATED,
+            /** Every bean, like Thymeleaf. Convenient, but any template can then call any bean. */
+            ALL
+        }
+
+        /** Which beans templates may reach. */
+        private Access access = Access.ANNOTATED;
+
+        /** Extra bean names templates may reach, e.g. beans from libraries you cannot annotate. */
+        private java.util.List<String> allowed = new java.util.ArrayList<>();
+
+        public Access getAccess() { return access; }
+        public void setAccess(Access access) { this.access = access; }
+        public java.util.List<String> getAllowed() { return allowed; }
+        public void setAllowed(java.util.List<String> allowed) { this.allowed = allowed; }
+    }
+
     public boolean isCheckTemplates() { return checkTemplates; }
     public void setCheckTemplates(boolean checkTemplates) { this.checkTemplates = checkTemplates; }
 

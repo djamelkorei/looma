@@ -41,10 +41,11 @@ public final class LoomaEngine {
 
     /** An engine with the built-in directives only. Use {@link #builder} to add your own. */
     public LoomaEngine(TemplateLoader loader, boolean cache) {
-        this(loader, cache, List.of(), List.of());
+        this(loader, cache, List.of(), List.of(), null);
     }
 
-    private LoomaEngine(TemplateLoader loader, boolean cache, List<Directive> custom, List<TemplateHelper> helpers) {
+    private LoomaEngine(TemplateLoader loader, boolean cache, List<Directive> custom, List<TemplateHelper> helpers,
+            java.util.function.Function<String, Object> beans) {
         this.loader = loader;
         this.cache = cache;
         List<Directive> all = new ArrayList<>(BuiltinDirectives.all());
@@ -66,6 +67,7 @@ public final class LoomaEngine {
             }
             byName.put(name, helper); // yours replace the built-in String/Math if you use the same name
         }
+        byName.put("_beans", beans != null ? new BeanRegistry(beans) : BeanRegistry.none());
         this.globals = new Scope(null, Map.copyOf(byName));
     }
 
@@ -78,6 +80,7 @@ public final class LoomaEngine {
         private boolean cache = true;
         private final List<Directive> directives = new ArrayList<>();
         private final List<TemplateHelper> helpers = new ArrayList<>();
+        private java.util.function.Function<String, Object> beans;
 
         private Builder(TemplateLoader loader) {
             this.loader = loader;
@@ -111,8 +114,17 @@ public final class LoomaEngine {
             return this;
         }
 
+        /**
+         * Resolves {@code @name} in expressions. It returns the object for an allowed name and throws, with an
+         * explanation, for any other; the Spring starter supplies one backed by the application context.
+         */
+        public Builder beans(java.util.function.Function<String, Object> resolver) {
+            this.beans = resolver;
+            return this;
+        }
+
         public LoomaEngine build() {
-            return new LoomaEngine(loader, cache, List.copyOf(directives), List.copyOf(helpers));
+            return new LoomaEngine(loader, cache, List.copyOf(directives), List.copyOf(helpers), beans);
         }
     }
 

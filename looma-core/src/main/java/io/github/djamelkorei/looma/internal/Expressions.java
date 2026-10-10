@@ -39,11 +39,11 @@ public final class Expressions {
     }
 
     public static Object eval(Expr expr, Scope scope) {
-        if (expr.fastPath() instanceof FastPath.Plan plan) {
-            Object value = plan.eval(scope);
-            if (value != FastPath.MISS) return value;
-        }
         try {
+            if (expr.fastPath() instanceof FastPath.Plan plan) {
+                Object value = plan.eval(scope); // inside the try: a map or bean lookup may throw
+                if (value != FastPath.MISS) return value;
+            }
             return expr.spel().getValue(CONTEXT, scope);
         } catch (RuntimeException e) {
             throw new LoomaException("Error evaluating '" + expr.source() + "': " + e.getMessage(), expr.line(), e);
@@ -66,7 +66,10 @@ public final class Expressions {
         return true;
     }
 
-    /** {@code $x} -> {@code x}, {@code ->} -> {@code .}, {@code ??} -> {@code ?:}; string literals untouched. */
+    /**
+     * {@code $x} -> {@code x}, {@code ->} -> {@code .}, {@code ??} -> {@code ?:}, {@code @bean} -> {@code _beans.bean};
+     * string literals untouched.
+     */
     static String translate(String src) {
         StringBuilder sb = new StringBuilder(src.length());
         char quote = 0;
@@ -81,6 +84,8 @@ public final class Expressions {
                 sb.append(c);
             } else if (c == '$' && i + 1 < src.length() && Character.isJavaIdentifierStart(src.charAt(i + 1))) {
                 // drop the sigil
+            } else if (c == '@' && i + 1 < src.length() && Character.isJavaIdentifierStart(src.charAt(i + 1))) {
+                sb.append("_beans."); // @priceService -> _beans.priceService (resolved by BeanRegistry)
             } else if (c == '-' && src.startsWith("->", i)) {
                 sb.append('.');
                 i++;

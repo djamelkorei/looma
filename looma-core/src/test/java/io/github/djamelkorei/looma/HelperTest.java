@@ -80,4 +80,37 @@ class HelperTest {
             assertThrows(LoomaException.class, () -> render("{{ " + expr + " }}", Map.of()), expr);
         }
     }
+
+    public static class Greeter {
+        public String hi(String who) { return "hi " + who; }
+        public String getMotto() { return "<b>bold</b>"; }
+    }
+
+    @Test
+    void beanReferencesUseTheConfiguredResolver() {
+        LoomaEngine engine = LoomaEngine.builder(loader).cache(false).beans(name -> {
+            if (name.equals("greeter")) return new Greeter();
+            throw new IllegalStateException("Bean '" + name + "' is not accessible from templates");
+        }).build();
+        assertEquals("hi Ada &lt;b&gt;bold&lt;/b&gt;", render(engine, "{{ @greeter.hi($n) }} {{ @greeter.motto }}", Map.of("n", "Ada")));
+        assertEquals("mail: a@b.com", render(engine, "mail: {{ 'a@b.com' }}", Map.of()), "@ inside strings is not a bean");
+        LoomaException e = assertThrows(LoomaException.class, () -> render(engine, "{{ @secret.dump() }}", Map.of()));
+        org.junit.jupiter.api.Assertions.assertTrue(e.getMessage().contains("Bean 'secret' is not accessible"), e.getMessage());
+        LoomaException fast = assertThrows(LoomaException.class, () -> render(engine, "\n{{ @secret.value }}", Map.of()));
+        assertEquals(2, fast.line(), "errors from the fast path carry the line too");
+    }
+
+    @Test
+    void withoutAResolverBeanReferencesExplainWhatToDo() {
+        LoomaException e = assertThrows(LoomaException.class, () -> render("{{ @anything.x() }}", Map.of()));
+        org.junit.jupiter.api.Assertions.assertTrue(e.getMessage().contains("need a bean resolver"), e.getMessage());
+    }
+
+    @Test
+    void beansCannotBeEnumeratedOrUsedToEscapeTheSandbox() {
+        LoomaEngine engine = LoomaEngine.builder(loader).cache(false).beans(name -> new Greeter()).build();
+        assertEquals("beans", render(engine, "{{ _beans }}", Map.of()));
+        assertThrows(LoomaException.class, () -> render(engine, "{{ @greeter.getClass() }}", Map.of()));
+        assertThrows(LoomaException.class, () -> render(engine, "{{ @greeter.class.classLoader }}", Map.of()));
+    }
 }
