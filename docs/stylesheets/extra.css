@@ -1,0 +1,103 @@
+/* Looma brand: indigo (the dyed cloth) and saffron (the thread). */
+:root {
+  --md-primary-fg-color: #232D73;
+  --md-primary-fg-color--light: #2B3A8F;
+  --md-primary-fg-color--dark: #171D4A;
+  --md-accent-fg-color: #C97A12;
+  --md-accent-fg-color--transparent: rgba(242, 168, 59, .12);
+  --looma-thread: #F2A83B;
+  --looma-ink: #1B2150;
+  --looma-paper: #F7F6F1;
+}
+[data-md-color-scheme="slate"] {
+  --md-primary-fg-color: #171D4A;
+  --md-accent-fg-color: #F2A83B;
+  --md-default-bg-color: #12152B;
+  --md-code-bg-color: #1A1E3A;
+  --looma-ink: #F4F2EC;
+  --looma-paper: #1A1E3A;
+  --md-typeset-a-color: #F2A83B;
+}
+
+.md-header__button.md-logo img { height: 1.6rem; width: 1.6rem; }
+.md-header__topic:first-child { font-weight: 600; }
+
+/* ---- landing page ---- */
+.looma-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 1.8rem;
+  margin: 1.2rem 0 2.4rem;
+}
+.looma-hero h1 {
+  max-width: 22ch;
+  font-size: clamp(2rem, 4.2vw, 3rem);
+  line-height: 1.05;
+  letter-spacing: -.03em;
+  font-weight: 650;
+  color: var(--looma-ink);
+  margin: 0 0 .9rem;
+}
+.looma-hero .lead {
+  font-size: .95rem;
+  line-height: 1.55;
+  max-width: 34rem;
+  margin-bottom: 1.2rem;
+}
+.looma-hero .actions { display: flex; gap: .6rem; flex-wrap: wrap; }
+.looma-hero .md-button { border-radius: .4rem; font-weight: 600; color: var(--looma-ink); border-color: var(--looma-ink); }
+.looma-hero .md-button:hover { background: var(--looma-ink); color: var(--md-default-bg-color); border-color: var(--looma-ink); }
+.looma-hero .md-button--primary { border-color: var(--looma-thread); background: var(--looma-thread); color: #1B2150; }
+.looma-hero .md-button--primary:hover { background: #E59A2E; border-color: #E59A2E; color: #1B2150; }
+
+/* The memorable element: the same page in both engines, side by side. */
+.looma-compare {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0;
+  border: 1px solid rgba(27, 33, 80, .15);
+  border-radius: .6rem;
+  overflow: hidden;
+  background: var(--looma-paper);
+}
+[data-md-color-scheme="slate"] .looma-compare { border-color: rgba(244, 242, 236, .12); }
+.looma-hero > *, .looma-compare > div, .looma-facts > div { min-width: 0; }
+.looma-compare > div + div { border-left: 1px solid rgba(27, 33, 80, .15); }
+[data-md-color-scheme="slate"] .looma-compare > div + div { border-color: rgba(244, 242, 236, .12); }
+.looma-compare .label {
+  font-size: .65rem;
+  font-weight: 600;
+  padding: .45rem .8rem;
+  color: var(--looma-ink);
+  border-bottom: 1px solid rgba(27, 33, 80, .12);
+}
+.looma-compare .label.looma { border-bottom: 2px solid var(--looma-thread); }
+.looma-compare .highlight { margin: 0; }
+.looma-compare pre { margin: 0; border-radius: 0; background: transparent; }
+.looma-compare pre > code { font-size: .62rem; line-height: 1.5; padding: .7rem .8rem; }
+.looma-compare .md-code__button, .looma-compare .md-clipboard { display: none; }
+
+/* Landing page only: no edit button, and the four feature cards as two rows of two. */
+.md-content__inner:has(.looma-hero) .md-content__button { display: none; }
+.md-typeset:has(.looma-hero) .grid.cards { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.md-typeset:has(.looma-hero) .grid.cards > ul > li { margin: 0; }
+
+.looma-facts {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1rem;
+  margin: 0 0 2rem;
+  padding: 1.2rem 0 0;
+  border-top: 2px solid var(--looma-thread);
+}
+.looma-facts > div { font-size: .72rem; line-height: 1.45; }
+.looma-facts strong { display: block; font-size: 1.05rem; color: var(--looma-ink); letter-spacing: -.01em; margin-bottom: .15rem; }
+
+.md-typeset .looma-install { margin: 0 0 2rem; }
+
+@media screen and (max-width: 44.9375em) {
+  .looma-compare { grid-template-columns: 1fr; }
+  .looma-compare > div + div { border-left: 0; border-top: 1px solid rgba(27, 33, 80, .15); }
+  .looma-facts { grid-template-columns: 1fr 1fr; }
+  .md-typeset:has(.looma-hero) .grid.cards { grid-template-columns: 1fr; }
+}

@@ -8,8 +8,19 @@ copyright: Copyright &copy; 2026 Djamel Eddine Korei. Apache License 2.0.
 
 theme:
   name: material
+  logo: assets/logo.svg
+  favicon: assets/logo.svg
+  icon:
+    repo: fontawesome/brands/github
+  font:
+    text: IBM Plex Sans
+    code: IBM Plex Mono
   features:
+    - navigation.tabs
+    - navigation.tabs.sticky
     - navigation.sections
+    - navigation.instant
+    - navigation.tracking
     - navigation.top
     - navigation.footer
     - search.suggest
@@ -19,18 +30,29 @@ theme:
   palette:
     - media: "(prefers-color-scheme: light)"
       scheme: default
-      primary: deep purple
-      accent: deep purple
+      primary: custom
+      accent: custom
       toggle:
         icon: material/weather-night
         name: Switch to dark mode
     - media: "(prefers-color-scheme: dark)"
       scheme: slate
-      primary: deep purple
-      accent: deep purple
+      primary: custom
+      accent: custom
       toggle:
         icon: material/weather-sunny
         name: Switch to light mode
+
+extra_css:
+  - stylesheets/extra.css
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/djamelkorei/looma
+    - icon: fontawesome/solid/cube
+      link: https://central.sonatype.com/artifact/io.github.djamelkorei/looma-spring-boot-starter
+      name: Maven Central
 
 markdown_extensions:
   - admonition
@@ -51,15 +73,19 @@ markdown_extensions:
 
 nav:
   - Home: index.md
-  - Installation: installation.md
-  - Getting started: getting-started.md
+  - Guide:
+      - Installation: installation.md
+      - Getting started: getting-started.md
+      - Migrating from Thymeleaf: thymeleaf-migration.md
+      - IntelliJ plugin: intellij.md
   - Reference:
       - Template syntax: syntax.md
       - Configuration: configuration.md
       - Security & operations: security.md
-  - Extending & architecture: extending.md
-  - IntelliJ plugin: intellij.md
-  - Benchmarks: benchmarks.md
-  - Looma vs Thymeleaf vs Blade: comparison.md
-  - Releasing: releasing.md
-  - Changelog: https://github.com/djamelkorei/looma/blob/main/CHANGELOG.md
+      - Extending & architecture: extending.md
+  - Compare:
+      - Looma vs Thymeleaf vs Blade: comparison.md
+      - Benchmarks: benchmarks.md
+  - Project:
+      - Releasing: releasing.md
+      - Changelog: https://github.com/djamelkorei/looma/blob/main/CHANGELOG.md

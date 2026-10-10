@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="Looma">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#2B3A8F"/>
+      <stop offset="1" stop-color="#171D4A"/>
+    </linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="14" fill="url(#bg)"/>
+  <!-- weft (horizontal threads) -->
+  <rect x="10" y="18" width="44" height="8" rx="4" fill="#F4F2EC"/>
+  <rect x="10" y="38" width="44" height="8" rx="4" fill="#F4F2EC"/>
+  <!-- warp (vertical threads) -->
+  <rect x="18" y="10" width="8" height="44" rx="4" fill="#F2A83B"/>
+  <rect x="38" y="10" width="8" height="44" rx="4" fill="#F2A83B"/>
+  <!-- weft passes over the warp at two crossings: the weave -->
+  <rect x="36.5" y="18" width="11" height="8" fill="#F4F2EC"/>
+  <rect x="16.5" y="38" width="11" height="8" fill="#F4F2EC"/>
+</svg>
