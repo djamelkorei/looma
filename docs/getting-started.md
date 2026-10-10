@@ -8,7 +8,7 @@ About ten minutes. Every snippet here exists in [`looma-demo`](https://github.co
 
 ## 1. Add it
 
-Add the repository and dependency from the [Installation](installation.md) (GitHub Packages needs a token). That is
+Add the dependency from [Installation](installation.md). That is
 the only setup: Spring Boot auto-configures the engine and the view resolver.
 
 ## 2. Your first page

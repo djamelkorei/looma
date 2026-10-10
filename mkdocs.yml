@@ -1,0 +1,63 @@
+site_name: Looma
+site_description: Blade-style template engine for Spring Boot
+site_url: https://djamelkorei.github.io/looma/
+repo_url: https://github.com/djamelkorei/looma
+repo_name: djamelkorei/looma
+edit_uri: edit/main/docs/
+copyright: Copyright &copy; 2026 Djamel Eddine Korei. Apache License 2.0.
+
+theme:
+  name: material
+  features:
+    - navigation.sections
+    - navigation.top
+    - navigation.footer
+    - search.suggest
+    - search.highlight
+    - content.code.copy
+    - content.action.edit
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: deep purple
+      accent: deep purple
+      toggle:
+        icon: material/weather-night
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: deep purple
+      accent: deep purple
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to light mode
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - md_in_html
+  - tables
+  - toc:
+      permalink: true
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+
+nav:
+  - Home: index.md
+  - Installation: installation.md
+  - Getting started: getting-started.md
+  - Reference:
+      - Template syntax: syntax.md
+      - Configuration: configuration.md
+      - Security & operations: security.md
+  - Extending & architecture: extending.md
+  - Benchmarks: benchmarks.md
+  - Releasing: releasing.md
+  - Changelog: https://github.com/djamelkorei/looma/blob/main/CHANGELOG.md
