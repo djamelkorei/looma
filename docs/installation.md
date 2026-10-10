@@ -6,10 +6,6 @@ title: Installation
 
 Looma needs **Java 21+** and **Spring Boot 3.3 or newer** (see [compatibility](configuration.md#compatibility)).
 
-!!! note "Release status"
-    The coordinates below are for version `0.1.0`. They resolve once that version is published to Maven Central
-    (see [Releasing](releasing.md)). Until then, build from source with `mvn install`.
-
 === "Maven"
 
     ```xml

@@ -1,6 +1,7 @@
 # Looma
 
 [![CI](https://github.com/djamelkorei/looma/actions/workflows/ci.yml/badge.svg)](https://github.com/djamelkorei/looma/actions/workflows/ci.yml)
+[![Maven Central](https://img.shields.io/maven-central/v/io.github.djamelkorei/looma-spring-boot-starter.svg)](https://central.sonatype.com/artifact/io.github.djamelkorei/looma-spring-boot-starter)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
 
 **Blade-style templates for Spring Boot.** Write HTML with `{{ }}` and `@directives`, and get layouts, components,
@@ -34,9 +35,9 @@ validation errors and CSRF without ceremony.
 </dependency>
 ```
 
-Needs Java 21+ and Spring Boot 3.3+. Put templates in `src/main/resources/templates/` as `*.looma.html` and return
-the view name from a controller. Version `0.1.0` is not published yet, so until then build from source
-(`mvn install`); see [Installation](https://djamelkorei.github.io/looma/installation/) for GitHub Packages.
+Available on Maven Central. Needs Java 21+ and Spring Boot 3.3+. Put templates in `src/main/resources/templates/`
+as `*.looma.html` and return the view name from a controller. Gradle and other options:
+[Installation](https://djamelkorei.github.io/looma/installation/).
 
 ## Why Looma
 
