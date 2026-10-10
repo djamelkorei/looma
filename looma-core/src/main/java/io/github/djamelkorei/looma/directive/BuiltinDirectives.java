@@ -47,6 +47,7 @@ public final class BuiltinDirectives {
                 new LangDirective()));
         all.addAll(BooleanAttributeDirectives.all());
         all.addAll(ConditionalIncludeDirectives.all());
+        all.addAll(FormBindingDirectives.all());
         return List.copyOf(all);
     }
 }

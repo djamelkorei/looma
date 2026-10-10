@@ -275,4 +275,44 @@ class LoomaAutoConfigurationTests {
                 .run(ctx -> assertThat(org.junit.jupiter.api.Assertions.assertThrows(io.github.djamelkorei.looma.LoomaException.class,
                         () -> ctx.getBean(LoomaEngine.class).render("beans-ok", Map.of())).getMessage()).contains("looma.beans.access=none"));
     }
+
+    public static class AgeForm {
+        private Integer age = 30;
+        private String name = "Ada";
+        private boolean active = true;
+        public Integer getAge() { return age; }
+        public void setAge(Integer age) { this.age = age; }
+        public String getName() { return name; }
+        public void setName(String name) { this.name = name; }
+        public boolean isActive() { return active; }
+        public void setActive(boolean active) { this.active = active; }
+    }
+
+    @Test
+    void boundFieldsShowTheRejectedInputAfterAFailedSubmit() {
+        web.run(ctx -> {
+            AgeForm form = new AgeForm();
+            org.springframework.validation.DataBinder binder = new org.springframework.validation.DataBinder(form, "form");
+            binder.bind(new org.springframework.beans.MutablePropertyValues(Map.of("age", "abc", "name", "Bo", "active", "false")));
+            Map<String, Object> model = new java.util.HashMap<>(binder.getBindingResult().getModel());
+            View view = ctx.getBean(LoomaViewResolver.class).resolveViewName("signup-form", null);
+            MockHttpServletResponse response = new MockHttpServletResponse();
+            view.render(model, new MockHttpServletRequest(), response);
+            assertThat(response.getContentAsString())
+                    .contains("<input id=\"age\" name=\"age\" value=\"abc\">")   // what the user typed, not 30
+                    .contains("<input id=\"name\" name=\"name\" value=\"Bo\">")
+                    .contains("name=\"active\" value=\"true\">")                  // unchecked after binding false
+                    .doesNotContain("value=\"true\" checked");
+        });
+    }
+
+    @Test
+    void boundFieldsReadTheObjectWithoutABindingResult() {
+        web.run(ctx -> {
+            View view = ctx.getBean(LoomaViewResolver.class).resolveViewName("signup-form", null);
+            MockHttpServletResponse response = new MockHttpServletResponse();
+            view.render(Map.of("form", new AgeForm()), new MockHttpServletRequest(), response);
+            assertThat(response.getContentAsString()).contains("value=\"30\"").contains("value=\"Ada\"").contains("checked");
+        });
+    }
 }

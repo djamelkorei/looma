@@ -59,6 +59,7 @@ public class LoomaView implements View {
         all.put("request", request);
         all.put("principal", request.getUserPrincipal());
         all.put("_authorizer", authorizers.apply(request)); // answers @can / @cannot / @canany
+        all.put("_formBinder", new SpringFormBinder(model));  // values for @bind / @field (BindingResult-aware)
         Object csrf = request.getAttribute("_csrf");
         if (csrf != null) {
             BeanWrapper bean = new BeanWrapperImpl(csrf);
