@@ -8,6 +8,43 @@ looma-spring-boot-starter   auto-configured engine + ViewResolver
 looma-demo                  sample app
 ```
 
+## Install
+
+Looma is published to GitHub Packages, which requires a token even to download. Create a
+[personal access token](https://github.com/settings/tokens) with `read:packages` and add it to `~/.m2/settings.xml`:
+
+```xml
+<settings>
+  <servers>
+    <server>
+      <id>github</id>
+      <username>YOUR_GITHUB_USERNAME</username>
+      <password>YOUR_TOKEN</password>
+    </server>
+  </servers>
+</settings>
+```
+
+Then in your project:
+
+```xml
+<repositories>
+  <repository>
+    <id>github</id>
+    <url>https://maven.pkg.github.com/djamelkorei/looma</url>
+  </repository>
+</repositories>
+
+<dependency>
+  <groupId>io.github.djamelkorei</groupId>
+  <artifactId>looma-spring-boot-starter</artifactId>
+  <version>0.1.0</version>
+</dependency>
+```
+
+Releasing (maintainers): create a GitHub release tagged `v0.1.0`; the *Publish* workflow sets the version
+from the tag and deploys.
+
 ## Use it
 
 Add `looma-spring-boot-starter`, put templates in `src/main/resources/templates/`
@@ -113,3 +150,7 @@ test that boots the app catches a broken template before it ships. Programmatic 
     mvn -Prelease verify  # also builds sources and javadoc jars
 
 Publishing (group id, repository, signing) is not configured; set that up for your registry before releasing.
+
+## License
+
+[Apache License 2.0](LICENSE) © 2026 Djamel Eddine Korei
