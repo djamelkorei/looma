@@ -33,7 +33,7 @@ jobs:
       - run: pip install -r docs-requirements.txt
       # --strict fails the build on a broken link, so the site never ships dead links
       - run: mkdocs build --strict -d site
-      - uses: actions/upload-pages-artifact@v4
+      - uses: actions/upload-pages-artifact@v5
         with:
           path: site
 
