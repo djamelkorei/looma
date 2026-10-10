@@ -85,7 +85,13 @@ Unknown views fall through to other `ViewResolver`s.
 | `<x-slot:title>..</x-slot:title>` | named slots; the body is `$slot` |
 | `{{ $attributes->except('type')->merge({'class': 'a'}) }}` | attribute bag |
 | `@csrf`, `@method('PUT')` | hidden inputs |
-| `@auth ... @endauth`, `@guest` | based on `principal` |
+| `@auth ... @endauth`, `@guest` | signed in / not signed in (based on `principal`) |
+| `@auth('ADMIN')`, `@auth('ADMIN', 'EDITOR')` | signed in **and** in one of the roles (`request.isUserInRole`; with Spring Security a role `ADMIN` matches authority `ROLE_ADMIN`) |
+| `@error('email') {{ $message }} @enderror` | shown only if the field has a validation error; `$message` is the first, `$messages` all. Filled from `@Valid` `BindingResult`s via your `MessageSource`; global errors are under `_global`; `$errors` is the whole map |
+| `<li @class('nav', {'active': $on})>` | builds `class="nav active"`; strings always, map keys when truthy, lists flattened; omitted if empty |
+| `<p @style('margin: 0', {'color: red': $err})>` | same for `style="margin: 0; color: red;"` |
+| `@once ... @endonce` | renders only the first time per page, even inside loops and components (e.g. a component's `<style>`) |
+| `@json($data)` | JSON safe inside `<script>` (`< > & '` are escaped); in an attribute use single quotes: `data-x='@json($x)'` |
 | `@verbatim ... @endverbatim` | no processing |
 
 Expressions are SpEL with Blade conveniences: a leading `$` is optional, `->` is `.`,

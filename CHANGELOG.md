@@ -4,7 +4,7 @@
 
 First version.
 
-- Core engine: `@for`, `@while`, `@break`, `@continue`, `{{ }}`, `{!! !!}`, comments, `@if/@elseif/@else/@unless/@isset/@switch`,
+- Core engine: `@once`, `@json`, `@class`, `@style`, `@error`, `@auth('ROLE')`, `@for`, `@while`, `@break`, `@continue`, `{{ }}`, `{!! !!}`, comments, `@if/@elseif/@else/@unless/@isset/@switch`,
   `@foreach/@forelse` with `$loop`, `@include`, `@extends/@section/@yield/@parent`,
   `@push/@prepend/@stack`, `@verbatim`, `@lang`, `@csrf`, `@method`, `@auth/@guest`,
   components (`<x-name>`, slots, `$attributes`).
@@ -15,3 +15,7 @@ First version.
 - `looma.check-templates` parses all templates at startup and reports every syntax error at once.
 - Spring Boot starter: auto-configured engine and `ViewResolver`, `looma.*` properties,
   `request` / `principal` / CSRF / `MessageSource` integration.
+- `looma.template-dir` for live reload from disk; startup check also reports missing `@include`/`@extends`/
+  `<x-...>` targets.
+- Tested on Spring Boot 3.3, 3.4, 3.5, 4.0 and 4.1, Java 21 and 25, including Spring Security.
+- Licensed under Apache-2.0; published to GitHub Packages as `io.github.djamelkorei`.
