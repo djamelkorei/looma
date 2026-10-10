@@ -138,6 +138,13 @@
   </build>
 
   <profiles>
+    <!-- mvn -Pbench package: JMH benchmarks against other engines (not part of normal builds). -->
+    <profile>
+      <id>bench</id>
+      <modules>
+        <module>looma-bench</module>
+      </modules>
+    </profile>
     <!-- mvn -Prelease package: also builds sources and javadoc jars, as needed for publishing. -->
     <profile>
       <id>release</id>

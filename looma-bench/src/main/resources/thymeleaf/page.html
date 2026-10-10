@@ -1,0 +1,1 @@
+<table><tr th:each="r : ${rows}" th:class="${rStat.even} ? 'e' : 'o'"><td th:text="${r.id}"></td><td th:text="${r.name}"></td><td th:text="${r.active} ? 'yes' : ' no'"></td></tr></table>
