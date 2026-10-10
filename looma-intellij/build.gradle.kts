@@ -1,3 +1,4 @@
+import org.jetbrains.intellij.platform.gradle.IntelliJPlatformType
 import org.jetbrains.intellij.platform.gradle.TestFrameworkType
 
 plugins {
@@ -44,6 +45,14 @@ intellijPlatform {
         ideaVersion {
             sinceBuild = providers.gradleProperty("pluginSinceBuild")
             untilBuild = provider { null }
+        }
+    }
+    pluginVerification {
+        ides {
+            // The oldest supported release, plus the installed IDE when building against one.
+            create(IntelliJPlatformType.IntellijIdeaCommunity, providers.gradleProperty("verifyOldestVersion"))
+            val localIde = providers.gradleProperty("localIdePath").orNull
+            if (!localIde.isNullOrBlank()) local(localIde)
         }
     }
 }
