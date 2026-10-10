@@ -11,6 +11,7 @@
 
     <depends>com.intellij.modules.platform</depends>
     <depends>com.intellij.modules.xml</depends>
+    <depends optional="true" config-file="looma-java.xml">com.intellij.java</depends>
 
     <extensionPoints>
         <extensionPoint qualifiedName="io.github.djamelkorei.looma.customDirectiveProvider"

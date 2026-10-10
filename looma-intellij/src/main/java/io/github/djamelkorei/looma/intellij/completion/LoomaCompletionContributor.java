@@ -29,8 +29,8 @@ import java.util.Map;
 import org.jetbrains.annotations.NotNull;
 
 /**
- * Directives after '@' (anywhere in a template, also inside HTML) and the members of {@code $loop} and
- * {@code $attributes}.
+ * Directives after '@' (anywhere in a template, also inside HTML) and the members of {@code $loop},
+ * {@code $attributes} and the built-in helpers.
  */
 public final class LoomaCompletionContributor extends CompletionContributor {
 
@@ -115,13 +115,14 @@ public final class LoomaCompletionContributor extends CompletionContributor {
 
     private static void members(LoomaMember member, CompletionResultSet result) {
         if (!(member.getQualifier() instanceof LoomaVariable qualifier)) return;
-        Map<String, String> members = switch (qualifier.getName()) {
+        String name = qualifier.getName();
+        Map<String, String> members = switch (name) {
             case "loop" -> LoomaScopes.LOOP_PROPERTIES;
             case "attributes" -> LoomaScopes.ATTRIBUTE_METHODS;
-            default -> Map.of();
+            default -> LoomaScopes.HELPERS.getOrDefault(name, Map.of());
         };
-        boolean methods = members == LoomaScopes.ATTRIBUTE_METHODS;
-        members.forEach((name, description) -> result.addElement(LookupElementBuilder.create(name)
+        boolean methods = !name.equals("loop");
+        members.forEach((name2, description) -> result.addElement(LookupElementBuilder.create(name2)
                 .withTypeText(description, true)
                 .withTailText(methods ? "(...)" : null, true)));
     }

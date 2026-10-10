@@ -1,0 +1,6 @@
+<idea-plugin>
+    <extensions defaultExtensionNs="com.intellij">
+        <psi.referenceContributor language="JAVA"
+                                  implementation="io.github.djamelkorei.looma.intellij.java.LoomaJavaViewReferenceContributor"/>
+    </extensions>
+</idea-plugin>

@@ -31,7 +31,20 @@ public final class LoomaScopes {
     public static final Map<String, String> GLOBALS = properties(
             "errors", "validation errors by field (Map<String, List<String>>)",
             "request", "the HttpServletRequest", "principal", "the signed-in user, or null",
-            "_csrf", "Spring Security's CSRF token");
+            "_csrf", "Spring Security's CSRF token",
+            "String", "template helper: format, join, valueOf, isEmpty, isBlank",
+            "Math", "template helper: max, min, abs, round, ceil, floor, pow, sqrt");
+
+    /** The built-in template helpers and their methods ({@code String.format(...)}). */
+    public static final Map<String, Map<String, String>> HELPERS = Map.of(
+            "String", properties(
+                    "format", "format(fmt, args...)", "formatLocale", "formatLocale('fr', fmt, args...)",
+                    "join", "join(', ', list) or join('-', a, b...)", "valueOf", "valueOf(x)",
+                    "isEmpty", "isEmpty(s), null-safe", "isBlank", "isBlank(s), null-safe"),
+            "Math", properties(
+                    "max", "max(a, b)", "min", "min(a, b)", "abs", "abs(a)", "round", "round(a): whole number",
+                    "ceil", "ceil(a): whole number", "floor", "floor(a): whole number", "pow", "pow(base, exponent)",
+                    "sqrt", "sqrt(a)"));
 
     /** Variables of a component template. */
     public static final Map<String, String> COMPONENT = properties(

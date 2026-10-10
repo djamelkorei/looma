@@ -16,6 +16,7 @@ import io.github.djamelkorei.looma.intellij.psi.LoomaMember;
 import io.github.djamelkorei.looma.intellij.psi.LoomaScopes;
 import io.github.djamelkorei.looma.intellij.psi.LoomaVariable;
 import io.github.djamelkorei.looma.intellij.psi.LoomaVariableDeclaration;
+import java.util.Map;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -48,7 +49,7 @@ public final class LoomaDocumentationProvider extends AbstractDocumentationProvi
             String description = switch (q.getName()) {
                 case "loop" -> LoomaScopes.LOOP_PROPERTIES.get(member.getName());
                 case "attributes" -> LoomaScopes.ATTRIBUTE_METHODS.get(member.getName());
-                default -> null;
+                default -> LoomaScopes.HELPERS.getOrDefault(q.getName(), Map.of()).get(member.getName());
             };
             return description == null ? null : doc("$" + q.getName() + "->" + member.getName(), null, description);
         }
