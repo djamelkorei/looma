@@ -68,6 +68,8 @@ public final class LoomaEngine {
             byName.put(name, helper); // yours replace the built-in String/Math if you use the same name
         }
         byName.put("_beans", beans != null ? new BeanRegistry(beans) : BeanRegistry.none());
+        // So $errors.containsKey('x') works even when no validation ran; the model's own "errors" wins.
+        byName.put("errors", Map.of());
         this.globals = new Scope(null, Map.copyOf(byName));
     }
 

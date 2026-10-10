@@ -104,4 +104,10 @@ class FormFeaturesTest {
         assertEquals("hidden?", render("@cannot('anything')hidden?@endcannot", Map.of()));
         assertThrows(LoomaException.class, () -> render("@can('a', $b, $c)x@endcan", Map.of()));
     }
+
+    @Test
+    void errorsIsAlwaysAMap() {
+        assertEquals("false 0", render("{{ $errors.containsKey('email') }} {{ $errors.size() }}", Map.of()));
+        assertEquals("true", render("{{ $errors.containsKey('email') }}", Map.of("errors", Map.of("email", "bad"))));
+    }
 }

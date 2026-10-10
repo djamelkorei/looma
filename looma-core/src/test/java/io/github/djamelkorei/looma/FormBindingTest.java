@@ -91,4 +91,15 @@ class FormBindingTest {
             assertThrows(LoomaException.class, () -> render(bad, model), bad);
         }
     }
+
+    /** The form-binding example from docs/syntax.md, verbatim. */
+    @Test
+    void docsExampleRenders() {
+        String html = render("<form method=\"post\" action=\"/signup\">\n    @csrf\n    @bind('form')\n        <input type=\"email\" @field('email') @class({'invalid': $errors.containsKey('email')})>\n        @error('email')<small>{{ $message }}</small>@enderror\n\n        <textarea @name('bio')>@value('bio')</textarea>\n        <input type=\"password\" @name('password')>            {{-- never echo a password back --}}\n\n        <label>@checkbox('newsletter') Send me news</label>\n        @foreach($allRoles as $role)\n            <label>@checkbox('roles', $role) {{ $role }}</label>\n        @endforeach\n\n        <label><input type=\"radio\" @radio('plan', 'free')> Free</label>\n        <label><input type=\"radio\" @radio('plan', 'pro')> Pro</label>\n\n        <select @name('country')>\n            <option @option('country', 'FR')>France</option>\n            <option @option('country', 'DE')>Germany</option>\n        </select>\n    @endbind\n</form>\n", Map.of("form", new Form(), "allRoles", List.of("ADMIN", "VIEWER")));
+        assertTrue(html.contains("id=\"email\" name=\"email\" value=\"ada@example.com\""), html);
+        assertTrue(html.contains("<textarea id=\"bio\" name=\"bio\">Line &lt;one&gt;</textarea>"), html);
+        assertTrue(html.contains("<input type=\"password\" id=\"password\" name=\"password\">"), html);
+        assertTrue(html.contains("value=\"ADMIN\" checked> ADMIN") && html.contains("value=\"VIEWER\"> VIEWER"), html);
+        assertTrue(html.contains("value=\"pro\" checked> Pro") && html.contains("<option value=\"FR\" selected>France"), html);
+    }
 }
