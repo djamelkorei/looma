@@ -92,14 +92,14 @@ One dependency. Templates go in `src/main/resources/templates/` as `*.looma.html
     <dependency>
       <groupId>io.github.djamelkorei</groupId>
       <artifactId>looma-spring-boot-starter</artifactId>
-      <version>0.1.1</version>
+      <version>0.1.2</version>
     </dependency>
     ```
 
 === "Gradle"
 
     ```kotlin
-    implementation("io.github.djamelkorei:looma-spring-boot-starter:0.1.1")
+    implementation("io.github.djamelkorei:looma-spring-boot-starter:0.1.2")
     ```
 
 ## What you get

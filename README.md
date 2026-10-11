@@ -53,12 +53,12 @@ Write HTML with <code>{{ }}</code> and <code>@directives</code>. Get layouts, co
 <dependency>
   <groupId>io.github.djamelkorei</groupId>
   <artifactId>looma-spring-boot-starter</artifactId>
-  <version>0.1.1</version>
+  <version>0.1.2</version>
 </dependency>
 ```
 
 ```kotlin
-implementation("io.github.djamelkorei:looma-spring-boot-starter:0.1.1")
+implementation("io.github.djamelkorei:looma-spring-boot-starter:0.1.2")
 ```
 
 Needs Java 21+ and Spring Boot 3.3+. Put templates in `src/main/resources/templates/` as `*.looma.html` and

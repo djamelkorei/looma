@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.1.2 (2026-10-11)
 
 - Components now see the request-level variables (`errors`, `principal`, `request`, `_csrf` and the other
   `_`-prefixed ones), so `@error`, `@csrf`, `@auth`, `@can`, `@lang` and `@bind` / `@field` work inside
