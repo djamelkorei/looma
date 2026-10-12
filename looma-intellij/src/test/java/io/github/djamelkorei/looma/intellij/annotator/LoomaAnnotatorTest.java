@@ -51,6 +51,34 @@ public class LoomaAnnotatorTest extends BasePlatformTestCase {
         check("@include('<error descr=\"Template 'nope' not found\">nope</error>')");
     }
 
+    /** Like the engine: {@code @empty(...)} with arguments is a block of its own, bare {@code @empty} is the forelse branch. */
+    public void testEmptyBlockInsideForelse() {
+        check("""
+                @forelse($xs as $x)
+                  @empty($x.tags)<i>no tags</i>@endempty
+                  @foreach($x.tags as $t){{ $t }}@endforeach
+                @empty
+                  nothing
+                @endforelse
+                @empty($y) y is empty @else y is set @endempty
+                """);
+    }
+
+    /** Echoes and {@code @json} leave a placeholder in the HTML/JavaScript text, so a script around them parses. */
+    public void testEchoAndJsonInsideScriptAreValidJavaScript() {
+        if (com.intellij.lang.Language.findLanguageByID("JavaScript") == null) return; // no JavaScript plugin here
+        myFixture.configureByText("t.looma.html", """
+                <script>
+                  window.chart = @json($chart);
+                  var name = {{ $name }}, raw = {!! $raw !!};
+                  if ({{ $flag }}) { console.log(@json($items).length); }
+                </script>
+                """);
+        var errors = myFixture.doHighlighting(com.intellij.lang.annotation.HighlightSeverity.ERROR).stream()
+                .map(com.intellij.codeInsight.daemon.impl.HighlightInfo::getDescription).toList();
+        assertEmpty(errors.toString(), errors);
+    }
+
     public void testConditionalIncludes() {
         myFixture.addFileToProject("templates/partials/row.looma.html", "{{ $order }}");
         var file = myFixture.addFileToProject("templates/page.looma.html", """

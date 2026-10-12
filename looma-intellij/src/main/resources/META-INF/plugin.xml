@@ -9,6 +9,13 @@
         sections, stacks and message keys, and error checks for unclosed blocks.
     ]]></description>
     <change-notes><![CDATA[
+        <h3>0.1.1</h3>
+        <ul>
+            <li>No more false errors on templates that render fine: <code>@empty($x) ... @endempty</code> inside
+                <code>@forelse</code>, <code>@json</code> and <code>{{ }}</code> inside <code>&lt;script&gt;</code>,
+                named slots <code>&lt;x-slot:name&gt;</code> (no "namespace not bound") and self-closing
+                components <code>&lt;x-badge /&gt;</code>.</li>
+        </ul>
         <h3>0.1.0</h3>
         <ul>
             <li>Highlighting, completion and documentation for every Looma directive, including
@@ -100,6 +107,12 @@
                 implementation="io.github.djamelkorei.looma.intellij.component.LoomaComponentDescriptorProvider"/>
         <xml.xmlExtension order="first" implementation="io.github.djamelkorei.looma.intellij.component.LoomaXmlExtension"/>
         <xml.tagNameProvider implementation="io.github.djamelkorei.looma.intellij.component.LoomaComponentTagNameProvider"/>
+        <lang.inspectionSuppressor language="HTML"
+                                   implementationClass="io.github.djamelkorei.looma.intellij.component.LoomaInspectionSuppressor"/>
+        <outerLanguageRangePatcher language="HTML"
+                                   implementationClass="io.github.djamelkorei.looma.intellij.lang.LoomaOuterLanguagePatcher"/>
+        <outerLanguageRangePatcher language="JavaScript"
+                                   implementationClass="io.github.djamelkorei.looma.intellij.lang.LoomaOuterLanguagePatcher"/>
     </extensions>
 
     <actions>

@@ -3,6 +3,7 @@ package io.github.djamelkorei.looma.intellij.component;
 import com.intellij.lang.ASTNode;
 import com.intellij.psi.PsiFile;
 import com.intellij.psi.impl.source.xml.TagNameReference;
+import com.intellij.psi.xml.XmlTag;
 import com.intellij.xml.HtmlXmlExtension;
 import io.github.djamelkorei.looma.intellij.lang.LoomaFileViewProvider;
 import org.jetbrains.annotations.NotNull;
@@ -18,5 +19,11 @@ public final class LoomaXmlExtension extends HtmlXmlExtension {
     @Override
     public TagNameReference createTagNameReference(@NotNull ASTNode nameElement, boolean startTagFlag) {
         return new LoomaTagNameReference(nameElement, startTagFlag);
+    }
+
+    /** {@code <x-badge ... />} is how a component without a slot is written; HTML's "empty tag" warning does not apply. */
+    @Override
+    public boolean isSelfClosingTagAllowed(@NotNull XmlTag tag) {
+        return LoomaComponentDescriptorProvider.isComponentTag(tag) || super.isSelfClosingTagAllowed(tag);
     }
 }

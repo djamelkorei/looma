@@ -88,12 +88,12 @@ public final class LoomaParser implements PsiParser {
             while (!builder.eof()) {
                 if (builder.getTokenType() == DIRECTIVE) {
                     String name = directiveName();
-                    if (d.ends().containsKey(name)) {
+                    if (d.ends().containsKey(name) && isTag(name)) {
                         body.close();
                         directive(null);
                         break;
                     }
-                    if (d.middle().containsKey(name)) {
+                    if (d.middle().containsKey(name) && isTag(name)) {
                         body.close();
                         directive(null);
                         body = new Body();
@@ -124,10 +124,22 @@ public final class LoomaParser implements PsiParser {
     }
 
     private boolean closesOpenBlock(String name) {
+        if (!isTag(name)) return false;
         for (Directive d : open) {
             if (d.ends().containsKey(name) || d.middle().containsKey(name)) return true;
         }
         return false;
+    }
+
+    /**
+     * Like the engine: a name that is both a directive and a tag (such as {@code @empty}, the else-branch of
+     * {@code @forelse} and a block of its own) is the directive when it has arguments and the tag when bare.
+     */
+    private boolean isTag(String name) {
+        if (directives.directive(name) == null) return true;
+        IElementType next = builder.rawLookup(1);
+        if (next == WHITE_SPACE) next = builder.rawLookup(2);
+        return next != LPAREN;
     }
 
     /** {@code @name(args)}; returns the number of top-level commas in the arguments. */

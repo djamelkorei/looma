@@ -30,6 +30,25 @@ public class LoomaComponentTest extends BasePlatformTestCase {
         myFixture.configureFromExistingVirtualFile(file.getVirtualFile());
     }
 
+    /** Named slots and self-closing components are Looma syntax, not XML namespaces or broken HTML. */
+    public void testSlotsAndSelfClosingComponentsRaiseNoHtmlWarnings() {
+        myFixture.enableInspections(new com.intellij.codeInsight.daemon.impl.analysis.XmlUnboundNsPrefixInspection(),
+                new com.intellij.xml.util.CheckEmptyTagInspection());
+        myFixture.addFileToProject("templates/components/card.looma.html", "<div>{{ $header }} {{ $slot }}</div>");
+        myFixture.addFileToProject("templates/components/badge.looma.html", "<b>{{ $status }}</b>");
+        configure("""
+                <x-card>
+                  <x-slot:header>Title <x-badge :status="$s" /></x-slot:header>
+                  body
+                </x-card>
+                <x-alert type="info" />
+                <div />
+                """);
+        List<String> problems = myFixture.doHighlighting(com.intellij.lang.annotation.HighlightSeverity.WEAK_WARNING).stream()
+                .map(h -> h.getDescription() + " @" + h.getText()).toList();
+        assertEquals(problems.toString(), List.of("Empty tag doesn't work in some browsers @<div />"), problems);
+    }
+
     public void testComponentTagResolvesToTemplate() {
         configure("<x-al<caret>ert type=\"info\">hi</x-alert>");
         PsiReference ref = myFixture.getFile().findReferenceAt(myFixture.getCaretOffset());
