@@ -8,12 +8,31 @@ Looma is built so that the common change, *adding or fixing a directive*, touche
 
 ## The pipeline
 
-```
-template text ──Lexer──▶ tokens ──Parser──▶ Node tree ──render(RenderContext)──▶ String
-                 │                  │
-                 └── asks ──────────┴── delegates every @directive to ──▶ Directive
-                     DirectiveRegistry
-```
+<div class="looma-pipe" data-looma-pipe role="img" aria-label="A template is lexed and parsed once into a node tree, which is cached. On every request the node tree renders the model into HTML.">
+<div class="looma-pipe__phase">
+<div class="looma-pipe__label">Parse time · once per template, then cached</div>
+<div class="looma-pipe__row">
+<div class="looma-pipe__stage" style="--n:0"><b>Template text</b><small>home.looma.html</small></div>
+<span class="looma-pipe__arrow" style="--n:0" aria-hidden="true"></span>
+<div class="looma-pipe__stage" style="--n:1"><b>Lexer</b><small>splits text, echoes and @directives</small></div>
+<span class="looma-pipe__arrow" style="--n:1" aria-hidden="true"></span>
+<div class="looma-pipe__stage" style="--n:2"><b>Parser</b><small>hands each @directive to its Directive through the registry</small></div>
+<span class="looma-pipe__arrow" style="--n:2" aria-hidden="true"></span>
+<div class="looma-pipe__stage is-key" style="--n:3"><b>Node tree</b><small>immutable, shared by every request</small></div>
+</div>
+</div>
+<div class="looma-pipe__phase">
+<div class="looma-pipe__label">Render time · every request</div>
+<div class="looma-pipe__row">
+<div class="looma-pipe__stage" style="--n:4"><b>Node tree + model</b><small>the data your controller added</small></div>
+<span class="looma-pipe__arrow" style="--n:4" aria-hidden="true"></span>
+<div class="looma-pipe__stage" style="--n:5"><b>render(RenderContext)</b><small>nodes write text and evaluate expressions</small></div>
+<span class="looma-pipe__arrow" style="--n:5" aria-hidden="true"></span>
+<div class="looma-pipe__stage" style="--n:6"><b>HTML</b><small>buffered, then sent in one piece</small></div>
+</div>
+</div>
+<div class="looma-pipe__foot"><button type="button" class="looma-btn" data-action="replay">Replay</button></div>
+</div>
 
 | Package | Role | May depend on |
 |---|---|---|

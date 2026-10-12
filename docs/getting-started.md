@@ -6,6 +6,8 @@ title: Getting started
 
 About ten minutes. Every snippet here exists in [`looma-demo`](https://github.com/djamelkorei/looma/tree/main/looma-demo), where it is tested.
 
+<div class="looma-steps" markdown>
+
 ## 1. Add it
 
 Add the dependency from [Installation](installation.md). That is
@@ -13,9 +15,7 @@ the only setup: Spring Boot auto-configures the engine and the view resolver.
 
 ## 2. Your first page
 
-`src/main/resources/templates/hello.looma.html`
-
-```html
+```html title="src/main/resources/templates/hello.looma.html"
 <h1>Hello, {{ $name }}!</h1>
 ```
 
@@ -24,11 +24,14 @@ the only setup: Spring Boot auto-configures the engine and the view resolver.
 class HelloController {
     @GetMapping("/hello")
     String hello(Model model) {
-        model.addAttribute("name", "Ada <script>");   // escaped automatically
-        return "hello";                               // -> templates/hello.looma.html
+        model.addAttribute("name", "Ada <script>"); // (1)!
+        return "hello"; // (2)!
     }
 }
 ```
+
+1.  Escaped automatically: the page shows `Ada <script>` as text, never as a tag.
+2.  The view name. Looma renders `templates/hello.looma.html`, so there is nothing to configure.
 
 `{{ }}` always HTML-escapes. Use `{!! !!}` only for markup you trust.
 
@@ -36,14 +39,12 @@ class HelloController {
 
 ## 3. A shared layout
 
-`templates/layouts/app.looma.html`
-
-```html
+```html title="templates/layouts/app.looma.html"
 <!DOCTYPE html>
 <html>
 <head>
-    <title>@yield('title', 'My app')</title>
-    @stack('head')
+    <title>@yield('title', 'My app')</title> <!-- (1)! -->
+    @stack('head') <!-- (2)! -->
 </head>
 <body>
     @include('partials.nav')
@@ -53,9 +54,10 @@ class HelloController {
 </html>
 ```
 
-`templates/hello.looma.html`
+1.  The page's `@section('title', ...)`, or `My app` when the page sets none.
+2.  Everything pages `@push('head')`, for example a stylesheet only one page needs.
 
-```html
+```html title="templates/hello.looma.html"
 @extends('layouts.app')
 
 @section('title', 'Hello')
@@ -107,18 +109,19 @@ for checkboxes, radios and selects.
 ```java
 @PostMapping("/signup")
 String submit(@Valid @ModelAttribute("form") SignupForm form, BindingResult result) {
-    return result.hasErrors() ? "signup" : "signup-done";   // BindingResult feeds @error, no glue code
+    return result.hasErrors() ? "signup" : "signup-done"; // (1)!
 }
 ```
+
+1.  On a failed submit the form is shown again: `@error` reads the messages from the `BindingResult` and `@field`
+    keeps what the user typed. No glue code.
 
 With Spring Security, `@csrf` renders the token the filter expects (tested in `looma-it`), and
 `@auth('ADMIN') ... @endauth` / `@guest` follow the signed-in user.
 
 ## 6. A component
 
-`templates/components/alert.looma.html`
-
-```html
+```html title="templates/components/alert.looma.html"
 <div {{ $attributes->except('type')->merge({'class': 'alert alert-' + $type}) }}>{{ $slot }}</div>
 ```
 
@@ -155,6 +158,8 @@ Block directives, loops and more: [Extending & architecture](extending.md).
   missing `@include` / `@extends` / `<x-…>`. Boot it once in CI and typos never reach users.
 * Templates are trusted code. Never build template names from request input. See
   [the security model](security.md).
+
+</div>
 
 ## Coming from Thymeleaf?
 

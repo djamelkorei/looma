@@ -133,7 +133,7 @@ class FastPathTest {
         try {
             return Expressions.eval(expr, scope);
         } catch (LoomaException e) {
-            return "ERROR";
+            return "ERROR: " + e.getMessage(); // the message must match too
         }
     }
 
@@ -255,6 +255,59 @@ class FastPathTest {
         }
     }
 
+    /** Counts every call, so a test can see that no getter or method runs more often than with SpEL alone. */
+    public static class Counting {
+        final Map<String, Integer> calls = new java.util.TreeMap<>();
+        private void count(String what) { calls.merge(what, 1, Integer::sum); }
+        public String getName() { count("getName"); return "n"; }
+        public Counting getSelf() { count("getSelf"); return this; }
+        public Object getNothing() { count("getNothing"); return null; }
+        public java.util.Optional<String> getMaybe() { count("getMaybe"); return java.util.Optional.of("m"); }
+        public List<String> getRoles() { count("getRoles"); return List.of("a"); }
+        public int getCount() { count("getCount"); return 3; }
+        public String getBoom() { count("getBoom"); throw new IllegalStateException("boom"); }
+        public String getChecked() throws Exception { count("getChecked"); throw new Exception("checked"); }
+        public String act() { count("act"); return "acted"; }
+        public String act(String s) { count("act(String)"); return "acted " + s; }
+        public String act(Object o) { count("act(Object)"); return "acted object"; }
+        public String add(long l) { count("add(long)"); return "added " + l; }
+        public String each(String... s) { count("each"); return "each " + s.length; }
+        public String fail() { count("fail"); throw new IllegalArgumentException("failed"); }
+        public String failChecked() throws Exception { count("failChecked"); throw new java.io.IOException("io"); }
+        public Object value() { count("value"); return "v"; }
+        public String publicField = "field";
+    }
+
+    @Test
+    void noGetterOrMethodRunsMoreOftenThanWithSpel() {
+        for (String e : List.of("c.name", "c.self.self.name", "c.nothing.x", "c.nothing?.x", "c.nothing?.x.y",
+                "c.self.nothing.size()", "c.self.nothing?.size()", "c.maybe?.length()", "c.self.maybe ?: 'x'",
+                "c.boom", "c.self.boom", "c.checked", "c.self.fail()", "c.self.failChecked()", "c.self.act()",
+                "c.self.act('s')", "c.self.act(c.count)", "c.self.add(c.count)", "c.self.each('a', c.name)",
+                "c.self.missing()", "c.self.missing", "c.self.publicField", "c.roles and true", "c.self.count and true",
+                "!c.roles", "c.roles ? 1 : 2", "c.self.name + c.roles", "c.self.name - 1", "c.count / 0",
+                "c.self.name == c.name", "c.self.name < c.count", "c.self.getClass()", "c.self.class",
+                "{'a': c.name, 'b': c.self.count}", "c.value() ?: c.name", "c.self.value().length()",
+                "c.self.name.substring(c.count, 1)", "c.self.act(c.nothing)",
+                "(c.count > 1 ? c.roles : c.name) and true", "(c.nothing ?: c.roles) and true", "!c.self.value()",
+                "c.self.act(c.count) or false", "c.self.publicField ? 1 : 2", "!c.self.nothing", "!c.nothing?.x",
+                "c.self.maybe ? 1 : 2", "(c.self.maybe ?: c.roles) or true", "c.self.each('a') and true",
+                "c.self.boom ?: 'x'", "c.self.fail() == 'x'", "c.count > 2 and c.self.name == 'n'")) {
+            Counting fastBean = new Counting();
+            Counting spelBean = new Counting();
+            Scope fastScope = new Scope(null);
+            fastScope.put("c", fastBean);
+            Scope spelScope = new Scope(null);
+            spelScope.put("c", spelBean);
+            Expr fast = Expressions.parse(e, 1);
+            Expr slow = new Expr(fast.spel(), fast.source(), fast.line());
+            Object expected = result(slow, spelScope);
+            Object actual = result(fast, fastScope);
+            assertEquals(String.valueOf(expected), String.valueOf(actual), e + ": result");
+            assertEquals(spelBean.calls, fastBean.calls, e + ": calls");
+        }
+    }
+
     @Test
     void theCommonShapesAreCompiled() {
         for (String e : List.of("$user->name", "!$a.b", "$loop->even ? 'e' : 'o'", "true", "a == b", "a.b()",
@@ -263,7 +316,7 @@ class FastPathTest {
                 "$g.value.size() / ($projects.size() * 1.0)", "a ?? 'd'", "{'a': 1}", "{'c': $c, 'n': $loop->iteration}")) {
             assertNotNull(Expressions.parse(e, 1).fastPath(), e);
         }
-        for (String e : List.of("a[0]", "list.![x]", "@bean.go()", "T(java.lang.Math).max(1, 2)",
+        for (String e : List.of("a[0]", "list.![x]", "T(java.lang.Math).max(1, 2)",
                 "a eq b", "a matches 'x'", "a.b('c\\\\d')")) {
             assertNull(Expressions.parse(e, 1).fastPath(), e);
         }

@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="8 8 48 48" width="48" height="48" role="img" aria-label="Looma">
+  <title>Looma</title>
+  <rect x="10" y="18" width="44" height="8" rx="4" fill="#F4F2EC"/>
+  <rect x="10" y="38" width="44" height="8" rx="4" fill="#F4F2EC"/>
+  <rect x="18" y="10" width="8" height="44" rx="4" fill="#F2A83B"/>
+  <rect x="38" y="10" width="8" height="44" rx="4" fill="#F2A83B"/>
+  <rect x="36.5" y="18" width="11" height="8" fill="#F4F2EC"/>
+  <rect x="16.5" y="38" width="11" height="8" fill="#F4F2EC"/>
+</svg>

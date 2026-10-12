@@ -6,7 +6,99 @@ title: Template syntax
 
 Every directive in one place. The built-in ones are ordinary classes in `looma-core/.../directive`; [write your own](extending.md) the same way.
 
-| | |
+## How the pieces fit
+
+Two short walk-throughs before the reference: how a page and its layout become one page, and how a component
+becomes plain HTML. Click a step, or let them play.
+
+### Layouts and sections
+
+<div class="looma-walk" data-looma-walkthrough>
+<div class="looma-walk__tabs" role="tablist" aria-label="How layouts and sections fit">
+<button type="button" class="looma-walk__tab" role="tab" data-step="0" aria-selected="true"><b>Step 1</b>The layout leaves holes</button>
+<button type="button" class="looma-walk__tab" role="tab" data-step="1" aria-selected="false"><b>Step 2</b>A page fills them</button>
+<button type="button" class="looma-walk__tab" role="tab" data-step="2" aria-selected="false"><b>Step 3</b>Looma puts them together</button>
+</div>
+<div class="looma-walk__panel" role="tabpanel" data-panel="0">
+<div><span class="looma-walk__file">layouts/app.looma.html</span><pre><code class="language-looma">&lt;html&gt;
+&lt;head&gt;&lt;title&gt;@yield('title', 'My app')&lt;/title&gt;@stack('head')&lt;/head&gt;
+&lt;body&gt;
+  @include('partials.nav')
+  &lt;main&gt;@yield('content')&lt;/main&gt;
+&lt;/body&gt;
+&lt;/html&gt;</code></pre></div>
+<div class="looma-walk__note"><strong>A layout is a page with named holes.</strong> <code>@yield</code> marks where a page's sections go, <code>@stack</code> where pushed tags go, and <code>@include</code> pulls in a partial.</div>
+</div>
+<div class="looma-walk__panel" role="tabpanel" data-panel="1">
+<div><span class="looma-walk__file">posts.looma.html</span><pre><code class="language-looma">@extends('layouts.app')
+
+@section('title', 'Posts')
+@push('head')&lt;link rel="stylesheet" href="/posts.css"&gt;@endpush
+
+@section('content')
+  &lt;h1&gt;Posts&lt;/h1&gt;
+@endsection</code></pre></div>
+<div class="looma-walk__note"><strong>The page names its layout and fills the holes by name.</strong> A short section can be written inline, like the title, and a <code>@push</code> can sit anywhere in the page.</div>
+</div>
+<div class="looma-walk__panel" role="tabpanel" data-panel="2">
+<div><span class="looma-walk__file">Rendered HTML</span><pre><code>&lt;html&gt;
+&lt;head&gt;&lt;title&gt;<span class="filled" style="--i:0">Posts</span>&lt;/title&gt;<span class="filled" style="--i:1">&lt;link rel="stylesheet" href="/posts.css"&gt;</span>&lt;/head&gt;
+&lt;body&gt;
+  <span class="filled" style="--i:2">&lt;nav&gt;…&lt;/nav&gt;</span>
+  &lt;main&gt;
+  <span class="filled" style="--i:3">&lt;h1&gt;Posts&lt;/h1&gt;</span>
+&lt;/main&gt;
+&lt;/body&gt;
+&lt;/html&gt;</code></pre></div>
+<div class="looma-walk__note"><strong>One page comes out.</strong> Each hole holds what the page gave it, or the default: without a title section the page would read <em>My app</em>. Rendered by Looma, blank lines removed.</div>
+</div>
+<div class="looma-walk__controls">
+<button type="button" class="looma-btn" data-action="prev" aria-label="Previous step">Back</button>
+<button type="button" class="looma-btn" data-action="play" aria-pressed="true">Pause</button>
+<button type="button" class="looma-btn" data-action="next" aria-label="Next step">Next</button>
+</div>
+</div>
+
+### Components and slots
+
+<div class="looma-walk" data-looma-walkthrough>
+<div class="looma-walk__tabs" role="tablist" aria-label="How components and slots work">
+<button type="button" class="looma-walk__tab" role="tab" data-step="0" aria-selected="true"><b>Step 1</b>A component declares props</button>
+<button type="button" class="looma-walk__tab" role="tab" data-step="1" aria-selected="false"><b>Step 2</b>A page uses it like a tag</button>
+<button type="button" class="looma-walk__tab" role="tab" data-step="2" aria-selected="false"><b>Step 3</b>The page gets plain HTML</button>
+</div>
+<div class="looma-walk__panel" role="tabpanel" data-panel="0">
+<div><span class="looma-walk__file">components/alert.looma.html</span><pre><code class="language-looma">@props({'type': 'info'})
+&lt;div {{ $attributes-&gt;merge({'class': 'alert alert-' + $type}) }}&gt;
+  @isset($title)&lt;strong&gt;{{ $title }}&lt;/strong&gt;@endisset
+  {{ $slot }}
+&lt;/div&gt;</code></pre></div>
+<div class="looma-walk__note"><strong>A component is a template in <code>components/</code>.</strong> <code>@props</code> lists what it accepts, with defaults. Every other attribute lands in <code>$attributes</code>, and the body arrives as <code>$slot</code>.</div>
+</div>
+<div class="looma-walk__panel" role="tabpanel" data-panel="1">
+<div><span class="looma-walk__file">any template</span><pre><code class="language-looma">&lt;x-alert type="warning" class="mb-4"&gt;
+  &lt;x-slot:title&gt;Heads up&lt;/x-slot:title&gt;
+  Your trial ends in {{ $days }} days.
+&lt;/x-alert&gt;</code></pre></div>
+<div class="looma-walk__note"><strong>Attributes become variables.</strong> <code>type</code> fills the prop, <code>class</code> is merged into <code>$attributes</code>, <code>&lt;x-slot:title&gt;</code> becomes <code>$title</code>, and the rest is the slot. Prefix an attribute with <code>:</code> to pass an expression instead of text, as in <code>:count="$items.size()"</code>.</div>
+</div>
+<div class="looma-walk__panel" role="tabpanel" data-panel="2">
+<div><span class="looma-walk__file">Rendered HTML</span><pre><code>&lt;div class="<span class="filled" style="--i:0">alert alert-warning mb-4</span>"&gt;
+  &lt;strong&gt;<span class="filled" style="--i:1">Heads up</span>&lt;/strong&gt;
+  <span class="filled" style="--i:2">Your trial ends in 3 days.</span>
+&lt;/div&gt;</code></pre></div>
+<div class="looma-walk__note"><strong>Nothing of the component is left but its HTML.</strong> Without a <code>type</code> it would read <code>alert alert-info</code>, and without a title slot the <code>&lt;strong&gt;</code> is left out. Rendered by Looma with <code>$days = 3</code>, blank lines removed.</div>
+</div>
+<div class="looma-walk__controls">
+<button type="button" class="looma-btn" data-action="prev" aria-label="Previous step">Back</button>
+<button type="button" class="looma-btn" data-action="play" aria-pressed="true">Pause</button>
+<button type="button" class="looma-btn" data-action="next" aria-label="Next step">Next</button>
+</div>
+</div>
+
+## All directives
+
+| Write | What it does |
 |---|---|
 | `{{ $x }}` / `{!! $x !!}` | escaped / raw output |
 | `{{-- comment --}}`, `@{{ x }}`, `@@` | comment, literal braces, literal `@` |
@@ -21,7 +113,7 @@ Every directive in one place. The built-in ones are ordinary classes in `looma-c
 | `@includeIf('promo')`, `@includeWhen($cond, 'x')`, `@includeUnless($cond, 'x')` | include only if the template exists / the condition holds |
 | `@includeFirst({'themes.dark.nav', 'nav'})` | the first template of the list that exists |
 | `@each('partials.row', $orders, 'order', 'partials.empty')` | one include per item (with `$loop`), or the empty view |
-| `@push('js')`, `@prepend`, `@stack('js')` | stacks, usable before the pushes happen |
+| `@push('js')`, `@prepend`, `@stack('js')` | stacks, usable before the pushes happen; a page that extends a layout can push from anywhere in it |
 | `<x-alert type="info" :count="items.size()" title="Hi {{ $name }}">..</x-alert>` | components from `templates/components/`; `:attr` is an expression, `{{ }}` interpolates inside a plain attribute |
 | `<x-slot:title>..</x-slot:title>` | named slots; the body is `$slot` |
 | `@props({'type': 'info', 'dismissible': false})` | at the top of a component: defaults for missing props; declared props are removed from `$attributes` |

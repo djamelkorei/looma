@@ -19,6 +19,79 @@ wins when both exist. Adjust with a `LoomaViewResolver` bean of your own if you 
 The startup check parses every `*.looma.html` and fails the application on a syntax error or a reference to a
 missing layout, include or component, so a half-converted page is found on boot rather than by a visitor.
 
+## Side by side
+
+The same three snippets in both engines. Pick a tab once and every example on the page follows it.
+
+**A list with an empty state**
+
+=== "Thymeleaf"
+
+    ```html
+    <ul>
+      <li th:each="post, s : ${posts}"
+          th:classappend="${s.first} ? 'first'"
+          th:text="${post.title}"></li>
+      <li th:if="${posts.isEmpty()}">No posts yet</li>
+    </ul>
+    ```
+
+=== "Looma"
+
+    ```html
+    <ul>
+    @forelse($posts as $post)
+      <li @class({'first': $loop->first})>{{ $post.title }}</li>
+    @empty
+      <li>No posts yet</li>
+    @endforelse
+    </ul>
+    ```
+
+**A form field with its validation error**
+
+=== "Thymeleaf"
+
+    ```html
+    <form th:action="@{/signup}" th:object="${form}" method="post">
+      <input th:field="*{email}"
+             th:classappend="${#fields.hasErrors('email')} ? 'invalid'">
+      <small th:if="${#fields.hasErrors('email')}" th:errors="*{email}"></small>
+    </form>
+    ```
+
+=== "Looma"
+
+    ```html
+    <form action="/signup" method="post">
+      @csrf
+      @bind('form')
+        <input @field('email') @class({'invalid': $errors.containsKey('email')})>
+        @error('email')<small>{{ $message }}</small>@enderror
+      @endbind
+    </form>
+    ```
+
+**The signed-in user, a role and a message**
+
+=== "Thymeleaf"
+
+    ```html
+    <nav>
+      <span sec:authorize="isAuthenticated()" sec:authentication="name"></span>
+      <a sec:authorize="hasRole('ADMIN')" href="/admin" th:text="#{nav.admin}"></a>
+    </nav>
+    ```
+
+=== "Looma"
+
+    ```html
+    <nav>
+      @auth<span>{{ $principal.name }}</span>@endauth
+      @auth('ADMIN')<a href="/admin">@lang('nav.admin')</a>@endauth
+    </nav>
+    ```
+
 ## Attribute by attribute
 
 Thymeleaf puts logic in attributes on existing elements; Looma puts it in the text. Most attributes map one to one.
@@ -107,7 +180,7 @@ the page reads top to bottom as the page it renders. A typical layout:
 ```
 
 `@push` replaces the Layout Dialect's `layout:fragment` for head and script blocks, and `@parent` appends to the
-layout's own section instead of replacing it.
+layout's own section instead of replacing it. A `@push` can sit anywhere in the page, inside a section or not.
 
 ## Things to check before you go live
 

@@ -12,20 +12,20 @@ Looma needs **Java 21+** and **Spring Boot 3.3 or newer** (see [compatibility](c
     <dependency>
       <groupId>io.github.djamelkorei</groupId>
       <artifactId>looma-spring-boot-starter</artifactId>
-      <version>0.1.2</version>
+      <version>0.1.3</version>
     </dependency>
     ```
 
 === "Gradle (Kotlin)"
 
     ```kotlin
-    implementation("io.github.djamelkorei:looma-spring-boot-starter:0.1.2")
+    implementation("io.github.djamelkorei:looma-spring-boot-starter:0.1.3")
     ```
 
 === "Gradle (Groovy)"
 
     ```groovy
-    implementation 'io.github.djamelkorei:looma-spring-boot-starter:0.1.2'
+    implementation 'io.github.djamelkorei:looma-spring-boot-starter:0.1.3'
     ```
 
 That is the whole setup. Spring Boot auto-configures the engine and the view resolver; put templates in
@@ -41,7 +41,7 @@ download, so prefer Maven Central unless you have a reason.
 Create a [personal access token](https://github.com/settings/tokens) with `read:packages` and add it to
 `~/.m2/settings.xml`:
 
-```xml
+```xml title="~/.m2/settings.xml"
 <settings>
   <servers>
     <server>

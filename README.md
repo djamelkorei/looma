@@ -53,12 +53,12 @@ Write HTML with <code>{{ }}</code> and <code>@directives</code>. Get layouts, co
 <dependency>
   <groupId>io.github.djamelkorei</groupId>
   <artifactId>looma-spring-boot-starter</artifactId>
-  <version>0.1.2</version>
+  <version>0.1.3</version>
 </dependency>
 ```
 
 ```kotlin
-implementation("io.github.djamelkorei:looma-spring-boot-starter:0.1.2")
+implementation("io.github.djamelkorei:looma-spring-boot-starter:0.1.3")
 ```
 
 Needs Java 21+ and Spring Boot 3.3+. Put templates in `src/main/resources/templates/` as `*.looma.html` and
@@ -73,7 +73,7 @@ return the view name from a controller. Nothing else to configure. More options:
 | **Spring-aware forms** | `@bind` and `@field` fill `name`, `id` and `value` from the model object and keep the rejected input after a failed `@Valid` submit. `@error` shows the message from your `MessageSource`. `@csrf` works with Spring Security. |
 | **Safe by default** | Escaped output, a sandboxed SpEL subset (no `T()`, constructors, reflection or bean access unless you opt in), bounded loops and recursion, `@auth` / `@can` that fail closed. |
 | **Fails at startup** | Every template is parsed on boot. A syntax error or a reference to a missing layout, include or component stops the app with file and line, instead of a 500 for a visitor. |
-| **Fast** | About 4× faster than Thymeleaf and 1.5× faster than Pebble on the same page, measured with JMH. [Benchmarks](https://djamelkorei.github.io/looma/benchmarks/) |
+| **Fast** | On a 2-CPU server, the same pages cost 4× (a simple list) to 9× (a heavy dashboard) less CPU than with Thymeleaf. [Benchmarks](https://djamelkorei.github.io/looma/benchmarks/) |
 | **Easy to extend** | Every directive is one small class behind a public API. Yours are plain Spring beans, and so are template helpers. |
 | **Tested widely** | Java 21 and 25 × Spring Boot 3.3, 3.4, 3.5 and 4.0, including Spring Security, on every push. |
 

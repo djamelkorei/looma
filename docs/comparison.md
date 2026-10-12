@@ -9,7 +9,7 @@ template engine for Spring; Looma brings Laravel Blade's syntax to the same plac
 
 **Legend:** ✅ built in · ⚠️ partial, via an add-on, or with a workaround · ❌ not available. Every row is phrased so that ✅ is the better answer.
 
-Versions compared: Looma 0.1.1 and Thymeleaf 3.1 with Spring integration. October 2026.
+Versions compared: Looma 0.1.3 and Thymeleaf 3.1 with Spring integration. October 2026.
 
 ## At a glance
 
@@ -100,12 +100,16 @@ Versions compared: Looma 0.1.1 and Thymeleaf 3.1 with Spring integration. Octobe
 
 ## Performance
 
-Same page in each engine, measured with JMH ([details](benchmarks.md)):
+The same pages in each engine, served by Spring Boot on a 2-CPU server ([details](benchmarks.md)):
 
-| Render time | Thymeleaf | Looma |
+| CPU time per page | Thymeleaf | Looma |
 |---|---|---|
-| 10-row table | 12.2 µs | **2.7 µs** |
-| 200-row table | 222.3 µs | **54.5 µs** |
+| Light: a 20-item list | 0.31 ms | **0.08 ms** (3.9× less) |
+| Medium: a 50-row table with a component per row | 2.0 ms | **0.27 ms** (7.5× less) |
+| Heavy: a 100-project dashboard | 58 ms | **6.6 ms** (8.7× less) |
+
+The gap grows with what a page does. With 8 users on the same server, the heavy page takes 9 ms with Looma and
+205 ms with Thymeleaf.
 
 ## When to choose which
 

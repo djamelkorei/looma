@@ -1,8 +1,10 @@
 package io.github.djamelkorei.looma.directive;
 
 import io.github.djamelkorei.looma.spi.Directive;
+import io.github.djamelkorei.looma.spi.LayoutContribution;
 import io.github.djamelkorei.looma.spi.Node;
 import io.github.djamelkorei.looma.spi.ParseContext;
+import io.github.djamelkorei.looma.spi.RenderContext;
 import io.github.djamelkorei.looma.spi.Syntax;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -44,15 +46,30 @@ public final class StackDirectives {
             @Override public Node parse(ParseContext p) {
                 String stack = p.literal(p.args());
                 List<Node> body = p.block(end).nodes();
-                return ctx -> {
-                    String rendered = ctx.capture(body);
-                    List<String> items = ctx.state(Stacks.class, Stacks::new).items
-                            .computeIfAbsent(stack, k -> new ArrayList<>());
-                    if (prepend) items.add(0, rendered);
-                    else items.add(rendered);
-                };
+                return new PushNode(stack, body, prepend);
             }
         };
+    }
+
+    /**
+     * Adds its rendered body to a stack. It is also a {@link LayoutContribution}, so that in a page that extends a
+     * layout a push at the top level reaches the layout like a section does (as in Blade), not only one inside a
+     * section.
+     */
+    private record PushNode(String stack, List<Node> body, boolean prepend) implements LayoutContribution {
+
+        @Override
+        public void render(RenderContext ctx) {
+            String rendered = ctx.capture(body);
+            List<String> items = ctx.state(Stacks.class, Stacks::new).items.computeIfAbsent(stack, k -> new ArrayList<>());
+            if (prepend) items.add(0, rendered);
+            else items.add(rendered);
+        }
+
+        @Override
+        public void contribute(RenderContext ctx) {
+            render(ctx);
+        }
     }
 
     public static Directive stack() {

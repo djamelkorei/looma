@@ -17,10 +17,18 @@ import org.springframework.expression.spel.support.SimpleEvaluationContext;
 public final class Expressions {
 
     private static final SpelExpressionParser PARSER = new SpelExpressionParser();
-    private static final EvaluationContext CONTEXT = SimpleEvaluationContext
-            .forPropertyAccessors(new Accessors.ScopeAccessor(), new Accessors.MapAccessor(), new Sandbox.Properties())
-            .withMethodResolvers(new Sandbox.Methods())
-            .build();
+    private static final Accessors.ScopeAccessor SCOPE_ACCESSOR = new Accessors.ScopeAccessor();
+    private static final Accessors.MapAccessor MAP_ACCESSOR = new Accessors.MapAccessor();
+    private static final Sandbox.Properties PROPERTIES = new Sandbox.Properties();
+    private static final Sandbox.Methods METHODS = new Sandbox.Methods();
+    private static final EvaluationContext CONTEXT = stepContext();
+
+    /** A fresh context with the same accessors and sandbox, for variables bound to one evaluation. */
+    static SimpleEvaluationContext stepContext() {
+        return SimpleEvaluationContext.forPropertyAccessors(SCOPE_ACCESSOR, MAP_ACCESSOR, PROPERTIES)
+                .withMethodResolvers(METHODS)
+                .build();
+    }
 
     private Expressions() {}
 
@@ -46,8 +54,7 @@ public final class Expressions {
     public static Object eval(Expr expr, Scope scope) {
         try {
             if (expr.fastPath() instanceof FastPath.Plan plan) {
-                Object value = plan.eval(scope); // inside the try: a map or bean lookup may throw
-                if (value != FastPath.MISS) return value;
+                return plan.eval(scope); // inside the try: errors are reported like SpEL's
             }
             return expr.spel().getValue(CONTEXT, scope);
         } catch (RuntimeException e) {

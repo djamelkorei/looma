@@ -125,6 +125,28 @@ class LoomaEngineTest {
     }
 
     @Test
+    void pushesOutsideSectionsReachTheLayout() {
+        // As in Blade: a page that extends a layout may push at its top level, not only inside a section.
+        files.put("layout", "<head>@stack('css')</head><body>@yield('content')@stack('js')</body>");
+        files.put("page", "@extends('layout')\n"
+                + "@push('css')<link href=\"/{{ $name }}.css\">@endpush\n"
+                + "@section('content')body@push('js')<script src=\"/in-section.js\"></script>@endpush@endsection\n"
+                + "@push('js')<script src=\"/top.js\"></script>@endpush\n"
+                + "@prepend('js')<script src=\"/first.js\"></script>@endprepend\n");
+        assertEquals("<head><link href=\"/posts.css\"></head><body>body<script src=\"/first.js\"></script>"
+                + "<script src=\"/top.js\"></script><script src=\"/in-section.js\"></script></body>",
+                engine.render("page", Map.of("name", "posts")));
+    }
+
+    @Test
+    void pushesOutsideSectionsWorkThroughEveryLayoutLevel() {
+        files.put("base", "<head>@stack('css')</head>@yield('content')");
+        files.put("mid", "@extends('base')@push('css')<mid>@endpush@section('content')[@yield('inner')]@endsection");
+        files.put("leaf", "@extends('mid')@push('css')<leaf>@endpush@section('inner')leaf@endsection");
+        assertEquals("<head><leaf><mid></head>[leaf]", engine.render("leaf", Map.of()));
+    }
+
+    @Test
     void parentAppendsToLayoutSection() {
         files.put("base", "@section('side')base@endsection");
         files.put("mid", "@extends('base')@section('side')mid+@parent@endsection");

@@ -3,6 +3,7 @@ package io.github.djamelkorei.looma.internal;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.lang.reflect.Proxy;
@@ -11,6 +12,8 @@ import java.math.BigInteger;
 import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
@@ -20,6 +23,18 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.BaseStream;
 import org.springframework.core.BridgeMethodResolver;
+import org.springframework.core.MethodParameter;
+import org.springframework.core.convert.TypeDescriptor;
+import org.springframework.expression.AccessException;
+import org.springframework.expression.Expression;
+import org.springframework.expression.ExpressionInvocationTargetException;
+import org.springframework.expression.TypedValue;
+import org.springframework.expression.spel.ExpressionState;
+import org.springframework.expression.spel.SpelEvaluationException;
+import org.springframework.expression.spel.SpelMessage;
+import org.springframework.expression.spel.standard.SpelExpression;
+import org.springframework.expression.spel.standard.SpelExpressionParser;
+import org.springframework.expression.spel.support.SimpleEvaluationContext;
 import org.springframework.util.ClassUtils;
 import org.springframework.util.NumberUtils;
 import org.springframework.util.ObjectUtils;
@@ -30,19 +45,20 @@ import org.springframework.util.ObjectUtils;
  *
  * <p>It understands the same grammar as SpEL for a subset: literals, variables, property and method chains
  * ({@code a.b.c()}, {@code a?.b}), {@code + - * / %}, comparisons, {@code && || !}, {@code and or not}, the
- * ternary, the elvis operator (Looma's {@code ??}) and inline lists and maps, with SpEL's precedence. Every rule is ported from SpEL (Spring 6.1 to 7.0 agree on all of them): the
- * numeric promotion of operators, equality and ordering, string concatenation, which getter a property reads
- * ({@code getX}, {@code isX}, record-style {@code x()}), which overload a call picks, and the sandbox checks.
+ * ternary, the elvis operator (Looma's {@code ??}) and inline lists and maps, with SpEL's precedence. Every rule is
+ * ported from SpEL (Spring 6.1 to 7.0 agree on all of them): the numeric promotion of operators, equality and
+ * ordering, string concatenation, which getter a property reads ({@code getX}, {@code isX}, record-style
+ * {@code x()}), which overload a call picks, the sandbox checks, and the exceptions SpEL throws.
  *
- * <p>Whenever a case is not covered exactly (an unusual operand type, an argument SpEL would convert, an overload
- * choice that needs SpEL's distance rules, a null in the middle of a chain, any error) evaluation returns
- * {@link FastPath#MISS} and the caller evaluates the expression with SpEL, so results and error messages are the
- * same either way. Expressions outside the subset (indexing, projections and selections, bean references,
- * {@code T()}, assignments...) are not compiled at all.
+ * <p><b>Every step runs once.</b> When a step is not covered exactly (an argument SpEL would convert, an overload choice
+ * that needs SpEL's distance rules, a null target, a field instead of a getter, an unusual operand type...), SpEL
+ * evaluates that one step, with the values already computed bound as variables. Earlier steps are never evaluated
+ * again, so a getter or method is called once, as with SpEL alone. When the code a step calls throws, the exception
+ * is the one SpEL would throw. Expressions outside the subset (indexing, projections and selections, {@code T()},
+ * assignments...) are not compiled at all and SpEL evaluates them from the start.
  */
 final class DirectEvaluator {
 
-    private static final Object MISS = FastPath.MISS;
     private static final int MAX_CONCATENATED_STRING_LENGTH = 100_000; // SpEL's limit; beyond it SpEL reports an error
 
     private DirectEvaluator() {}
@@ -312,13 +328,12 @@ final class DirectEvaluator {
             } else if (t.kind == Kind.IDENT) {
                 pos++;
                 if (peek().kind == Kind.LPAREN) return null; // a method on the root scope: the sandbox refuses it
-                if (t.text.equals("_beans")) return null;     // bean calls may have side effects: SpEL only
                 node = new Variable(t.text);
             } else {
                 return null;
             }
             while (peek().kind == Kind.DOT || peek().kind == Kind.SAFE_DOT) {
-                pos++;
+                boolean nullSafe = tokens.get(pos++).kind == Kind.SAFE_DOT;
                 Token name = peek();
                 if (name.kind != Kind.IDENT) return null;
                 pos++;
@@ -332,9 +347,9 @@ final class DirectEvaluator {
                         } while (accept(Kind.COMMA));
                         if (!accept(Kind.RPAREN)) return null;
                     }
-                    node = new Call(node, name.text, args.toArray(new Node[0]));
+                    node = new Call(node, name.text, args.toArray(new Node[0]), nullSafe);
                 } else {
-                    node = new Property(node, name.text);
+                    node = new Property(node, name.text, nullSafe);
                 }
             }
             return node;
@@ -379,11 +394,105 @@ final class DirectEvaluator {
         }
     }
 
+    // ------------------------------------------------------------------------------------------------ steps
+
+    private static final SpelExpressionParser STEP_PARSER = new SpelExpressionParser();
+
+    /**
+     * One step SpEL evaluates for us: a tiny expression such as {@code #t.name} or {@code #l + #r} whose variables are
+     * the values the evaluator has already computed. Parsed on first use; SpEL expressions are safe to share.
+     */
+    private static final class Step {
+        private final String spel;
+        private final String[] names;
+        private volatile Expression expression;
+
+        Step(String spel, String... names) {
+            this.spel = spel;
+            this.names = names;
+        }
+
+        private Expression expression() {
+            Expression e = expression;
+            if (e == null) expression = e = STEP_PARSER.parseExpression(spel);
+            return e;
+        }
+
+        private SimpleEvaluationContext context(Object[] values) {
+            SimpleEvaluationContext context = Expressions.stepContext();
+            for (int i = 0; i < names.length; i++) context.setVariable(names[i], values[i]);
+            return context;
+        }
+
+        Object eval(Scope scope, Object... values) {
+            return expression().getValue(context(values), scope);
+        }
+
+        /** The value with the type SpEL gives it (a getter's declared type, for example), for conditions. */
+        TypedValue evalTyped(Scope scope, Object... values) {
+            SpelExpression e = (SpelExpression) expression();
+            return e.getAST().getTypedValue(new ExpressionState(context(values), new TypedValue(scope)));
+        }
+
+        /** For steps written against {@code #root}: the operand keeps the type SpEL would have given it. */
+        Object evalOn(TypedValue root) {
+            SpelExpression e = (SpelExpression) expression();
+            return e.getAST().getValue(new ExpressionState(Expressions.stepContext(), root));
+        }
+    }
+
+    private static final Step NOT = new Step("!#root");
+    private static final Step AND_LEFT = new Step("#root and true");
+    private static final Step AND_RIGHT = new Step("true and #root");
+    private static final Step OR_LEFT = new Step("#root or false");
+    private static final Step OR_RIGHT = new Step("false or #root");
+    private static final Step CONDITION = new Step("#root ? true : false");
+    private static final Step NEGATE = new Step("-#v", "v");
+    private static final Step UNARY_PLUS = new Step("+#v", "v");
+    private static final Step ELVIS = new Step("#v ?: #f", "v", "f");
+    private static final Map<Kind, Step> BINARY = Map.of(
+            Kind.PLUS, new Step("#l + #r", "l", "r"),
+            Kind.MINUS, new Step("#l - #r", "l", "r"),
+            Kind.STAR, new Step("#l * #r", "l", "r"),
+            Kind.SLASH, new Step("#l / #r", "l", "r"),
+            Kind.PERCENT, new Step("#l % #r", "l", "r"));
+
+    /** Marks "SpEL decides this step" between {@link Members} and the nodes. */
+    private static final Object SPEL = new Object();
+
+    /** A value that can never come out of an expression, to see whether SpEL's elvis took its fallback. */
+    private static final Object FALLBACK = new Object();
+
+    /**
+     * A boolean operand as SpEL reads it: Boolean as is, anything else converted (or rejected) by SpEL itself, with
+     * the type SpEL would see, so that a conversion error names the same type.
+     */
+    private static boolean bool(Node operand, Step step, Scope scope) {
+        Object c = operand.condition(scope);
+        if (c instanceof Boolean b) return b;
+        return (Boolean) step.evalOn(c instanceof Typed t ? t.value : new TypedValue(c));
+    }
+
+    /** A non-Boolean condition value together with the type SpEL gives it (only built when needed). */
+    private record Typed(TypedValue value) {}
+
+    private static Object raw(Object condition) {
+        return condition instanceof Typed t ? t.value.getValue() : condition;
+    }
+
     // ------------------------------------------------------------------------------------------------ nodes
 
     private abstract static class Node {
-        /** The value, or {@link #MISS}. Never throws for anything but JVM errors. */
+        /** The value, or the exception SpEL would throw. */
         abstract Object eval(Scope scope);
+
+        /**
+         * The value for a boolean operator: a Boolean, or a {@link Typed} when SpEL would carry a declared type with it
+         * (property and method results), or the plain value.
+         */
+        Object condition(Scope scope) {
+            return eval(scope);
+        }
     }
 
     private static class Literal extends Node {
@@ -395,6 +504,256 @@ final class DirectEvaluator {
     /** A bare name used as an inline map key: SpEL takes the name, not the variable's value. */
     private static final class Name extends Literal {
         Name(String name) { super(name); }
+    }
+
+    private static final class Variable extends Node {
+        final String name;
+        Variable(String name) { this.name = name; }
+        @Override Object eval(Scope scope) { return scope.get(name); } // what Accessors.ScopeAccessor reads
+    }
+
+    private static final class Property extends Node {
+        private final Node target;
+        private final String name;
+        private final boolean nullSafe;
+        private final Step step;
+
+        Property(Node target, String name, boolean nullSafe) {
+            this.target = target;
+            this.name = name;
+            this.nullSafe = nullSafe;
+            this.step = new Step("#t" + (nullSafe ? "?." : ".") + name, "t");
+        }
+
+        @Override
+        Object eval(Scope scope) {
+            Object t = target.eval(scope);
+            if (t == null && nullSafe) return null;
+            if (t == null || (nullSafe && t instanceof Optional)) return step.eval(scope, t); // Spring 7 unwraps it
+            Object value = Members.read(t, name);
+            return value == SPEL ? step.eval(scope, t) : value;
+        }
+
+        @Override
+        Object condition(Scope scope) {
+            Object t = target.eval(scope);
+            if (t == null && nullSafe) return null;
+            if (t == null || (nullSafe && t instanceof Optional)) return new Typed(step.evalTyped(scope, t));
+            Object value = Members.read(t, name);
+            if (value == SPEL) return new Typed(step.evalTyped(scope, t));
+            if (value instanceof Boolean) return value;
+            return new Typed(new TypedValue(value, Members.propertyType(t, name, value)));
+        }
+    }
+
+    private static final class Call extends Node {
+        private final Node target;
+        private final String name;
+        private final Node[] args;
+        private final boolean nullSafe;
+        private final Step step;
+
+        Call(Node target, String name, Node[] args, boolean nullSafe) {
+            this.target = target;
+            this.name = name;
+            this.args = args;
+            this.nullSafe = nullSafe;
+            String[] names = new String[args.length + 1];
+            StringBuilder spel = new StringBuilder("#t").append(nullSafe ? "?." : ".").append(name).append('(');
+            names[0] = "t";
+            for (int i = 0; i < args.length; i++) {
+                names[i + 1] = "a" + i;
+                spel.append(i == 0 ? "" : ", ").append("#a").append(i);
+            }
+            this.step = new Step(spel.append(')').toString(), names);
+        }
+
+        @Override
+        Object eval(Scope scope) {
+            Object t = target.eval(scope);
+            Object[] values = new Object[args.length]; // SpEL evaluates the arguments even for a null target
+            for (int i = 0; i < args.length; i++) values[i] = args[i].eval(scope);
+            if (t == null && nullSafe) return null;
+            if (t == null || (nullSafe && t instanceof Optional)
+                    || Sandbox.deniedTarget(t) || Sandbox.deniedMember(name) || t instanceof Scope) {
+                return delegate(scope, t, values);
+            }
+            Object value = Members.invoke(t, name, values);
+            return value == SPEL ? delegate(scope, t, values) : value;
+        }
+
+        @Override
+        Object condition(Scope scope) {
+            Object t = target.eval(scope);
+            Object[] values = new Object[args.length];
+            for (int i = 0; i < args.length; i++) values[i] = args[i].eval(scope);
+            if (t == null && nullSafe) return null;
+            if (t == null || (nullSafe && t instanceof Optional)
+                    || Sandbox.deniedTarget(t) || Sandbox.deniedMember(name) || t instanceof Scope) {
+                return new Typed(step.evalTyped(scope, all(t, values)));
+            }
+            Object value = Members.invoke(t, name, values);
+            if (value == SPEL) return new Typed(step.evalTyped(scope, all(t, values)));
+            if (value instanceof Boolean) return value;
+            return new Typed(new TypedValue(value, Members.returnType(t, name, values, value)));
+        }
+
+        private Object delegate(Scope scope, Object t, Object[] values) {
+            return step.eval(scope, all(t, values));
+        }
+
+        private static Object[] all(Object t, Object[] values) {
+            Object[] all = new Object[values.length + 1];
+            all[0] = t;
+            System.arraycopy(values, 0, all, 1, values.length);
+            return all;
+        }
+    }
+
+    private static final class Not extends Node {
+        private final Node operand;
+        Not(Node operand) { this.operand = operand; }
+        @Override Object eval(Scope scope) {
+            return !bool(operand, NOT, scope);
+        }
+    }
+
+    /** SpEL's {@code OpAnd}: the right operand is only evaluated when the left one is true. */
+    private static final class And extends Node {
+        private final Node left;
+        private final Node right;
+        And(Node left, Node right) { this.left = left; this.right = right; }
+        @Override Object eval(Scope scope) {
+            if (!bool(left, AND_LEFT, scope)) return Boolean.FALSE;
+            return bool(right, AND_RIGHT, scope);
+        }
+    }
+
+    /** SpEL's {@code OpOr}: the right operand is only evaluated when the left one is false. */
+    private static final class Or extends Node {
+        private final Node left;
+        private final Node right;
+        Or(Node left, Node right) { this.left = left; this.right = right; }
+        @Override Object eval(Scope scope) {
+            if (bool(left, OR_LEFT, scope)) return Boolean.TRUE;
+            return bool(right, OR_RIGHT, scope);
+        }
+    }
+
+    private static final class Ternary extends Node {
+        private final Node condition;
+        private final Node yes;
+        private final Node no;
+        Ternary(Node condition, Node yes, Node no) { this.condition = condition; this.yes = yes; this.no = no; }
+        @Override Object eval(Scope scope) {
+            return bool(condition, CONDITION, scope) ? yes.eval(scope) : no.eval(scope);
+        }
+
+        @Override Object condition(Scope scope) { // SpEL's ternary passes the chosen branch's value on, type included
+            return bool(condition, CONDITION, scope) ? yes.condition(scope) : no.condition(scope);
+        }
+    }
+
+    /** SpEL's {@code Elvis}: the left value unless it is null or the empty String. Spring 7 unwraps Optional, 6 does not. */
+    private static final class Elvis extends Node {
+        private final Node value;
+        private final Node fallback;
+        Elvis(Node value, Node fallback) { this.value = value; this.fallback = fallback; }
+        @Override Object eval(Scope scope) {
+            Object v = value.eval(scope);
+            if (v instanceof Optional) {
+                Object chosen = ELVIS.eval(scope, v, FALLBACK); // the fallback expression itself runs only if needed
+                return chosen == FALLBACK ? fallback.eval(scope) : chosen;
+            }
+            return v != null && !"".equals(v) ? v : fallback.eval(scope);
+        }
+
+        @Override Object condition(Scope scope) { // SpEL's elvis passes the left value on with its type
+            Object c = value.condition(scope);
+            Object v = raw(c);
+            if (v instanceof Optional) {
+                Object chosen = ELVIS.eval(scope, v, FALLBACK);
+                if (chosen == FALLBACK) return fallback.condition(scope);
+                return chosen == v ? c : chosen; // Spring 6 keeps the Optional (and its type), Spring 7 unwraps it
+            }
+            return v != null && !"".equals(v) ? c : fallback.condition(scope);
+        }
+    }
+
+    /** SpEL's {@code OpEQ} / {@code OpNE}. */
+    private static final class Equals extends Node {
+        private final Node left;
+        private final Node right;
+        private final boolean negate;
+        Equals(Node left, Node right, boolean negate) { this.left = left; this.right = right; this.negate = negate; }
+        @Override Object eval(Scope scope) {
+            Object l = left.eval(scope);
+            Object r = right.eval(scope);
+            return Operators.equal(l, r) != negate;
+        }
+    }
+
+    /** SpEL's {@code OpLT}, {@code OpLE}, {@code OpGT} and {@code OpGE}. */
+    private static final class Compare extends Node {
+        private final Node left;
+        private final Node right;
+        private final Kind op;
+        Compare(Node left, Node right, Kind op) { this.left = left; this.right = right; this.op = op; }
+        @Override Object eval(Scope scope) {
+            Object l = left.eval(scope);
+            Object r = right.eval(scope);
+            return Operators.compare(l, r, op);
+        }
+    }
+
+    private static final class Arithmetic extends Node {
+        private final Node left;
+        private final Node right;
+        private final Kind op;
+        Arithmetic(Node left, Node right, Kind op) { this.left = left; this.right = right; this.op = op; }
+
+        @Override
+        Object eval(Scope scope) {
+            Object l = left.eval(scope);
+            Object r = right.eval(scope);
+            if (l instanceof Number a && r instanceof Number b) return Operators.arithmetic(a, b, op);
+            if (op == Kind.PLUS) {
+                Object text = Operators.concatenate(l, r);
+                if (text != SPEL) return text;
+            }
+            return BINARY.get(op).eval(scope, l, r); // string tricks, operator overloading, errors
+        }
+    }
+
+    /** SpEL's unary {@code OpMinus}. */
+    private static final class Negate extends Node {
+        final Node operand;
+        Negate(Node operand) { this.operand = operand; }
+
+        @Override
+        Object eval(Scope scope) {
+            Object v = operand.eval(scope);
+            if (!(v instanceof Number number)) return NEGATE.eval(scope, v);
+            if (number instanceof BigDecimal d) return d.negate();
+            if (number instanceof BigInteger i) return i.negate();
+            if (number instanceof Double) return 0 - number.doubleValue();
+            if (number instanceof Float) return 0 - number.floatValue();
+            if (number instanceof Long) return 0 - number.longValue();
+            if (number instanceof Integer) return 0 - number.intValue();
+            if (number instanceof Short) return 0 - number.shortValue();
+            if (number instanceof Byte) return 0 - number.byteValue();
+            return 0 - number.doubleValue();
+        }
+    }
+
+    /** SpEL's unary {@code OpPlus}: numbers pass through, anything else goes to operator overloading. */
+    private static final class UnaryPlus extends Node {
+        private final Node operand;
+        UnaryPlus(Node operand) { this.operand = operand; }
+        @Override Object eval(Scope scope) {
+            Object v = operand.eval(scope);
+            return v instanceof Number ? v : UNARY_PLUS.eval(scope, v);
+        }
     }
 
     /** True for what SpEL's {@code InlineMap} / {@code InlineList} count as constant parts. */
@@ -419,24 +778,17 @@ final class DirectEvaluator {
             this.items = items;
             boolean constantItems = true;
             for (Node item : items) constantItems &= isConstant(item, false);
-            Object built = constantItems ? build(null) : null;
-            this.constant = built == null ? null : java.util.Collections.unmodifiableList((List<?>) built);
+            this.constant = constantItems ? Collections.unmodifiableList(build(null)) : null;
         }
 
-        private Object build(Scope scope) {
+        private List<Object> build(Scope scope) {
             List<Object> list = new ArrayList<>(items.length);
-            for (Node item : items) {
-                Object v = item.eval(scope);
-                if (v == MISS) return null;
-                list.add(v);
-            }
+            for (Node item : items) list.add(item.eval(scope));
             return list;
         }
 
         @Override Object eval(Scope scope) {
-            if (constant != null) return constant;
-            Object list = build(scope);
-            return list == null ? MISS : list;
+            return constant != null ? constant : build(scope);
         }
     }
 
@@ -456,215 +808,32 @@ final class DirectEvaluator {
             for (int i = 0; i < keys.length; i++) {
                 constantParts &= isConstant(keys[i], true) && isConstant(values[i], false);
             }
-            Object built = constantParts ? build(null) : null;
-            this.constant = built == null ? null : java.util.Collections.unmodifiableMap((Map<?, ?>) built);
+            this.constant = constantParts ? Collections.unmodifiableMap(build(null)) : null;
         }
 
-        private Object build(Scope scope) {
-            Map<Object, Object> map = new java.util.LinkedHashMap<>();
+        private Map<Object, Object> build(Scope scope) {
+            Map<Object, Object> map = new LinkedHashMap<>();
             for (int i = 0; i < keys.length; i++) {
                 Object k = keys[i].eval(scope);
-                if (k == MISS) return null;
-                Object v = values[i].eval(scope);
-                if (v == MISS) return null;
-                map.put(k, v);
+                map.put(k, values[i].eval(scope));
             }
             return map;
         }
 
         @Override Object eval(Scope scope) {
-            if (constant != null) return constant;
-            Object map = build(scope);
-            return map == null ? MISS : map;
-        }
-    }
-
-    /** SpEL's {@code Elvis}: the left value unless it is null or the empty String. Spring 7 unwraps Optional, 6 does not. */
-    private static final class Elvis extends Node {
-        private final Node value;
-        private final Node fallback;
-        Elvis(Node value, Node fallback) { this.value = value; this.fallback = fallback; }
-        @Override Object eval(Scope scope) {
-            Object v = value.eval(scope);
-            if (v == MISS || v instanceof Optional) return MISS;
-            return v != null && !"".equals(v) ? v : fallback.eval(scope);
-        }
-    }
-
-    private static final class Variable extends Node {
-        final String name;
-        Variable(String name) { this.name = name; }
-        @Override Object eval(Scope scope) { return scope.get(name); } // what Accessors.ScopeAccessor reads
-    }
-
-    private static final class Property extends Node {
-        private final Node target;
-        private final String name;
-        Property(Node target, String name) { this.target = target; this.name = name; }
-
-        @Override
-        Object eval(Scope scope) {
-            Object t = target.eval(scope);
-            if (t == MISS || t == null) return MISS; // a null target is an error (or null-safe): SpEL decides
-            return Members.read(t, name);
-        }
-    }
-
-    private static final class Call extends Node {
-        private final Node target;
-        private final String name;
-        private final Node[] args;
-        Call(Node target, String name, Node[] args) { this.target = target; this.name = name; this.args = args; }
-
-        @Override
-        Object eval(Scope scope) {
-            Object t = target.eval(scope);
-            if (t == MISS || t == null) return MISS;
-            if (Sandbox.deniedTarget(t) || Sandbox.deniedMember(name) || t instanceof Scope) return MISS;
-            Object[] values = new Object[args.length];
-            for (int i = 0; i < args.length; i++) {
-                Object v = args[i].eval(scope);
-                if (v == MISS) return MISS;
-                values[i] = v;
-            }
-            return Members.invoke(t, name, values);
-        }
-    }
-
-    private static final class Not extends Node {
-        private final Node operand;
-        Not(Node operand) { this.operand = operand; }
-        @Override Object eval(Scope scope) {
-            return operand.eval(scope) instanceof Boolean b ? !b : MISS; // SpEL converts other values, or fails
-        }
-    }
-
-    private static final class And extends Node {
-        private final Node left;
-        private final Node right;
-        And(Node left, Node right) { this.left = left; this.right = right; }
-        @Override Object eval(Scope scope) {
-            if (!(left.eval(scope) instanceof Boolean l)) return MISS;
-            if (!l) return Boolean.FALSE;
-            return right.eval(scope) instanceof Boolean r ? r : MISS;
-        }
-    }
-
-    private static final class Or extends Node {
-        private final Node left;
-        private final Node right;
-        Or(Node left, Node right) { this.left = left; this.right = right; }
-        @Override Object eval(Scope scope) {
-            if (!(left.eval(scope) instanceof Boolean l)) return MISS;
-            if (l) return Boolean.TRUE;
-            return right.eval(scope) instanceof Boolean r ? r : MISS;
-        }
-    }
-
-    private static final class Ternary extends Node {
-        private final Node condition;
-        private final Node yes;
-        private final Node no;
-        Ternary(Node condition, Node yes, Node no) { this.condition = condition; this.yes = yes; this.no = no; }
-        @Override Object eval(Scope scope) {
-            if (!(condition.eval(scope) instanceof Boolean c)) return MISS;
-            return c ? yes.eval(scope) : no.eval(scope);
-        }
-    }
-
-    /** SpEL's {@code Operator.equalityCheck}. */
-    private static final class Equals extends Node {
-        private final Node left;
-        private final Node right;
-        private final boolean negate;
-        Equals(Node left, Node right, boolean negate) { this.left = left; this.right = right; this.negate = negate; }
-
-        @Override
-        Object eval(Scope scope) {
-            Object l = left.eval(scope);
-            if (l == MISS) return MISS;
-            Object r = right.eval(scope);
-            if (r == MISS) return MISS;
-            Boolean equal = Operators.equal(l, r);
-            return equal == null ? MISS : equal != negate;
-        }
-    }
-
-    /** SpEL's {@code OpLT}, {@code OpLE}, {@code OpGT} and {@code OpGE}. */
-    private static final class Compare extends Node {
-        private final Node left;
-        private final Node right;
-        private final Kind op;
-        Compare(Node left, Node right, Kind op) { this.left = left; this.right = right; this.op = op; }
-
-        @Override
-        Object eval(Scope scope) {
-            Object l = left.eval(scope);
-            if (l == MISS) return MISS;
-            Object r = right.eval(scope);
-            if (r == MISS) return MISS;
-            return Operators.compare(l, r, op);
-        }
-    }
-
-    private static final class Arithmetic extends Node {
-        private final Node left;
-        private final Node right;
-        private final Kind op;
-        Arithmetic(Node left, Node right, Kind op) { this.left = left; this.right = right; this.op = op; }
-
-        @Override
-        Object eval(Scope scope) {
-            Object l = left.eval(scope);
-            if (l == MISS) return MISS;
-            Object r = right.eval(scope);
-            if (r == MISS) return MISS;
-            if (l instanceof Number a && r instanceof Number b) return Operators.arithmetic(a, b, op);
-            if (op == Kind.PLUS) return Operators.concatenate(l, r);
-            return MISS; // SpEL's string tricks and operator overloading
-        }
-    }
-
-    /** SpEL's unary {@code OpMinus}. */
-    private static final class Negate extends Node {
-        final Node operand;
-        Negate(Node operand) { this.operand = operand; }
-
-        @Override
-        Object eval(Scope scope) {
-            Object v = operand.eval(scope);
-            if (!(v instanceof Number number)) return MISS;
-            if (number instanceof BigDecimal d) return d.negate();
-            if (number instanceof BigInteger i) return i.negate();
-            if (number instanceof Double) return 0 - number.doubleValue();
-            if (number instanceof Float) return 0 - number.floatValue();
-            if (number instanceof Long) return 0 - number.longValue();
-            if (number instanceof Integer) return 0 - number.intValue();
-            if (number instanceof Short) return 0 - number.shortValue();
-            if (number instanceof Byte) return 0 - number.byteValue();
-            return 0 - number.doubleValue();
-        }
-    }
-
-    /** SpEL's unary {@code OpPlus}: numbers pass through, anything else goes to operator overloading. */
-    private static final class UnaryPlus extends Node {
-        private final Node operand;
-        UnaryPlus(Node operand) { this.operand = operand; }
-        @Override Object eval(Scope scope) {
-            Object v = operand.eval(scope);
-            return v instanceof Number ? v : MISS;
+            return constant != null ? constant : build(scope);
         }
     }
 
     // ------------------------------------------------------------------------------------------------ operators
 
-    /** Ports of SpEL's operator semantics; null (or MISS) where SpEL would convert, overload or fail. */
+    /** Ports of SpEL's operator semantics, including the exceptions it throws. */
     static final class Operators {
 
         private Operators() {}
 
-        /** {@code Operator.equalityCheck} with SpEL's {@code StandardTypeComparator}; null if SpEL would fail. */
-        static Boolean equal(Object left, Object right) {
+        /** {@code Operator.equalityCheck} with SpEL's {@code StandardTypeComparator}. */
+        static boolean equal(Object left, Object right) {
             if (left instanceof Number l && right instanceof Number r) {
                 if (l instanceof BigDecimal || r instanceof BigDecimal) {
                     return bigDecimal(l).compareTo(bigDecimal(r)) == 0;
@@ -695,14 +864,13 @@ final class DirectEvaluator {
                 return true;
             }
             if (canCompare(left, right)) {
-                Integer c = compareTo(left, right);
-                return c == null ? null : c == 0;
+                return compareObjects(left, right) == 0;
             }
             return false;
         }
 
-        /** {@code OpLT} / {@code OpLE} / {@code OpGT} / {@code OpGE}; MISS if SpEL would fail. */
-        static Object compare(Object left, Object right, Kind op) {
+        /** {@code OpLT} / {@code OpLE} / {@code OpGT} / {@code OpGE}. */
+        static boolean compare(Object left, Object right, Kind op) {
             if (left instanceof Number l && right instanceof Number r) {
                 if (l instanceof BigDecimal || r instanceof BigDecimal) {
                     return test(bigDecimal(l).compareTo(bigDecimal(r)), op);
@@ -733,8 +901,7 @@ final class DirectEvaluator {
                 left = left.toString(); // only OpLT and OpGT do this; OpLE and OpGE compare the objects as they are
                 right = right.toString();
             }
-            Integer c = compareTo(left, right);
-            return c == null ? MISS : test(c, op);
+            return test(compareObjects(left, right), op);
         }
 
         private static boolean test(int c, Kind op) {
@@ -752,82 +919,86 @@ final class DirectEvaluator {
             return false;
         }
 
-        /** {@code StandardTypeComparator.compare} (numbers are handled by the callers); null where SpEL throws. */
+        /** {@code StandardTypeComparator.compare} for two values that are not both numbers. */
         @SuppressWarnings({"unchecked", "rawtypes"})
-        private static Integer compareTo(Object left, Object right) {
+        private static int compareObjects(Object left, Object right) {
             if (left == null) return right == null ? 0 : -1;
             if (right == null) return 1;
-            if (left instanceof Number || right instanceof Number) return null; // mixed: let SpEL decide
-            if (!(left instanceof Comparable comparable)) return null;
-            try {
-                return comparable.compareTo(right);
-            } catch (ClassCastException e) {
-                return null;
-            } catch (RuntimeException e) {
-                return null; // a broken compareTo: SpEL reports it
+            if (left instanceof Number l && right instanceof Number r) { // reachable from equality only
+                if (l instanceof BigDecimal || r instanceof BigDecimal) return bigDecimal(l).compareTo(bigDecimal(r));
+                if (l instanceof Double || r instanceof Double) return Double.compare(l.doubleValue(), r.doubleValue());
+                if (l instanceof Float || r instanceof Float) return Float.compare(l.floatValue(), r.floatValue());
+                if (l instanceof BigInteger || r instanceof BigInteger) return bigInteger(l).compareTo(bigInteger(r));
+                if (l instanceof Long || r instanceof Long) return Long.compare(l.longValue(), r.longValue());
+                if (l instanceof Integer || r instanceof Integer) return Integer.compare(l.intValue(), r.intValue());
+                if (l instanceof Short || r instanceof Short) return Short.compare(l.shortValue(), r.shortValue());
+                if (l instanceof Byte || r instanceof Byte) return Byte.compare(l.byteValue(), r.byteValue());
+                return Double.compare(l.doubleValue(), r.doubleValue());
             }
+            try {
+                if (left instanceof Comparable comparable) return comparable.compareTo(right);
+            } catch (ClassCastException ex) {
+                throw new SpelEvaluationException(ex, SpelMessage.NOT_COMPARABLE, left.getClass(), right.getClass());
+            }
+            throw new SpelEvaluationException(SpelMessage.NOT_COMPARABLE, left.getClass(), right.getClass());
         }
 
         /** {@code OpPlus} / {@code OpMinus} / {@code OpMultiply} / {@code OpDivide} / {@code OpModulus} on numbers. */
         static Object arithmetic(Number l, Number r, Kind op) {
-            try {
-                if (l instanceof BigDecimal || r instanceof BigDecimal) {
-                    BigDecimal a = bigDecimal(l);
-                    BigDecimal b = bigDecimal(r);
-                    return switch (op) {
-                        case PLUS -> a.add(b);
-                        case MINUS -> a.subtract(b);
-                        case STAR -> a.multiply(b);
-                        case SLASH -> a.divide(b, Math.max(a.scale(), b.scale()), RoundingMode.HALF_EVEN);
-                        default -> a.remainder(b);
-                    };
-                } else if (l instanceof Double || r instanceof Double) {
-                    return doubles(l.doubleValue(), r.doubleValue(), op);
-                } else if (l instanceof Float || r instanceof Float) {
-                    float a = l.floatValue();
-                    float b = r.floatValue();
-                    return switch (op) {
-                        case PLUS -> a + b;
-                        case MINUS -> a - b;
-                        case STAR -> a * b;
-                        case SLASH -> a / b;
-                        default -> a % b;
-                    };
-                } else if (l instanceof BigInteger || r instanceof BigInteger) {
-                    BigInteger a = bigInteger(l);
-                    BigInteger b = bigInteger(r);
-                    return switch (op) {
-                        case PLUS -> a.add(b);
-                        case MINUS -> a.subtract(b);
-                        case STAR -> a.multiply(b);
-                        case SLASH -> a.divide(b);
-                        default -> a.remainder(b);
-                    };
-                } else if (l instanceof Long || r instanceof Long) {
-                    long a = l.longValue();
-                    long b = r.longValue();
-                    return switch (op) {
-                        case PLUS -> a + b;
-                        case MINUS -> a - b;
-                        case STAR -> a * b;
-                        case SLASH -> a / b;
-                        default -> a % b;
-                    };
-                } else if (isIntegerForNumericOp(l) || isIntegerForNumericOp(r)) {
-                    int a = l.intValue();
-                    int b = r.intValue();
-                    return switch (op) {
-                        case PLUS -> a + b;
-                        case MINUS -> a - b;
-                        case STAR -> a * b;
-                        case SLASH -> a / b;
-                        default -> a % b;
-                    };
-                }
+            if (l instanceof BigDecimal || r instanceof BigDecimal) {
+                BigDecimal a = bigDecimal(l);
+                BigDecimal b = bigDecimal(r);
+                return switch (op) {
+                    case PLUS -> a.add(b);
+                    case MINUS -> a.subtract(b);
+                    case STAR -> a.multiply(b);
+                    case SLASH -> a.divide(b, Math.max(a.scale(), b.scale()), RoundingMode.HALF_EVEN);
+                    default -> a.remainder(b);
+                };
+            } else if (l instanceof Double || r instanceof Double) {
                 return doubles(l.doubleValue(), r.doubleValue(), op);
-            } catch (ArithmeticException e) {
-                return MISS; // division by zero and friends: SpEL reports it
+            } else if (l instanceof Float || r instanceof Float) {
+                float a = l.floatValue();
+                float b = r.floatValue();
+                return switch (op) {
+                    case PLUS -> a + b;
+                    case MINUS -> a - b;
+                    case STAR -> a * b;
+                    case SLASH -> a / b;
+                    default -> a % b;
+                };
+            } else if (l instanceof BigInteger || r instanceof BigInteger) {
+                BigInteger a = bigInteger(l);
+                BigInteger b = bigInteger(r);
+                return switch (op) {
+                    case PLUS -> a.add(b);
+                    case MINUS -> a.subtract(b);
+                    case STAR -> a.multiply(b);
+                    case SLASH -> a.divide(b);
+                    default -> a.remainder(b);
+                };
+            } else if (l instanceof Long || r instanceof Long) {
+                long a = l.longValue();
+                long b = r.longValue();
+                return switch (op) {
+                    case PLUS -> a + b;
+                    case MINUS -> a - b;
+                    case STAR -> a * b;
+                    case SLASH -> a / b;
+                    default -> a % b;
+                };
+            } else if (isIntegerForNumericOp(l) || isIntegerForNumericOp(r)) {
+                int a = l.intValue();
+                int b = r.intValue();
+                return switch (op) {
+                    case PLUS -> a + b;
+                    case MINUS -> a - b;
+                    case STAR -> a * b;
+                    case SLASH -> a / b; // division by zero throws ArithmeticException, as in SpEL
+                    default -> a % b;
+                };
             }
+            return doubles(l.doubleValue(), r.doubleValue(), op);
         }
 
         private static Object doubles(double a, double b, Kind op) {
@@ -844,7 +1015,7 @@ final class DirectEvaluator {
             return n instanceof Integer || n instanceof Short || n instanceof Byte;
         }
 
-        /** {@code OpPlus} with a String operand; other values are converted to text the way SpEL's converter does. */
+        /** {@code OpPlus} with a String operand, or {@link #SPEL} where SpEL's converter or overloading decides. */
         static Object concatenate(Object left, Object right) {
             String l;
             String r;
@@ -853,16 +1024,16 @@ final class DirectEvaluator {
                 r = b;
             } else if (left instanceof String a) {
                 r = asText(right);
-                if (r == null) return MISS;
+                if (r == null) return SPEL;
                 l = a;
             } else if (right instanceof String b) {
                 l = asText(left);
-                if (l == null) return MISS;
+                if (l == null) return SPEL;
                 r = b;
             } else {
-                return MISS; // operator overloading or an error
+                return SPEL;
             }
-            if (l.length() + r.length() > MAX_CONCATENATED_STRING_LENGTH) return MISS;
+            if (l.length() + r.length() > MAX_CONCATENATED_STRING_LENGTH) return SPEL; // SpEL reports it
             return l + r;
         }
 
@@ -908,29 +1079,68 @@ final class DirectEvaluator {
         };
 
         /**
-         * A property read. SpEL tries the map accessor first (present keys only), then the sandboxed reflective
-         * accessor, which uses the first of {@code getX()}, {@code isX()} (boolean) and {@code x()}.
+         * A property read, or {@link #SPEL}. SpEL tries the map accessor first (present keys only), then the sandboxed
+         * reflective accessor, which uses the first of {@code getX()}, {@code isX()} (boolean) and {@code x()}.
          */
         static Object read(Object target, String name) {
             if (target instanceof Map<?, ?> map) {
-                return map.containsKey(name) ? map.get(name) : MISS;
+                try {
+                    return map.containsKey(name) ? map.get(name) : SPEL;
+                } catch (RuntimeException ex) { // what PropertyOrFieldReference makes of a failing accessor
+                    throw new SpelEvaluationException(ex, SpelMessage.EXCEPTION_DURING_PROPERTY_READ, name, ex.getMessage());
+                }
             }
-            if (Sandbox.deniedTarget(target) || Sandbox.deniedMember(name) || target instanceof Scope) return MISS;
+            if (Sandbox.deniedTarget(target) || Sandbox.deniedMember(name) || target instanceof Scope) return SPEL;
             Class<?> type = target.getClass();
-            if (type.isArray()) return MISS;
+            if (type.isArray()) return SPEL;
             Map<String, Object> byName = GETTERS.get(type);
             Object getter = byName.get(name);
             if (getter == null) {
                 getter = getter(type, name);
                 byName.putIfAbsent(name, getter);
             }
-            if (getter == NONE) return MISS;
+            if (getter == NONE) return SPEL;
             try {
-                return (Object) ((MethodHandle) getter).invokeExact(target);
-            } catch (Throwable e) {
-                if (e instanceof Error err && !(e instanceof LinkageError)) throw err; // never swallow OOM and friends
-                return MISS; // SpEL reports a failing getter
+                return (Object) ((Getter) getter).handle.invokeExact(target);
+            } catch (Throwable t) {
+                throw getterFailed(name, t);
             }
+        }
+
+        private record Getter(MethodHandle handle, Method method) {}
+
+        /**
+         * The type SpEL's reflective accessor gives a value it read ({@code new TypeDescriptor(property).narrow(value)}),
+         * after {@link #read} returned it; a map value has the value's own type.
+         */
+        static TypeDescriptor propertyType(Object target, String name, Object value) {
+            if (target instanceof Map) return TypeDescriptor.forObject(value);
+            Object getter = GETTERS.get(target.getClass()).get(name);
+            if (!(getter instanceof Getter g)) return TypeDescriptor.forObject(value);
+            return new TypeDescriptor(new org.springframework.core.convert.Property(target.getClass(), g.method, null, name))
+                    .narrow(value);
+        }
+
+        /** The type SpEL's method executor gives a result ({@code MethodParameter(method, -1)}, narrowed). */
+        static TypeDescriptor returnType(Object target, String name, Object[] args, Object value) {
+            Object found = METHODS.get(target.getClass()).get(name + '/' + args.length);
+            if (found instanceof Overload[] overloads) {
+                for (Overload o : overloads) {
+                    if (o.accepts(args)) return new TypeDescriptor(new MethodParameter(o.method, -1)).narrow(value);
+                }
+            }
+            return TypeDescriptor.forObject(value);
+        }
+
+        /**
+         * SpEL's exception for a getter that throws: the reflective accessor wraps it in an AccessException, which
+         * {@code PropertyOrFieldReference} reports as {@code EXCEPTION_DURING_PROPERTY_READ}.
+         */
+        private static RuntimeException getterFailed(String name, Throwable t) {
+            if (t instanceof VirtualMachineError e) throw e;
+            AccessException access = new AccessException(
+                    "Unable to access property '" + name + "' through getter method", new InvocationTargetException(t));
+            return new SpelEvaluationException(access, SpelMessage.EXCEPTION_DURING_PROPERTY_READ, name, access.getMessage());
         }
 
         /** SpEL's {@code ReflectivePropertyAccessor.findGetterForProperty}, with Looma's sandbox restrictions. */
@@ -944,7 +1154,7 @@ final class DirectEvaluator {
             MethodHandle h = handle(m, type);
             if (h == null) return NONE;
             if (Modifier.isStatic(m.getModifiers())) h = MethodHandles.dropArguments(h, 0, Object.class);
-            return h.asType(GETTER);
+            return new Getter(h.asType(GETTER), m);
         }
 
         /** {@code ReflectivePropertyAccessor.getPropertyMethodSuffixes}. */
@@ -977,7 +1187,7 @@ final class DirectEvaluator {
             return null;
         }
 
-        /** A method call, or MISS unless exactly one overload accepts the arguments without conversion. */
+        /** A method call, or {@link #SPEL} unless exactly one overload accepts the arguments without conversion. */
         static Object invoke(Object target, String name, Object[] args) {
             Class<?> type = target.getClass();
             Map<String, Object> byKey = METHODS.get(type);
@@ -987,21 +1197,31 @@ final class DirectEvaluator {
                 found = overloads(type, name, args.length);
                 byKey.putIfAbsent(key, found);
             }
-            if (found == NONE) return MISS;
+            if (found == NONE) return SPEL;
             Overload chosen = null;
             for (Overload o : (Overload[]) found) {
                 if (o.accepts(args)) {
-                    if (chosen != null) return MISS; // SpEL picks by exactness and distance
+                    if (chosen != null) return SPEL; // SpEL picks by exactness and distance
                     chosen = o;
                 }
             }
-            if (chosen == null || chosen.invoker == null || !chosen.passesUnconverted(args)) return MISS;
+            if (chosen == null || chosen.invoker == null || !chosen.passesUnconverted(args)) return SPEL;
             try {
                 return (Object) chosen.invoker.invokeExact(target, args);
-            } catch (Throwable e) {
-                if (e instanceof Error err && !(e instanceof LinkageError)) throw err;
-                return MISS; // SpEL reports the failure
+            } catch (Throwable t) {
+                throw methodFailed(name, target, t);
             }
+        }
+
+        /**
+         * SpEL's exception for a method that throws ({@code MethodReference.throwSimpleExceptionIfPossible}): a runtime
+         * exception as it is, anything else wrapped.
+         */
+        private static RuntimeException methodFailed(String name, Object target, Throwable t) {
+            if (t instanceof VirtualMachineError e) throw e;
+            if (t instanceof RuntimeException e) return e;
+            return new ExpressionInvocationTargetException(0, "A problem occurred when trying to execute method '" + name
+                    + "' on object of type [" + target.getClass().getName() + "]", t);
         }
 
         /**
@@ -1026,6 +1246,7 @@ final class DirectEvaluator {
         }
 
         private static final class Overload {
+            final Method method;
             final MethodHandle invoker;    // (Object target, Object[] args) -> Object; null if not callable
             final Class<?>[] accepts;      // boxed parameter types
             final boolean[] primitive;
@@ -1033,6 +1254,7 @@ final class DirectEvaluator {
             final boolean[] convertible;   // a parameter type SpEL's converter rebuilds (collections, maps, arrays...)
 
             Overload(Method m, Class<?> type) {
+                method = m;
                 Class<?>[] params = m.getParameterTypes();
                 int n = params.length;
                 accepts = new Class<?>[n];

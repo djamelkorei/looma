@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.1.3 (2026-10-12)
+
+- Fixed: in a page that extends a layout, a `@push` or `@prepend` outside any `@section` was silently dropped. It now
+  reaches the layout's `@stack`, as in Blade.
+- Rendering real pages is much faster: the common expressions (variables, getters and records, method calls,
+  arithmetic, comparisons, conditions, `??`, inline lists and maps) are evaluated directly instead of through SpEL,
+  with SpEL's exact rules and the same sandbox; anything else still goes to SpEL, one step at a time, so results and
+  error messages are unchanged and every getter or method runs once. On a 2-CPU server the same pages cost 4× (a
+  simple list) to 9× (a heavy dashboard) less CPU than with Thymeleaf. [Benchmarks](https://djamelkorei.github.io/looma/benchmarks/)
+- `Number` and `Date` helpers reuse their formats, `List.sortBy` and friends cache property lookups, and
+  `String.truncateWords`, `wordCount`, `initials` and `slug` no longer use regular expressions.
+- Method calls in templates are resolved once per class, and a missing optional include (`@includeIf`) is looked up
+  once instead of on every request.
+
 ## 0.1.2 (2026-10-11)
 
 - Components now see the request-level variables (`errors`, `principal`, `request`, `_csrf` and the other

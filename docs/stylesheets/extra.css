@@ -19,7 +19,19 @@
   --md-typeset-a-color: #F2A83B;
 }
 
-.md-header__button.md-logo img { height: 1.6rem; width: 1.6rem; }
+.md-header__button.md-logo img { height: 1.6rem; width: 1.6rem; } /* threads only: the header is the tile */
+
+/* Flat design: no shadows anywhere. Surfaces are told apart by colour and hairline borders instead. */
+:root, [data-md-color-scheme="default"], [data-md-color-scheme="slate"] {
+  --md-shadow-z1: none;
+  --md-shadow-z2: none;
+  --md-shadow-z3: none;
+}
+.md-header, .md-header--shadow, .md-tabs { box-shadow: none; }
+[data-md-color-scheme="slate"] .md-header { border-bottom: 1px solid rgba(244, 242, 236, .08); }
+.md-tooltip, .md-tooltip2__inner, .md-search__output, .md-typeset .md-annotation__index { box-shadow: none; }
+.md-tooltip, .md-tooltip2__inner { border: 1px solid var(--looma-line); }
+.md-search__form { box-shadow: none; }
 .md-header__topic:first-child { font-weight: 600; }
 
 /* ---- landing page ---- */
@@ -95,9 +107,300 @@
 
 .md-typeset .looma-install { margin: 0 0 2rem; }
 
+/* Page titles and section headings carry the same weight as the home page. */
+.md-typeset h1 { font-weight: 650; letter-spacing: -.02em; color: var(--looma-ink); }
+.md-typeset h2 { font-weight: 600; letter-spacing: -.01em; color: var(--looma-ink); }
+.md-typeset h3 { font-weight: 600; }
+
+/* Proof under the home page's calls to action. */
+.looma-proof { display: flex; flex-wrap: wrap; align-items: center; gap: .45rem; margin-top: .9rem; font-size: .66rem; color: var(--looma-muted); }
+.looma-proof img { height: 20px; display: block; }
+
 @media screen and (max-width: 44.9375em) {
   .looma-compare { grid-template-columns: 1fr; }
+  .looma-compare pre > code { white-space: pre-wrap; overflow-wrap: anywhere; } /* no hidden sideways scroll on phones */
   .looma-compare > div + div { border-left: 0; border-top: 1px solid rgba(27, 33, 80, .15); }
   .looma-facts { grid-template-columns: 1fr 1fr; }
   .md-typeset:has(.looma-hero) .grid.cards { grid-template-columns: 1fr; }
+}
+
+/* ======================================================================== motion and teaching pieces
+   Brand tokens shared by the interactive parts. Expressions are indigo, directives the saffron thread. */
+:root {
+  --looma-expr: #2B3A8F;
+  --looma-dir: #985A08;
+  --looma-dir-soft: rgba(242, 168, 59, .16);
+  --looma-expr-soft: rgba(43, 58, 143, .10);
+  --looma-chunk: rgba(27, 33, 80, .06);
+  --looma-line: rgba(27, 33, 80, .14);
+  --looma-muted: rgba(27, 33, 80, .7);
+  --looma-thyme: #7D7A71;
+  --looma-thyme-soft: rgba(160, 157, 146, .18);
+}
+[data-md-color-scheme="slate"] {
+  --looma-expr: #A3AEF7;
+  --looma-dir: #F2A83B;
+  --looma-dir-soft: rgba(242, 168, 59, .14);
+  --looma-expr-soft: rgba(163, 174, 247, .14);
+  --looma-chunk: rgba(244, 242, 236, .06);
+  --looma-line: rgba(244, 242, 236, .14);
+  --looma-muted: rgba(244, 242, 236, .66);
+  --looma-thyme: #8F8E99;
+  --looma-thyme-soft: rgba(143, 142, 153, .2);
+}
+
+/* Each page settles in softly; instant navigation swaps this element, so the animation runs per page. */
+@keyframes looma-enter { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+@keyframes looma-fade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes looma-rise { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+.md-content__inner { animation: looma-enter .3s ease-out both; }
+.md-typeset .tabbed-set > .tabbed-content > .tabbed-block { animation: looma-fade .22s ease-out; }
+.md-typeset .grid.cards > ul > li { transition: border-color .18s ease; box-shadow: none; }
+.md-typeset .grid.cards > ul > li:hover { border-color: var(--looma-thread); box-shadow: none; }
+.md-typeset .md-button { transition: background-color .15s, color .15s, border-color .15s, transform .12s; }
+.md-typeset .md-button:hover, .md-typeset .md-button:focus { box-shadow: none; }
+
+/* Small buttons used by the interactive pieces. */
+.looma-btn {
+  font: inherit; font-size: .64rem; font-weight: 600; cursor: pointer;
+  color: var(--looma-ink); background: transparent;
+  border: 1px solid var(--looma-line); border-radius: .35rem; padding: .25rem .75rem; min-height: 1.6rem;
+  transition: background-color .15s, border-color .15s;
+}
+.looma-btn:hover { border-color: var(--looma-ink); }
+.looma-btn:focus-visible, .looma-walk__tab:focus-visible, .looma-bench__tab:focus-visible {
+  outline: 2px solid var(--looma-thread); outline-offset: 2px;
+}
+
+/* ---- home: how Looma renders a page ---- */
+.looma-walk {
+  border: 1px solid var(--looma-line); border-radius: .6rem; background: var(--looma-paper);
+  margin: 0 0 2rem; overflow: hidden;
+}
+.looma-walk { container-type: inline-size; }
+.looma-walk__tabs { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); position: relative; border-bottom: 1px solid var(--looma-line); }
+.looma-walk__tabs::after {
+  content: ""; position: absolute; left: 0; bottom: -1px; height: 2px;
+  width: calc(var(--walk-progress, 1) * 100%); background: var(--looma-thread); transition: width .45s ease;
+}
+.looma-walk__tab {
+  font: inherit; text-align: left; background: none; border: 0; cursor: pointer;
+  padding: .6rem .8rem; display: grid; gap: .1rem; font-size: .7rem; line-height: 1.3; color: var(--looma-muted);
+  transition: color .2s;
+}
+.looma-walk__tab b { font-size: .6rem; letter-spacing: .07em; text-transform: uppercase; font-weight: 600; }
+.looma-walk__tab[aria-selected="true"], .looma-walk__tab.is-done { color: var(--looma-ink); }
+.looma-walk__tab[aria-selected="true"] b { color: var(--looma-dir); }
+.looma-walk__panel {
+  display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); gap: 1.4rem; align-items: center;
+  padding: 1.1rem 1.2rem; animation: looma-rise .35s ease-out;
+}
+.looma-walk__panel[hidden], .looma-bench__panel[hidden] { display: none; }
+.looma-walk__panel > div { min-width: 0; } /* long code scrolls inside its box instead of widening the panel */
+.looma-walk .md-clipboard, .looma-walk .md-code__button, .looma-walk .md-code__nav { display: none; }
+.looma-walk:not(.is-interactive) .looma-walk__panel + .looma-walk__panel { border-top: 1px dashed var(--looma-line); }
+.md-typeset .looma-walk pre { margin: 0; }
+.md-typeset .looma-walk pre > code {
+  display: block; background: transparent; padding: 0; font-size: .66rem; line-height: 1.75;
+  white-space: pre; overflow-x: auto; color: var(--looma-ink);
+}
+.looma-walk__note { font-size: .74rem; line-height: 1.55; }
+.looma-walk__note strong { display: block; font-size: .86rem; color: var(--looma-ink); margin-bottom: .25rem; }
+.looma-walk .chunk { border-radius: 3px; animation: looma-fade .5s ease-out both; animation-delay: calc(var(--i, 0) * 110ms); }
+.looma-walk .chunk-text { background: var(--looma-chunk); color: var(--looma-muted); }
+.looma-walk .chunk-expr, .looma-walk .key-expr { color: var(--looma-expr); background: var(--looma-expr-soft); }
+.looma-walk .chunk-dir, .looma-walk .key-dir { color: var(--looma-dir); background: var(--looma-dir-soft); }
+.looma-walk .key { padding: 0 .25rem; border-radius: 3px; font-weight: 600; }
+.looma-walk .filled {
+  color: var(--looma-expr); background: var(--looma-expr-soft); border-radius: 3px; padding: 0 .1rem;
+  animation: looma-rise .45s ease-out both; animation-delay: calc(var(--i, 0) * 160ms + 150ms);
+}
+.looma-walk__controls {
+  display: flex; justify-content: flex-end; gap: .4rem; padding: .5rem .8rem; border-top: 1px solid var(--looma-line);
+}
+.looma-walk:not(.is-interactive) .looma-walk__controls { display: none; }
+
+/* In a narrow box (the content column), the code gets the full width and the note goes below it. */
+@container (max-width: 46rem) {
+  .looma-walk__panel { grid-template-columns: minmax(0, 1fr); gap: .8rem; }
+}
+
+/* ---- benchmarks: one chart per page type ---- */
+.looma-bench {
+  border: 1px solid var(--looma-line); border-radius: .6rem; background: var(--looma-paper);
+  padding: 1rem 1.1rem 1.1rem; margin: 1rem 0 1.6rem; display: grid; gap: .9rem;
+}
+.looma-bench__tabs { display: flex; flex-wrap: wrap; gap: .35rem; }
+.looma-bench:not(.is-interactive) .looma-bench__tabs { display: none; }
+.looma-bench__tab {
+  font: inherit; font-size: .66rem; font-weight: 600; cursor: pointer; padding: .3rem .85rem; min-height: 1.6rem; border-radius: 999px;
+  border: 1px solid var(--looma-line); background: transparent; color: var(--looma-muted);
+  transition: background-color .2s, color .2s, border-color .2s;
+}
+.looma-bench__tab[aria-selected="true"] { background: var(--looma-ink); color: var(--md-default-bg-color); border-color: var(--looma-ink); }
+.looma-bench__panel { display: grid; gap: .9rem; }
+.looma-bench.is-interactive .looma-bench__panel:not([hidden]) { animation: looma-fade .3s ease-out; }
+.looma-bench:not(.is-interactive) .looma-bench__panel + .looma-bench__panel { border-top: 1px dashed var(--looma-line); padding-top: .9rem; }
+.md-typeset .looma-bench__caption { margin: 0; font-size: .72rem; color: var(--looma-muted); }
+.md-typeset .looma-bench__caption strong { color: var(--looma-ink); }
+.looma-metric { display: grid; gap: .35rem; }
+.looma-metric__head { display: flex; justify-content: space-between; align-items: baseline; gap: .6rem; flex-wrap: wrap; font-size: .72rem; }
+.looma-metric__head span:first-child { font-weight: 600; color: var(--looma-ink); }
+.looma-metric__head em { font-style: normal; font-weight: 400; color: var(--looma-muted); margin-left: .3rem; }
+.looma-metric__ratio { font-family: var(--md-code-font-family); font-size: .68rem; font-weight: 600; color: var(--looma-dir); }
+.looma-bar { display: grid; grid-template-columns: 4.6rem minmax(0, 1fr) 4.4rem; align-items: center; gap: .6rem; font-size: .66rem; }
+.looma-bar > span:first-child { color: var(--looma-muted); }
+.looma-bar__track { height: .62rem; border-radius: .31rem; background: var(--looma-chunk); overflow: hidden; }
+.looma-bar__fill { display: block; height: 100%; width: var(--w); border-radius: .31rem; }
+.looma-bar--looma .looma-bar__fill { background: var(--looma-expr); }
+.looma-bar--thyme .looma-bar__fill { background: var(--looma-thyme); }
+.looma-bar__value { font-family: var(--md-code-font-family); font-variant-numeric: tabular-nums; text-align: right; }
+@keyframes looma-grow { from { width: 0; } }
+.looma-bench__panel.is-grown .looma-bar__fill { animation: looma-grow .9s cubic-bezier(.2, .7, .2, 1) both; }
+.looma-bench__panel.is-grown .looma-bar--thyme .looma-bar__fill { animation-delay: .12s; }
+
+/* ---- benchmarks: the request race ---- */
+.looma-race {
+  border: 1px solid var(--looma-line); border-radius: .6rem; background: var(--looma-paper);
+  padding: 1rem 1.1rem; margin: 1rem 0 1.6rem; display: grid; gap: 1rem;
+}
+.md-typeset .looma-race__caption { margin: 0; font-size: .72rem; color: var(--looma-muted); }
+.looma-race__lane { display: grid; gap: .45rem; --lane: var(--looma-expr); --lane-soft: var(--looma-expr-soft); }
+.looma-race__lane--thyme { --lane: var(--looma-thyme); --lane-soft: var(--looma-thyme-soft); }
+.looma-race__head { display: flex; justify-content: space-between; gap: .6rem; font-size: .74rem; }
+.looma-race__head strong { color: var(--looma-ink); }
+.looma-race__head span { color: var(--looma-muted); font-variant-numeric: tabular-nums; }
+.looma-race__head b { color: var(--looma-ink); font-family: var(--md-code-font-family); }
+.looma-race__track { position: relative; height: .55rem; border-radius: .3rem; background: var(--looma-chunk); overflow: hidden; }
+.looma-race__track::after {
+  content: ""; position: absolute; inset: 0 auto 0 0; border-radius: .3rem; background: var(--lane);
+  width: calc(var(--race-progress, 1) * 100%);
+}
+.looma-race__steps { display: flex; flex-wrap: wrap; gap: .3rem; }
+.looma-race__step {
+  font-size: .6rem; padding: .12rem .5rem; border-radius: 999px; border: 1px solid var(--looma-line);
+  color: var(--looma-muted); transition: background-color .2s, color .2s, border-color .2s;
+}
+.looma-race__step.is-active, .looma-race:not(.is-interactive) .looma-race__step, .looma-race.is-still .looma-race__step {
+  background: var(--lane-soft); color: var(--looma-ink); border-color: transparent;
+}
+.looma-race__foot { display: flex; justify-content: flex-end; }
+.looma-race:not(.is-interactive) .looma-race__foot, .looma-race.is-still .looma-race__foot { display: none; }
+
+/* ---- getting started: the steps as a timeline ---- */
+.looma-steps { position: relative; margin-left: .35rem; padding-left: 1.5rem; border-left: 2px solid var(--looma-line); }
+.looma-steps > h2 { position: relative; }
+.looma-steps > h2::before {
+  content: ""; position: absolute; left: calc(-1.5rem - 8px); top: .42em; width: 10px; height: 10px; border-radius: 50%;
+  background: var(--md-default-bg-color); border: 2px solid var(--looma-thread); transition: background-color .2s, transform .2s;
+}
+.looma-steps > h2:hover::before, .looma-steps > h2:target::before { background: var(--looma-thread); transform: scale(1.15); }
+
+@media screen and (max-width: 44.9375em) {
+  .looma-walk__tabs { grid-auto-flow: row; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .looma-walk__panel { grid-template-columns: 1fr; }
+  .looma-bar { grid-template-columns: 3.9rem minmax(0, 1fr) 3.9rem; }
+}
+
+/* ---- code: Looma syntax (see javascripts/extra.js) and block chrome ---- */
+.md-typeset .highlight .lm-dir { color: var(--looma-dir); font-weight: 600; }
+.md-typeset .highlight .lm-delim { color: var(--looma-dir); }
+.md-typeset .highlight .lm-var { color: var(--looma-expr); }
+.md-typeset .highlight .lm-bean { color: var(--looma-dir); font-style: italic; }
+.md-typeset .highlight .nt.lm-comp { color: var(--looma-dir); }
+.md-typeset .highlight .na.lm-bind { color: var(--looma-expr); font-weight: 600; }
+.md-typeset .highlight .lm-escape { color: var(--md-code-hl-comment-color); }
+.md-typeset .looma-walk code.language-looma .lm-dir { color: var(--looma-dir); font-weight: 600; }
+.md-typeset .looma-walk code.language-looma .lm-delim, .md-typeset .looma-walk code.language-looma .lm-bean,
+.md-typeset .looma-walk code.language-looma .nt.lm-comp { color: var(--looma-dir); }
+.md-typeset .looma-walk code.language-looma .lm-var, .md-typeset .looma-walk code.language-looma .na.lm-bind { color: var(--looma-expr); }
+.md-typeset .looma-walk code.language-looma .nt { color: var(--md-code-hl-keyword-color); }
+.md-typeset .looma-walk code.language-looma .na { color: var(--md-code-hl-name-color); }
+.md-typeset .looma-walk code.language-looma .s, .md-typeset .looma-walk code.language-looma .s2 { color: var(--md-code-hl-string-color); }
+.md-typeset .looma-walk code.language-looma .c { color: var(--md-code-hl-comment-color); }
+.md-typeset .looma-walk code.language-looma .p, .md-typeset .looma-walk code.language-looma .o { color: var(--md-code-hl-punctuation-color); }
+.looma-walk__file {
+  display: inline-block; font-family: var(--md-code-font-family); font-size: .6rem; color: var(--looma-muted);
+  margin-bottom: .45rem; padding: .05rem .4rem; border: 1px solid var(--looma-line); border-radius: .25rem;
+}
+.md-typeset .highlight { border-radius: .4rem; }
+.md-typeset .highlight pre, .md-typeset .highlight pre > code { border-radius: .4rem; }
+.md-typeset .highlight span.filename {
+  font-family: var(--md-code-font-family); font-size: .62rem; font-weight: 500; color: var(--looma-muted);
+  background: var(--md-code-bg-color); border-bottom: 1px solid var(--looma-line); border-radius: .4rem .4rem 0 0;
+  padding: .45rem .9rem;
+}
+.md-typeset .highlight span.filename + pre, .md-typeset .highlight span.filename + pre > code { border-top-left-radius: 0; border-top-right-radius: 0; }
+.md-typeset .tabbed-set { border-radius: .4rem; }
+
+/* ---- extending: parse once, render per request ---- */
+.looma-pipe { display: grid; gap: .9rem; margin: 1rem 0 1.6rem; }
+.looma-pipe__phase { border: 1px solid var(--looma-line); border-radius: .6rem; background: var(--looma-paper); padding: .8rem .9rem .9rem; display: grid; gap: .6rem; }
+.looma-pipe__label { font-size: .6rem; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--looma-muted); }
+.looma-pipe__row { display: flex; align-items: stretch; gap: .35rem; }
+.looma-pipe__stage {
+  flex: 1 1 0; min-width: 0; display: grid; gap: .15rem; align-content: start;
+  border: 1px solid var(--looma-line); border-radius: .45rem; padding: .5rem .6rem; background: var(--md-default-bg-color);
+  animation: looma-stage 7s ease-in-out 2; animation-delay: calc(var(--n) * .9s);
+}
+.looma-pipe__stage b { font-size: .7rem; color: var(--looma-ink); font-family: var(--md-code-font-family); font-weight: 600; overflow-wrap: anywhere; }
+.looma-pipe__stage small { font-size: .6rem; line-height: 1.35; color: var(--looma-muted); }
+.looma-pipe__stage.is-key { border-color: var(--looma-thread); }
+.looma-pipe__arrow { position: relative; flex: 0 0 1.3rem; align-self: center; height: 2px; background: var(--looma-line); }
+.looma-pipe__arrow::before {
+  content: ""; position: absolute; right: -1px; top: -3px; border: 4px solid transparent; border-left: 6px solid var(--looma-line); border-right: 0;
+}
+.looma-pipe__arrow::after {
+  content: ""; position: absolute; top: -3px; left: 0; width: 8px; height: 8px; border-radius: 50%; background: var(--looma-thread);
+  opacity: 0; animation: looma-travel 7s linear 2; animation-delay: calc(var(--n) * .9s + .55s);
+}
+@keyframes looma-stage {
+  0%, 20%, 100% { border-color: var(--looma-line); background: var(--md-default-bg-color); }
+  5%, 13% { border-color: var(--looma-thread); background: var(--looma-dir-soft); }
+}
+@keyframes looma-travel {
+  0% { left: 0; opacity: 0; } 2% { opacity: 1; } 9% { left: calc(100% - 8px); opacity: 1; } 11%, 100% { left: calc(100% - 8px); opacity: 0; }
+}
+
+.looma-pipe.is-waiting .looma-pipe__stage, .looma-pipe.is-waiting .looma-pipe__arrow::after { animation-play-state: paused; }
+.looma-pipe__foot { display: flex; justify-content: flex-end; }
+.looma-pipe:not(.is-interactive) .looma-pipe__foot { display: none; }
+
+/* ---- security: what a template can reach, and escaping ---- */
+.looma-reach { display: grid; grid-template-columns: 1fr 1fr; gap: .8rem; margin: .8rem 0 1.4rem; }
+.looma-reach__col { border: 1px solid var(--looma-line); border-radius: .6rem; padding: .8rem .9rem; background: var(--looma-paper); }
+.looma-reach__col--ok { border-top: 3px solid var(--looma-expr); }
+.looma-reach__col--no { border-top: 3px solid var(--looma-thread); }
+.md-typeset .looma-reach__title { margin: 0 0 .5rem; font-weight: 600; color: var(--looma-ink); font-size: .74rem; }
+.md-typeset .looma-reach ul { margin: 0; padding: 0; list-style: none; display: grid; gap: .3rem; }
+.md-typeset .looma-reach li { margin: 0; font-size: .7rem; padding-left: 1.1rem; position: relative; }
+.md-typeset .looma-reach li::before { position: absolute; left: 0; font-weight: 700; }
+.md-typeset .looma-reach__col--ok li::before { content: "✓"; content: "✓" / ""; color: var(--looma-expr); }
+.md-typeset .looma-reach__col--no li::before { content: "✕"; content: "✕" / ""; color: var(--looma-dir); }
+.looma-escape { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; margin: .6rem 0 1.6rem; }
+.looma-escape__box {
+  display: grid; gap: .25rem; border: 1px solid var(--looma-line); border-radius: .5rem; padding: .5rem .7rem;
+  background: var(--looma-paper); min-width: 0; animation: looma-rise .45s ease-out both; animation-delay: calc(var(--i) * .25s);
+}
+.looma-escape__box--seen { border-color: var(--looma-expr); }
+.looma-escape__label { font-size: .6rem; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--looma-muted); }
+.looma-escape__box code { font-size: .64rem; word-break: break-all; }
+.looma-escape__box--seen span:last-child { font-size: .72rem; }
+.looma-escape__arrow { font-size: .62rem; color: var(--looma-muted); animation: looma-fade .45s ease-out both; animation-delay: calc(var(--i) * .25s); }
+.looma-escape__arrow::after { content: " →"; content: " →" / ""; color: var(--looma-thread); font-weight: 700; }
+
+@media screen and (max-width: 44.9375em) {
+  .looma-pipe__row { flex-direction: column; }
+  .looma-pipe__arrow { flex-basis: 1rem; width: 2px; height: 1rem; align-self: center; }
+  .looma-pipe__arrow::before { right: auto; left: -3px; top: auto; bottom: -1px; border: 4px solid transparent; border-top: 6px solid var(--looma-line); border-bottom: 0; }
+  .looma-pipe__arrow::after { display: none; }
+  .looma-reach { grid-template-columns: 1fr; }
+}
+
+/* Everything above stays readable and complete without motion. */
+@media (prefers-reduced-motion: reduce) {
+  .md-content__inner, .md-typeset .tabbed-block, .looma-walk *, .looma-bench *, .looma-race *, .looma-steps *,
+  .looma-pipe *, .looma-escape * {
+    animation: none !important; transition: none !important;
+  }
 }
