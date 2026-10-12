@@ -104,8 +104,8 @@ Same page in each engine, measured with JMH ([details](benchmarks.md)):
 
 | Render time | Thymeleaf | Looma |
 |---|---|---|
-| 10-row table | 11.5 µs | **2.9 µs** |
-| 200-row table | 230.7 µs | **55.1 µs** |
+| 10-row table | 12.2 µs | **2.7 µs** |
+| 200-row table | 222.3 µs | **54.5 µs** |
 
 ## When to choose which
 

@@ -7,17 +7,19 @@ title: Benchmarks
 Numbers for orientation, not a ranking. One machine, one template, and engines differ in features that
 cost time (Thymeleaf's natural templating, for example). Measure your own pages before deciding anything.
 
-**Machine:** Apple M2 Pro, macOS, OpenJDK 25.0.4. **Engines:** Looma (this repo), Thymeleaf 3.1.5, Pebble 4.1.2.
+**Machine:** Apple M2 Pro, macOS, OpenJDK 25.0.4. **Engines:** Looma 0.1.2, Thymeleaf 3.1.5, Pebble 4.1.2.
+**Last run:** 2026-10-12.
 
 ## 1. Template rendering (JMH)
 
 The same table in each engine (a loop, an escaped value, a conditional and the loop counter per row), warm,
-templates cached, byte-identical output (checked before measuring). Average time per render, lower is better.
+templates cached, byte-identical output (checked before measuring). Average time per render over 2 forks ×
+6 iterations, lower is better; the error margins were under 1% except Thymeleaf at 200 rows (±4%).
 
 | rows | Looma | Pebble | Thymeleaf |
 |---|---|---|---|
-| 10 | **2.9 µs** | 4.4 µs | 11.5 µs |
-| 200 | **55.1 µs** | 86.3 µs | 230.7 µs |
+| 10 | **2.7 µs** | 4.3 µs | 12.2 µs |
+| 200 | **54.5 µs** | 85.0 µs | 222.3 µs |
 
 On this page Looma is about **1.5× faster than Pebble** and **4× faster than Thymeleaf**.
 
