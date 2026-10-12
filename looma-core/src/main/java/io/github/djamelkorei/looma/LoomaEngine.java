@@ -36,7 +36,7 @@ public final class LoomaEngine {
     /** Helpers visible in every template, below the model in lookup order. Built once, then only read. */
     private final Scope globals;
     private final Map<String, Template> cached = new ConcurrentHashMap<>();
-    private final Set<String> known = ConcurrentHashMap.newKeySet();
+    private final Map<String, Boolean> known = new ConcurrentHashMap<>();
     /** Largest output seen per template, used to size the next render's buffer. */
     private final Map<String, Integer> sizeHints = new ConcurrentHashMap<>();
 
@@ -131,15 +131,16 @@ public final class LoomaEngine {
         }
     }
 
-    /** Whether a template exists. With caching on, positive answers are remembered (this runs per request). */
+    /**
+     * Whether a template exists. With caching on, the answer is remembered either way: this runs per request, and a
+     * negative answer from a classpath loader costs a jar lookup ({@code @includeIf} of an optional partial).
+     */
     public boolean exists(String name) {
-        if (cache && known.contains(name)) {
-            return true;
-        }
+        if (!cache) return loader.exists(name);
+        Boolean remembered = known.get(name);
+        if (remembered != null) return remembered;
         boolean found = loader.exists(name);
-        if (cache && found) {
-            known.add(name);
-        }
+        known.put(name, found);
         return found;
     }
 

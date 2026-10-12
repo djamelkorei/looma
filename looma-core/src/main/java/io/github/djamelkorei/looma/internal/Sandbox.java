@@ -1,16 +1,20 @@
 package io.github.djamelkorei.looma.internal;
 
 import java.lang.reflect.AccessibleObject;
+import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import org.springframework.core.convert.TypeDescriptor;
 import org.springframework.expression.AccessException;
 import org.springframework.expression.EvaluationContext;
 import org.springframework.expression.MethodExecutor;
-import org.springframework.expression.MethodResolver;
 import org.springframework.expression.PropertyAccessor;
 import org.springframework.expression.TypedValue;
-import org.springframework.expression.spel.support.DataBindingMethodResolver;
 import org.springframework.expression.spel.support.DataBindingPropertyAccessor;
+import org.springframework.expression.spel.support.ReflectiveMethodResolver;
 
 /**
  * Blocks the reflection escape hatches that remain in {@code SimpleEvaluationContext}:
@@ -58,9 +62,31 @@ final class Sandbox {
         }
     }
 
-    static final class Methods implements MethodResolver {
-        private final MethodResolver delegate = DataBindingMethodResolver.forInstanceMethodInvocation();
+    /**
+     * The rules of {@code DataBindingMethodResolver} (instance methods only, nothing from Object or Class, nothing on
+     * a class loader) plus the sandbox checks. It extends {@link ReflectiveMethodResolver} rather than wrapping one
+     * because SpEL only reuses a resolved method executor across evaluations when its single resolver is a
+     * {@code ReflectiveMethodResolver}; with a wrapper every {@code $p.status.name()} in a loop re-resolved the
+     * method by reflection, which dominated the profile of a page with many calls.
+     *
+     * <p>A cached executor is reused only for the same target type and argument types, so a node warmed up with a
+     * harmless object never serves a denied type ({@link #deniedTarget}), and denied names never reach the cache.
+     */
+    static final class Methods extends ReflectiveMethodResolver {
 
+        /** A resolved method per target class, name and argument types; see {@link #resolve}. */
+        private record Key(Class<?> target, String name, List<TypeDescriptor> argTypes) {}
+
+        private static final int MAX_CACHED = 10_000;
+        private final Map<Key, MethodExecutor> resolved = new ConcurrentHashMap<>();
+
+        /**
+         * SpEL remembers one resolved method per expression node and drops it as soon as the argument types differ
+         * from the previous call. Real data flips between types all the time ({@code List.of} gives different
+         * classes for different sizes, a value is sometimes null), and each flip meant a full reflective lookup
+         * of the class's methods. The executors here are reusable, so they are kept per class, name and argument
+         * types instead.
+         */
         @Override
         public MethodExecutor resolve(EvaluationContext c, Object target, String name, List<TypeDescriptor> argTypes)
                 throws AccessException {
@@ -69,7 +95,23 @@ final class Sandbox {
             if (deniedTarget(target) || deniedMember(name) || target instanceof Scope) {
                 throw new AccessException("Method '" + name + "' is not allowed in templates");
             }
-            return delegate.resolve(c, target, name, argTypes);
+            Key key = new Key(target.getClass(), name, new ArrayList<>(argTypes)); // argument types can be null
+            MethodExecutor executor = resolved.get(key);
+            if (executor == null) {
+                executor = super.resolve(c, target, name, argTypes);
+                if (executor != null) {
+                    if (resolved.size() >= MAX_CACHED) resolved.clear();
+                    resolved.put(key, executor);
+                }
+            }
+            return executor;
+        }
+
+        @Override
+        protected boolean isCandidateForInvocation(Method method, Class<?> targetClass) {
+            Class<?> declaring = method.getDeclaringClass();
+            return !Modifier.isStatic(method.getModifiers()) && declaring != Object.class && declaring != Class.class
+                    && !ClassLoader.class.isAssignableFrom(targetClass);
         }
     }
 }

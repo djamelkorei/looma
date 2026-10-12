@@ -56,12 +56,21 @@ class ConcurrencyTest {
     }
 
     @Test
-    void cachedEngineRemembersExistenceButNotMisses() {
+    void cachedEngineRemembersLookupsEitherWay() {
         LoomaEngine engine = new LoomaEngine(loader, true);
         assertTrue(!engine.exists("later"));
         files.put("later", "x");
+        assertTrue(!engine.exists("later"), "a miss is remembered when caching is on (an @includeIf per request)");
+        assertTrue(engine.exists("layout"));
+        files.remove("layout");
+        assertTrue(engine.exists("layout"), "a hit is remembered when caching is on");
+    }
+
+    @Test
+    void uncachedEngineLooksUpEveryTime() {
+        LoomaEngine engine = new LoomaEngine(loader, false);
+        assertTrue(!engine.exists("later"));
+        files.put("later", "x");
         assertTrue(engine.exists("later"));
-        files.remove("later");
-        assertTrue(engine.exists("later"), "positive lookups are cached when caching is on");
     }
 }
