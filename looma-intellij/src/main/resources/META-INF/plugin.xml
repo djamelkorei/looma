@@ -9,6 +9,10 @@
         sections, stacks and message keys, and error checks for unclosed blocks.
     ]]></description>
     <change-notes><![CDATA[
+        <h3>0.1.2</h3>
+        <ul>
+            <li>A plugin icon for dark IDE themes, so the Looma logo stays visible on dark backgrounds.</li>
+        </ul>
         <h3>0.1.1</h3>
         <ul>
             <li>No more false errors on templates that render fine: <code>@empty($x) ... @endempty</code> inside
