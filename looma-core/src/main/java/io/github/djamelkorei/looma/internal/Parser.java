@@ -193,8 +193,10 @@ public final class Parser {
             } else if (value.contains("{{")) {
                 attrs.add(new ComponentNode.Attr(name, Expressions.parse(interpolate(value, t.line()), t.line(), templateName)));
             } else {
+                String text = value;
+                FastPath.Plan constant = scope -> text; // no SpEL call for a plain value
                 attrs.add(new ComponentNode.Attr(name, new Expr(
-                        new org.springframework.expression.common.LiteralExpression(value), value, t.line())));
+                        new org.springframework.expression.common.LiteralExpression(value), value, t.line(), constant)));
             }
         }
         return attrs;
