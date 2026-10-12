@@ -48,8 +48,21 @@ public final class DateHelper implements TemplateHelper {
     /** {@link DateTimeFormatter} pattern such as {@code 'yyyy-MM-dd HH:mm'}, in the current locale. */
     public String format(Object value, String pattern) {
         TemporalAccessor t = temporal(value);
-        return t == null ? "" : DateTimeFormatter.ofPattern(pattern, TemplateLocale.current()).format(t);
+        if (t == null) return "";
+        java.util.Locale locale = TemplateLocale.current();
+        PatternKey key = new PatternKey(pattern, locale);
+        DateTimeFormatter f = PATTERNS.get(key);
+        if (f == null) {
+            f = DateTimeFormatter.ofPattern(pattern, locale); // formatters are immutable and thread-safe
+            if (PATTERNS.size() > 1_000) PATTERNS.clear();
+            PATTERNS.put(key, f);
+        }
+        return f.format(t);
     }
+
+    private record PatternKey(String pattern, java.util.Locale locale) {}
+
+    private static final java.util.Map<PatternKey, DateTimeFormatter> PATTERNS = new java.util.concurrent.ConcurrentHashMap<>();
 
     public String shortFormat(Object value) {
         return styled(value, FormatStyle.SHORT);

@@ -4,6 +4,8 @@ import io.github.djamelkorei.looma.Htmlable;
 import io.github.djamelkorei.looma.spi.Html;
 import io.github.djamelkorei.looma.spi.TemplateHelper;
 import java.text.Normalizer;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Locale;
 import java.util.StringJoiner;
 
@@ -80,13 +82,41 @@ public final class StringHelper implements TemplateHelper {
     /** Keeps the first {@code words} words, ending with "…" when cut. */
     public String truncateWords(CharSequence value, int words) {
         if (value == null) return "";
-        String[] parts = value.toString().trim().split("\\s+");
-        if (parts.length <= words) return value.toString().trim();
-        return String.join(" ", java.util.Arrays.copyOf(parts, words)) + "\u2026";
+        String trimmed = value.toString().trim();
+        if (words < 0) throw new NegativeArraySizeException(String.valueOf(words)); // as Arrays.copyOf did
+        List<String> parts = words(trimmed, words + 1);
+        if (parts.size() <= words) return trimmed;
+        return String.join(" ", parts.subList(0, words)) + "\u2026";
     }
 
     public int wordCount(CharSequence value) {
-        return isBlank(value) ? 0 : value.toString().trim().split("\\s+").length;
+        return isBlank(value) ? 0 : words(value.toString().trim(), Integer.MAX_VALUE).size();
+    }
+
+    /**
+     * {@code trimmed.split("\\s+")} without a regex (this runs for every comment of a page), stopping after
+     * {@code limit} words. Like split on a trimmed string, an empty string is one empty word.
+     */
+    private static List<String> words(String trimmed, int limit) {
+        List<String> out = new ArrayList<>();
+        int n = trimmed.length();
+        if (n == 0) {
+            out.add("");
+            return out;
+        }
+        int i = 0;
+        while (i < n && out.size() < limit) {
+            int start = i;
+            while (i < n && !isRegexSpace(trimmed.charAt(i))) i++;
+            out.add(trimmed.substring(start, i));
+            while (i < n && isRegexSpace(trimmed.charAt(i))) i++;
+        }
+        return out;
+    }
+
+    /** The characters of the regex class {@code \\s}: space, tab, line feed, vertical tab, form feed, return. */
+    private static boolean isRegexSpace(char c) {
+        return c == ' ' || c == '\t' || c == '\n' || c == '\u000B' || c == '\f' || c == '\r';
     }
 
     public String capitalize(CharSequence value) {
@@ -105,7 +135,9 @@ public final class StringHelper implements TemplateHelper {
     public String initials(CharSequence value) {
         if (isBlank(value)) return "";
         StringBuilder sb = new StringBuilder();
-        for (String w : value.toString().trim().split("\\s+")) sb.appendCodePoint(Character.toUpperCase(w.codePointAt(0)));
+        for (String w : words(value.toString().trim(), Integer.MAX_VALUE)) {
+            sb.appendCodePoint(Character.toUpperCase(w.codePointAt(0)));
+        }
         return sb.toString();
     }
 
@@ -128,8 +160,33 @@ public final class StringHelper implements TemplateHelper {
     /** URL-friendly slug: "Héllo, World!" -> "hello-world". */
     public String slug(CharSequence value) {
         if (value == null) return "";
-        String ascii = Normalizer.normalize(value.toString(), Normalizer.Form.NFD).replaceAll("\\p{M}+", "");
-        return ascii.toLowerCase(java.util.Locale.ROOT).replaceAll("[^a-z0-9]+", "-").replaceAll("(^-+|-+$)", "");
+        String text = value.toString();
+        // ASCII has nothing to decompose and no combining marks
+        String ascii = isAscii(text) ? text : MARKS.matcher(Normalizer.normalize(text, Normalizer.Form.NFD)).replaceAll("");
+        String lower = ascii.toLowerCase(java.util.Locale.ROOT);
+        // runs of anything but [a-z0-9] become one '-', none at the start or the end
+        StringBuilder sb = new StringBuilder(lower.length());
+        boolean gap = false;
+        for (int i = 0; i < lower.length(); i++) {
+            char c = lower.charAt(i);
+            if ((c >= 'a' && c <= 'z') || (c >= '0' && c <= '9')) {
+                if (gap && !sb.isEmpty()) sb.append('-');
+                gap = false;
+                sb.append(c);
+            } else {
+                gap = true;
+            }
+        }
+        return sb.toString();
+    }
+
+    private static final java.util.regex.Pattern MARKS = java.util.regex.Pattern.compile("\\p{M}+");
+
+    private static boolean isAscii(String s) {
+        for (int i = 0; i < s.length(); i++) {
+            if (s.charAt(i) > 127) return false;
+        }
+        return true;
     }
 
     /** "3 items" / "1 item": picks the word for the count and puts the count in front. */
